@@ -2,9 +2,10 @@
 
 ## Sistema de Gestión de Capacitaciones y Plan de Formación
 
-**Versión:** 1.0
+**Versión:** 2.0
 **Fecha:** Enero 2026
 **Proyecto:** LMS para gestión de competencias en trabajo de alto riesgo
+**Alineación:** Estándar Indunnova SAS v2.0
 
 ---
 
@@ -16,70 +17,102 @@ Este documento presenta el plan de desarrollo para el Sistema LMS de S.D. S.A.S.
 
 | Componente | Descripción |
 |------------|-------------|
-| **Web App** | Aplicación web responsive para administración y consumo de contenido |
+| **Web App** | Aplicación web responsive con Django + HTMX + Alpine.js |
 | **App Móvil** | Aplicaciones nativas Android/iOS con soporte offline completo |
-| **Backend API** | API REST escalable para gestión de datos y lógica de negocio |
+| **Backend API** | API REST/GraphQL con Django + DRF + Django Ninja |
 | **CMS** | Sistema de gestión de contenido educativo (LCMS) |
-| **Analytics** | Dashboard de reportes y analítica |
+| **Analytics** | Dashboard de reportes y analítica con ECharts |
 
 ---
 
-## 2. Stack Tecnológico Recomendado
+## 2. Stack Tecnológico (Alineado con Indunnova v2.0)
 
-### 2.1 Frontend Web
+### 2.1 Backend
+
+| Tecnología | Versión | Justificación |
+|------------|---------|---------------|
+| **Python** | 3.12.x | Mejoras de rendimiento 10-15%, mejor manejo de errores |
+| **Django** | 5.1.x LTS | Soporte async nativo mejorado, nuevos campos de modelo |
+| **PostgreSQL** | 16.x | Paralelismo mejorado, compresión de datos |
+| **Redis** | 7.x | Cache, sesiones, broker Celery |
+| **Celery** | 5.3+ | Tareas asíncronas y background jobs |
+
+### 2.2 APIs y Servicios
+
+| Tecnología | Propósito |
+|------------|-----------|
+| **Django REST Framework 3.15+** | APIs REST principales |
+| **Django Ninja** | APIs de alto rendimiento con validación Pydantic |
+| **GraphQL (Strawberry)** | Consultas flexibles para dashboards (Fase 2) |
+| **drf-spectacular** | Documentación OpenAPI automática |
+
+### 2.3 Frontend Web
 
 | Tecnología | Justificación |
 |------------|---------------|
-| **Next.js 14** | Framework React con SSR, optimización automática, excelente SEO |
-| **TypeScript** | Tipado estático para mayor robustez y mantenibilidad |
-| **Tailwind CSS** | Utilidades CSS para desarrollo rápido y consistente |
-| **Shadcn/ui** | Componentes accesibles y personalizables |
-| **TanStack Query** | Gestión de estado del servidor y caché |
-| **Zustand** | Estado global ligero |
-| **React Hook Form + Zod** | Formularios con validación robusta |
+| **HTMX 2.x** | Interactividad SPA-like manteniendo templates Django |
+| **Alpine.js 3.x** | Reactividad ligera (15KB) para componentes interactivos |
+| **Tailwind CSS 3.x** | Diseño utility-first, mayor flexibilidad |
+| **daisyUI** | Componentes prediseñados sobre Tailwind |
+| **Hyperscript** | Scripting declarativo para interacciones complejas |
+| **Vite** | Build rápido, HMR en desarrollo |
 
-### 2.2 Aplicación Móvil
+### 2.4 Visualización de Datos
+
+| Librería | Uso |
+|----------|-----|
+| **Apache ECharts** | Dashboards complejos, mapas, gráficos avanzados |
+| **Chart.js 4.x** | Gráficos simples y rápidos |
+| **AG Grid Community** | Tablas avanzadas con filtros, ordenamiento, exportación |
+
+### 2.5 Aplicación Móvil
 
 | Tecnología | Justificación |
 |------------|---------------|
-| **React Native** | Código compartido entre Android/iOS, ecosistema maduro |
+| **React Native** | Código compartido Android/iOS, ecosistema maduro |
 | **Expo** | Desarrollo acelerado, OTA updates, build service |
 | **WatermelonDB** | Base de datos offline-first de alto rendimiento |
 | **React Native MMKV** | Almacenamiento local ultrarrápido |
 | **React Native Background Fetch** | Sincronización en segundo plano |
 | **Notifee** | Notificaciones push avanzadas |
 
-### 2.3 Backend
+### 2.6 Infraestructura (GCP)
 
 | Tecnología | Justificación |
 |------------|---------------|
-| **Node.js + NestJS** | Framework enterprise-grade, modular, TypeScript nativo |
-| **PostgreSQL** | Base de datos relacional robusta, soporte JSON |
-| **Redis** | Caché, colas de trabajo, sesiones |
-| **MinIO/S3** | Almacenamiento de objetos para multimedia |
-| **BullMQ** | Colas de trabajo para tareas asíncronas |
-| **Prisma** | ORM type-safe con migraciones |
-
-### 2.4 Infraestructura
-
-| Tecnología | Justificación |
-|------------|---------------|
-| **AWS** | Presencia en región São Paulo (cercana a Colombia) |
-| **Docker + Kubernetes (EKS)** | Orquestación de contenedores escalable |
+| **Google Cloud Platform** | Región São Paulo, precios competitivos LATAM |
+| **Cloud Run** | Contenedores serverless, escalado automático |
+| **Cloud SQL** | PostgreSQL 16 gestionado con alta disponibilidad |
+| **Memorystore** | Redis 7 gestionado |
+| **Cloud Storage** | Almacenamiento de objetos para multimedia |
+| **Cloud CDN** | Distribución de contenido multimedia |
+| **Cloud Build** | CI/CD automatizado |
 | **Terraform** | Infraestructura como código |
-| **GitHub Actions** | CI/CD automatizado |
-| **CloudFront CDN** | Distribución global de contenido multimedia |
-| **AWS Cognito** | Autenticación y autorización |
 
-### 2.5 Servicios Adicionales
+### 2.7 Seguridad (Alineado con Indunnova)
 
-| Servicio | Uso |
-|----------|-----|
-| **AWS SES** | Envío de correos transaccionales |
-| **AWS SNS** | Notificaciones push y SMS |
-| **FFmpeg** | Procesamiento y compresión de video |
-| **Sharp** | Optimización de imágenes |
-| **SCORM Cloud API** | Reproducción de contenido SCORM |
+| Librería | Propósito |
+|----------|-----------|
+| **django-axes** | Protección contra fuerza bruta |
+| **django-csp** | Content Security Policy headers |
+| **django-cors-headers** | CORS configurado correctamente |
+| **django-otp** | Autenticación de dos factores (2FA) |
+| **python-decouple** | Variables de entorno seguras |
+| **GCP Secret Manager** | Gestión de secretos en producción |
+
+### 2.8 Testing y Calidad de Código
+
+| Herramienta | Propósito |
+|-------------|-----------|
+| **pytest-django** | Testing framework principal |
+| **factory_boy** | Factories para fixtures |
+| **faker** | Datos de prueba realistas |
+| **pytest-cov** | Cobertura de código (>80%) |
+| **playwright** | E2E testing |
+| **Ruff** | Linter + formatter ultrarrápido |
+| **mypy** | Type checking estático |
+| **pre-commit** | Hooks de Git para calidad |
+| **djLint** | Linting de templates Django |
 
 ---
 
@@ -92,26 +125,28 @@ Este documento presenta el plan de desarrollo para el Sistema LMS de S.D. S.A.S.
 │                              CLIENTES                                        │
 ├─────────────────┬─────────────────┬─────────────────┬───────────────────────┤
 │   Web App       │   Android App   │    iOS App      │   Portal Auditor ISA  │
-│   (Next.js)     │  (React Native) │ (React Native)  │      (Next.js)        │
+│ (Django+HTMX)   │  (React Native) │ (React Native)  │   (Django+HTMX)       │
 └────────┬────────┴────────┬────────┴────────┬────────┴───────────┬───────────┘
          │                 │                 │                     │
          └─────────────────┴────────┬────────┴─────────────────────┘
                                     │
                            ┌────────▼────────┐
-                           │   CloudFront    │
-                           │      CDN        │
+                           │   Cloud CDN     │
+                           │   + Cloud LB    │
                            └────────┬────────┘
                                     │
                            ┌────────▼────────┐
-                           │  Load Balancer  │
-                           │    (AWS ALB)    │
+                           │   Cloud Armor   │
+                           │     (WAF)       │
                            └────────┬────────┘
                                     │
          ┌──────────────────────────┼──────────────────────────┐
          │                          │                          │
 ┌────────▼────────┐       ┌────────▼────────┐       ┌────────▼────────┐
-│   API Gateway   │       │   API Gateway   │       │   API Gateway   │
-│   (Instance 1)  │       │   (Instance 2)  │       │   (Instance N)  │
+│   Django Web    │       │   Django API    │       │   Django Admin  │
+│   (Cloud Run)   │       │   (Cloud Run)   │       │   (Cloud Run)   │
+│                 │       │                 │       │                 │
+│  HTMX + Alpine  │       │  DRF + Ninja    │       │  Django Admin   │
 └────────┬────────┘       └────────┬────────┘       └────────┬────────┘
          │                         │                          │
          └─────────────────────────┼──────────────────────────┘
@@ -119,34 +154,79 @@ Este documento presenta el plan de desarrollo para el Sistema LMS de S.D. S.A.S.
          ┌─────────────────────────┼─────────────────────────┐
          │                         │                         │
 ┌────────▼────────┐      ┌────────▼────────┐      ┌─────────▼───────┐
-│  Auth Service   │      │  Core LMS API   │      │ Content Service │
-│   (NestJS)      │      │    (NestJS)     │      │    (NestJS)     │
-└────────┬────────┘      └────────┬────────┘      └────────┬────────┘
-         │                        │                         │
-         │              ┌─────────┴─────────┐              │
-         │              │                   │              │
-    ┌────▼────┐    ┌────▼────┐       ┌─────▼─────┐   ┌────▼────┐
-    │ Cognito │    │PostgreSQL│       │   Redis   │   │  MinIO  │
-    │         │    │  (RDS)   │       │(ElastiCache│   │  (S3)   │
-    └─────────┘    └──────────┘       └───────────┘   └─────────┘
+│  Cloud SQL      │      │  Memorystore    │      │  Cloud Storage  │
+│  PostgreSQL 16  │      │  Redis 7.x      │      │  (Media/Files)  │
+└─────────────────┘      └─────────────────┘      └─────────────────┘
+                                   │
+                          ┌────────▼────────┐
+                          │  Celery Workers │
+                          │ (Cloud Run Jobs)│
+                          └─────────────────┘
 ```
 
-### 3.2 Microservicios
+### 3.2 Arquitectura Django (Patrones Indunnova)
 
-| Servicio | Responsabilidad |
-|----------|-----------------|
-| **auth-service** | Autenticación, autorización, gestión de sesiones |
-| **user-service** | Gestión de usuarios, perfiles, roles |
-| **course-service** | Gestión de cursos, módulos, contenido |
-| **learning-path-service** | Rutas de aprendizaje, prerrequisitos |
-| **assessment-service** | Evaluaciones, banco de preguntas, calificación |
-| **certification-service** | Certificados, vencimientos, validación QR |
-| **lesson-learned-service** | Lecciones aprendidas, micro-learning |
-| **preop-talk-service** | Charlas pre-operacionales, asistencia |
-| **notification-service** | Push, email, SMS |
-| **sync-service** | Sincronización offline, cola de cambios |
-| **report-service** | Reportes, dashboards, exportaciones |
-| **integration-service** | Integraciones con sistemas externos |
+```
+┌─────────────────────────────────────────────────────────────┐
+│              ARQUITECTURA DJANGO - CLEAN ARCHITECTURE        │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │                    PRESENTATION LAYER                 │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐  │   │
+│  │  │   Views     │  │  Templates  │  │  Serializers │  │   │
+│  │  │  (Django)   │  │ (HTMX/Alpine│  │   (DRF)      │  │   │
+│  │  └──────┬──────┘  └──────┬──────┘  └──────┬───────┘  │   │
+│  └─────────┼────────────────┼────────────────┼──────────┘   │
+│            │                │                │               │
+│  ┌─────────▼────────────────▼────────────────▼──────────┐   │
+│  │                    SERVICE LAYER                      │   │
+│  │  ┌─────────────────────────────────────────────────┐ │   │
+│  │  │  apps/*/services.py                             │ │   │
+│  │  │  - Business logic                               │ │   │
+│  │  │  - Orchestration                                │ │   │
+│  │  │  - Transaction management                       │ │   │
+│  │  └─────────────────────┬───────────────────────────┘ │   │
+│  └────────────────────────┼─────────────────────────────┘   │
+│                           │                                  │
+│  ┌────────────────────────▼─────────────────────────────┐   │
+│  │                  REPOSITORY LAYER                     │   │
+│  │  ┌─────────────────────────────────────────────────┐ │   │
+│  │  │  apps/*/repositories.py                         │ │   │
+│  │  │  - Data access abstraction                      │ │   │
+│  │  │  - Query optimization                           │ │   │
+│  │  │  - Caching logic                                │ │   │
+│  │  └─────────────────────┬───────────────────────────┘ │   │
+│  └────────────────────────┼─────────────────────────────┘   │
+│                           │                                  │
+│  ┌────────────────────────▼─────────────────────────────┐   │
+│  │                    DOMAIN LAYER                       │   │
+│  │  ┌─────────────────────────────────────────────────┐ │   │
+│  │  │  apps/*/models.py                               │ │   │
+│  │  │  - Django models                                │ │   │
+│  │  │  - Domain entities                              │ │   │
+│  │  │  - Validators                                   │ │   │
+│  │  └─────────────────────────────────────────────────┘ │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 3.3 Aplicaciones Django
+
+| Aplicación | Responsabilidad |
+|------------|-----------------|
+| **accounts** | Autenticación, usuarios, roles, permisos |
+| **courses** | Gestión de cursos, módulos, contenido |
+| **learning_paths** | Rutas de aprendizaje, prerrequisitos |
+| **assessments** | Evaluaciones, banco de preguntas, calificación |
+| **certifications** | Certificados, vencimientos, validación QR |
+| **lessons_learned** | Lecciones aprendidas, micro-learning |
+| **preop_talks** | Charlas pre-operacionales, asistencia |
+| **notifications** | Push, email, SMS |
+| **sync** | Sincronización offline, cola de cambios |
+| **reports** | Reportes, dashboards, exportaciones |
+| **integrations** | Integraciones con sistemas externos |
 
 ---
 
@@ -156,41 +236,93 @@ Este documento presenta el plan de desarrollo para el Sistema LMS de S.D. S.A.S.
 
 #### Objetivos
 - Establecer entorno de desarrollo
-- Configurar infraestructura base
-- Definir estándares de código
+- Configurar infraestructura base GCP
+- Definir estándares de código según Indunnova
 
 #### Entregables
 
 | Tarea | Descripción |
 |-------|-------------|
-| Repositorio monorepo | Setup con Turborepo para web, móvil y backend |
-| CI/CD Pipeline | GitHub Actions para build, test, deploy |
-| Infraestructura base | Terraform para AWS (VPC, RDS, S3, etc.) |
-| Ambientes | Dev, Staging, Production |
-| Documentación técnica | ADRs, guías de contribución |
+| Repositorio | Setup con estructura Django estándar |
+| CI/CD Pipeline | GitHub Actions + Cloud Build |
+| Infraestructura base | Terraform para GCP |
+| Ambientes | Dev (local), Staging, Production |
+| Pre-commit hooks | Ruff, mypy, djLint |
 | Diseño UI/UX | Wireframes y mockups en Figma |
 
-#### Estructura del Monorepo
+#### Estructura del Proyecto
 
 ```
 sd-lms/
 ├── apps/
-│   ├── web/                 # Next.js web app
-│   ├── mobile/              # React Native app
-│   ├── admin/               # Panel de administración
-│   └── api/                 # NestJS backend
-├── packages/
-│   ├── ui/                  # Componentes compartidos
-│   ├── database/            # Prisma schema y cliente
-│   ├── config/              # Configuraciones compartidas
-│   ├── types/               # Tipos TypeScript compartidos
-│   └── utils/               # Utilidades compartidas
+│   ├── accounts/               # Usuarios y autenticación
+│   │   ├── models.py
+│   │   ├── views.py
+│   │   ├── api/
+│   │   │   ├── views.py        # DRF views
+│   │   │   └── ninja.py        # Django Ninja endpoints
+│   │   ├── services.py         # Service Layer
+│   │   ├── repositories.py     # Repository Pattern
+│   │   └── tests/
+│   │
+│   ├── courses/                # Gestión de cursos
+│   ├── assessments/            # Evaluaciones
+│   ├── certifications/         # Certificados
+│   ├── learning_paths/         # Rutas de aprendizaje
+│   ├── lessons_learned/        # Lecciones aprendidas
+│   ├── preop_talks/           # Charlas pre-operacionales
+│   ├── reports/               # Reportes y analytics
+│   ├── sync/                  # Sincronización offline
+│   └── notifications/         # Notificaciones
+│
+├── config/
+│   ├── settings/
+│   │   ├── base.py
+│   │   ├── local.py
+│   │   ├── staging.py
+│   │   ├── production.py
+│   │   └── test.py
+│   ├── urls.py
+│   ├── celery.py
+│   └── wsgi.py
+│
+├── templates/                  # Django templates + HTMX
+│   ├── base.html
+│   ├── components/            # Componentes reutilizables
+│   └── partials/              # Fragmentos HTMX
+│
+├── static/
+│   ├── css/
+│   │   └── tailwind.css
+│   ├── js/
+│   │   ├── htmx.min.js
+│   │   └── alpine.min.js
+│   └── vendor/
+│
+├── mobile/                     # React Native App
+│   ├── src/
+│   ├── package.json
+│   └── app.json
+│
 ├── infrastructure/
-│   ├── terraform/           # IaC
-│   ├── kubernetes/          # Manifests K8s
-│   └── docker/              # Dockerfiles
-├── docs/                    # Documentación
-└── scripts/                 # Scripts de utilidad
+│   ├── terraform/
+│   └── docker/
+│
+├── docs/
+│   ├── mkdocs.yml
+│   └── docs/
+│
+├── requirements/
+│   ├── base.txt
+│   ├── local.txt
+│   ├── production.txt
+│   └── test.txt
+│
+├── docker-compose.yml
+├── Dockerfile
+├── pyproject.toml             # Ruff config
+├── .pre-commit-config.yaml
+└── README.md
 ```
 
 ---
@@ -198,89 +330,111 @@ sd-lms/
 ### Fase 1: Core Backend y Autenticación (Semanas 3-6)
 
 #### Objetivos
-- Implementar servicios backend core
-- Sistema de autenticación robusto
+- Implementar aplicaciones Django core
+- Sistema de autenticación robusto con 2FA
 - Gestión de usuarios y roles
 
 #### Módulos a Desarrollar
 
-##### 1.1 Servicio de Autenticación
-```typescript
-// Funcionalidades
+##### 1.1 App de Autenticación (accounts)
+```python
+# Funcionalidades
 - Login con email/password
-- Autenticación de dos factores (2FA)
-- Gestión de sesiones
-- Refresh tokens
+- Autenticación de dos factores (django-otp)
+- Gestión de sesiones (Redis)
+- Refresh tokens (djangorestframework-simplejwt)
 - Logout y revocación de tokens
 - Recuperación de contraseña
-- Integración con AWS Cognito
+- Protección fuerza bruta (django-axes)
 ```
 
-##### 1.2 Servicio de Usuarios
-```typescript
-// Funcionalidades
+##### 1.2 Gestión de Usuarios
+```python
+# Funcionalidades
 - CRUD de usuarios
 - Gestión de perfiles (Admin, Supervisor, Colaborador, Auditor, Instructor)
-- Asignación de roles y permisos
+- Asignación de roles y permisos (django-guardian)
 - Vinculación con contratos
-- Importación masiva (CSV/Excel)
+- Importación masiva (CSV/Excel con pandas)
 - Histórico de contratos
 - Estados de usuario (activo, inactivo, suspendido)
 ```
 
-##### 1.3 Modelo de Datos Inicial
+##### 1.3 Modelo de Datos (Django Models)
 
-```prisma
-// schema.prisma (extracto)
+```python
+# apps/accounts/models.py
 
-model User {
-  id                String    @id @default(cuid())
-  email             String    @unique
-  passwordHash      String
-  firstName         String
-  lastName          String
-  documentType      String    // CC, CE, etc.
-  documentNumber    String    @unique
-  phone             String?
-  role              Role      @relation(fields: [roleId], references: [id])
-  roleId            String
-  status            UserStatus @default(ACTIVE)
-  jobPosition       String
-  workFront         String?
-  hireDate          DateTime
-  contracts         UserContract[]
-  enrollments       Enrollment[]
-  certifications    Certification[]
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-}
+from django.contrib.auth.models import AbstractUser
+from django.db import models
 
-model Role {
-  id          String   @id @default(cuid())
-  name        String   @unique // ADMIN, SUPERVISOR, WORKER, AUDITOR, INSTRUCTOR
-  permissions Permission[]
-  users       User[]
-}
+class User(AbstractUser):
+    class Status(models.TextChoices):
+        ACTIVE = 'active', 'Activo'
+        INACTIVE = 'inactive', 'Inactivo'
+        SUSPENDED = 'suspended', 'Suspendido'
+        PROBATION = 'probation', 'Período de Prueba'
 
-model Contract {
-  id          String   @id @default(cuid())
-  code        String   @unique // ej: "ISA 4620004459"
-  name        String
-  client      String
-  startDate   DateTime
-  endDate     DateTime?
-  users       UserContract[]
-  courses     CourseContract[]
-}
+    document_type = models.CharField(max_length=10)  # CC, CE, etc.
+    document_number = models.CharField(max_length=20, unique=True)
+    phone = models.CharField(max_length=20, blank=True)
+    job_position = models.CharField(max_length=100)
+    work_front = models.CharField(max_length=100, blank=True)
+    hire_date = models.DateField()
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.ACTIVE
+    )
+
+    class Meta:
+        db_table = 'users'
+
+
+class Role(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    description = models.TextField(blank=True)
+    permissions = models.ManyToManyField('auth.Permission')
+    users = models.ManyToManyField(User, related_name='custom_roles')
+
+    class Meta:
+        db_table = 'roles'
+
+
+class Contract(models.Model):
+    code = models.CharField(max_length=50, unique=True)  # ej: "ISA 4620004459"
+    name = models.CharField(max_length=200)
+    client = models.CharField(max_length=100)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'contracts'
+
+
+class UserContract(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='contracts')
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name='users')
+    assigned_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'user_contracts'
+        unique_together = ['user', 'contract']
 ```
 
 #### Entregables Fase 1
-- [ ] API de autenticación completa
-- [ ] API de gestión de usuarios
+- [ ] App accounts con autenticación completa
+- [ ] API REST (DRF) + API rápida (Django Ninja)
 - [ ] Sistema de roles y permisos
 - [ ] Importación masiva de usuarios
-- [ ] Documentación API (Swagger/OpenAPI)
+- [ ] Documentación API (drf-spectacular)
 - [ ] Tests unitarios y de integración (cobertura >80%)
+- [ ] Templates HTMX para admin de usuarios
 
 ---
 
@@ -293,9 +447,9 @@ model Contract {
 
 #### Módulos a Desarrollar
 
-##### 2.1 Servicio de Cursos
-```typescript
-// Funcionalidades
+##### 2.1 App de Cursos (courses)
+```python
+# Funcionalidades
 - CRUD de cursos
 - Módulos y lecciones
 - Soporte multimedia (video, PDF, audio, imágenes)
@@ -305,85 +459,123 @@ model Contract {
 - Estados (borrador, publicado, archivado)
 ```
 
-##### 2.2 Servicio de Contenido Multimedia
-```typescript
-// Funcionalidades
+##### 2.2 Procesamiento Multimedia (Celery Tasks)
+```python
+# Funcionalidades
 - Upload de archivos (chunked para videos grandes)
-- Procesamiento de video (transcoding, compresión)
+- Procesamiento de video (FFmpeg, transcoding, compresión)
 - Generación de thumbnails
-- CDN integration para streaming
+- Cloud Storage + CDN integration
 - Soporte offline (manifest de descarga)
 - Biblioteca de recursos
 ```
 
 ##### 2.3 Modelo de Datos
 
-```prisma
-model Course {
-  id              String    @id @default(cuid())
-  code            String    @unique
-  title           String
-  description     String
-  duration        Int       // minutos
-  type            CourseType // MANDATORY, OPTIONAL, REFRESHER
-  riskLevel       RiskLevel
-  thumbnailUrl    String?
-  status          CourseStatus @default(DRAFT)
-  version         Int       @default(1)
-  modules         Module[]
-  enrollments     Enrollment[]
-  contracts       CourseContract[]
-  targetProfiles  String[]  // ["LINIERO", "JEFE_CUADRILLA"]
-  prerequisites   Course[]  @relation("Prerequisites")
-  createdBy       String
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-}
+```python
+# apps/courses/models.py
 
-model Module {
-  id          String    @id @default(cuid())
-  courseId    String
-  course      Course    @relation(fields: [courseId], references: [id])
-  title       String
-  description String?
-  order       Int
-  lessons     Lesson[]
-}
+from django.db import models
+from django.contrib.postgres.fields import ArrayField
 
-model Lesson {
-  id          String    @id @default(cuid())
-  moduleId    String
-  module      Module    @relation(fields: [moduleId], references: [id])
-  title       String
-  type        LessonType // VIDEO, PDF, SCORM, INTERACTIVE, QUIZ
-  contentUrl  String
-  duration    Int       // minutos
-  order       Int
-  isOffline   Boolean   @default(true)
-  metadata    Json?     // información adicional según tipo
-}
+class Course(models.Model):
+    class Type(models.TextChoices):
+        MANDATORY = 'mandatory', 'Obligatorio'
+        OPTIONAL = 'optional', 'Opcional'
+        REFRESHER = 'refresher', 'Refuerzo'
 
-model MediaAsset {
-  id            String   @id @default(cuid())
-  filename      String
-  originalName  String
-  mimeType      String
-  size          Int
-  url           String
-  thumbnailUrl  String?
-  offlineUrl    String?  // URL para descarga offline (comprimido)
-  status        AssetStatus @default(PROCESSING)
-  metadata      Json?
-  createdAt     DateTime @default(now())
-}
+    class Status(models.TextChoices):
+        DRAFT = 'draft', 'Borrador'
+        PUBLISHED = 'published', 'Publicado'
+        ARCHIVED = 'archived', 'Archivado'
+
+    class RiskLevel(models.TextChoices):
+        LOW = 'low', 'Bajo'
+        MEDIUM = 'medium', 'Medio'
+        HIGH = 'high', 'Alto'
+        CRITICAL = 'critical', 'Crítico'
+
+    code = models.CharField(max_length=50, unique=True)
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    duration = models.PositiveIntegerField(help_text="Duración en minutos")
+    course_type = models.CharField(max_length=20, choices=Type.choices)
+    risk_level = models.CharField(max_length=20, choices=RiskLevel.choices)
+    thumbnail_url = models.URLField(blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    version = models.PositiveIntegerField(default=1)
+    target_profiles = ArrayField(models.CharField(max_length=50), default=list)
+    prerequisites = models.ManyToManyField('self', symmetrical=False, blank=True)
+    created_by = models.ForeignKey('accounts.User', on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'courses'
+
+
+class Module(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='modules')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    order = models.PositiveIntegerField()
+
+    class Meta:
+        db_table = 'modules'
+        ordering = ['order']
+
+
+class Lesson(models.Model):
+    class Type(models.TextChoices):
+        VIDEO = 'video', 'Video'
+        PDF = 'pdf', 'PDF'
+        SCORM = 'scorm', 'SCORM'
+        INTERACTIVE = 'interactive', 'Interactivo'
+        QUIZ = 'quiz', 'Quiz'
+        AUDIO = 'audio', 'Audio'
+
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='lessons')
+    title = models.CharField(max_length=200)
+    lesson_type = models.CharField(max_length=20, choices=Type.choices)
+    content_url = models.URLField()
+    offline_url = models.URLField(blank=True, help_text="URL comprimida para offline")
+    duration = models.PositiveIntegerField(help_text="Duración en minutos")
+    order = models.PositiveIntegerField()
+    is_offline_available = models.BooleanField(default=True)
+    metadata = models.JSONField(default=dict)
+
+    class Meta:
+        db_table = 'lessons'
+        ordering = ['order']
+
+
+class MediaAsset(models.Model):
+    class Status(models.TextChoices):
+        PROCESSING = 'processing', 'Procesando'
+        READY = 'ready', 'Listo'
+        ERROR = 'error', 'Error'
+
+    filename = models.CharField(max_length=255)
+    original_name = models.CharField(max_length=255)
+    mime_type = models.CharField(max_length=100)
+    size = models.PositiveBigIntegerField()
+    url = models.URLField()
+    thumbnail_url = models.URLField(blank=True)
+    offline_url = models.URLField(blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PROCESSING)
+    metadata = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'media_assets'
 ```
 
 #### Entregables Fase 2
-- [ ] API de gestión de cursos
-- [ ] Sistema de upload y procesamiento multimedia
+- [ ] App courses completa
+- [ ] Sistema de upload y procesamiento multimedia (Celery)
 - [ ] Soporte SCORM básico
 - [ ] Biblioteca de recursos
-- [ ] Editor de cursos (web admin)
+- [ ] Editor de cursos con HTMX
 - [ ] Versionamiento de contenidos
 
 ---
@@ -395,11 +587,11 @@ model MediaAsset {
 - Motor de evaluaciones completo
 - Sistema de certificación
 
-#### Módulos a Desarrollar
+#### Apps a Desarrollar
 
-##### 3.1 Servicio de Rutas de Aprendizaje
-```typescript
-// Funcionalidades
+##### 3.1 App learning_paths
+```python
+# Funcionalidades
 - Definición de rutas por perfil ocupacional
 - Prerrequisitos y secuenciación
 - Fechas límite y vencimientos
@@ -408,11 +600,11 @@ model MediaAsset {
 - Notificaciones de cursos pendientes/vencidos
 ```
 
-##### 3.2 Servicio de Evaluaciones
-```typescript
-// Funcionalidades
+##### 3.2 App assessments
+```python
+# Funcionalidades
 - Banco de preguntas por tema
-- Tipos de pregunta: múltiple, V/F, ordenamiento, asociación
+- Tipos: múltiple, V/F, ordenamiento, asociación
 - Aleatorización de preguntas
 - Tiempo límite configurable
 - Intentos máximos configurables
@@ -421,10 +613,10 @@ model MediaAsset {
 - Evaluación práctica (checklist con firma digital)
 ```
 
-##### 3.3 Servicio de Certificación
-```typescript
-// Funcionalidades
-- Generación de certificados PDF
+##### 3.3 App certifications
+```python
+# Funcionalidades
+- Generación de certificados PDF (WeasyPrint)
 - Código QR de verificación
 - Firma digital del responsable
 - Fechas de vencimiento
@@ -433,80 +625,12 @@ model MediaAsset {
 - Pasaporte de competencias
 ```
 
-##### 3.4 Modelo de Datos
-
-```prisma
-model LearningPath {
-  id              String   @id @default(cuid())
-  name            String
-  description     String
-  targetProfile   String   // LINIERO, JEFE_CUADRILLA, etc.
-  totalHours      Int
-  isActive        Boolean  @default(true)
-  steps           LearningPathStep[]
-  enrollments     Enrollment[]
-}
-
-model LearningPathStep {
-  id              String   @id @default(cuid())
-  learningPathId  String
-  learningPath    LearningPath @relation(fields: [learningPathId], references: [id])
-  courseId        String
-  course          Course   @relation(fields: [courseId], references: [id])
-  order           Int
-  isRequired      Boolean  @default(true)
-  daysToComplete  Int?     // días máximos para completar
-}
-
-model Assessment {
-  id              String   @id @default(cuid())
-  courseId        String
-  course          Course   @relation(fields: [courseId], references: [id])
-  title           String
-  type            AssessmentType // THEORETICAL, PRACTICAL, SCENARIO
-  passingScore    Int      @default(80)
-  maxAttempts     Int      @default(3)
-  timeLimit       Int?     // minutos
-  randomize       Boolean  @default(true)
-  questionsCount  Int      // preguntas a mostrar del banco
-  questions       Question[]
-  attempts        AssessmentAttempt[]
-}
-
-model Question {
-  id              String   @id @default(cuid())
-  assessmentId    String
-  assessment      Assessment @relation(fields: [assessmentId], references: [id])
-  text            String
-  type            QuestionType // MULTIPLE_CHOICE, TRUE_FALSE, ORDERING, MATCHING
-  options         Json     // opciones y respuesta correcta
-  points          Int      @default(1)
-  feedback        String?  // retroalimentación
-  mediaUrl        String?  // imagen o video adjunto
-}
-
-model Certification {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id])
-  courseId        String
-  course          Course   @relation(fields: [courseId], references: [id])
-  issueDate       DateTime @default(now())
-  expirationDate  DateTime?
-  certificateUrl  String
-  qrCode          String   @unique
-  signedBy        String
-  status          CertStatus @default(VALID)
-}
-```
-
 #### Entregables Fase 3
-- [ ] Sistema de rutas de aprendizaje
-- [ ] Motor de evaluaciones teóricas
-- [ ] Evaluaciones prácticas con checklist
-- [ ] Generación de certificados
+- [ ] App learning_paths completa
+- [ ] App assessments con motor de evaluaciones
+- [ ] App certifications con generación PDF
 - [ ] Verificación QR de certificados
-- [ ] Alertas de vencimiento
+- [ ] Alertas de vencimiento (Celery Beat)
 
 ---
 
@@ -519,7 +643,7 @@ model Certification {
 
 #### Módulos a Desarrollar
 
-##### 4.1 Core Mobile
+##### 4.1 Core Mobile (React Native)
 ```typescript
 // Funcionalidades
 - Autenticación biométrica
@@ -586,22 +710,17 @@ model Certification {
 - [ ] Reproductor de video offline
 - [ ] Evaluaciones offline
 - [ ] Sincronización automática
-- [ ] Push notifications
+- [ ] Push notifications (Firebase)
 
 ---
 
 ### Fase 5: Lecciones Aprendidas y Charlas Pre-Operacionales (Semanas 19-22)
 
-#### Objetivos
-- Repositorio de lecciones aprendidas
-- Sistema de charlas pre-operacionales digitales
-- Generación de micro-learning
+#### Apps a Desarrollar
 
-#### Módulos a Desarrollar
-
-##### 5.1 Servicio de Lecciones Aprendidas
-```typescript
-// Funcionalidades
+##### 5.1 App lessons_learned
+```python
+# Funcionalidades
 - Creación de lecciones (plantilla estandarizada)
 - Categorización (accidente, casi-accidente, buena práctica)
 - Vinculación con cursos relacionados
@@ -611,9 +730,9 @@ model Certification {
 - Histórico de visualizaciones
 ```
 
-##### 5.2 Servicio de Charlas Pre-Operacionales
-```typescript
-// Funcionalidades
+##### 5.2 App preop_talks
+```python
+# Funcionalidades
 - Biblioteca de charlas de 5 minutos
 - Selección según actividad del día
 - Registro de asistencia (QR + geolocalización)
@@ -624,72 +743,10 @@ model Certification {
 - Funcionamiento offline
 ```
 
-##### 5.3 Modelo de Datos
-
-```prisma
-model LessonLearned {
-  id              String   @id @default(cuid())
-  title           String
-  eventDate       DateTime
-  type            LessonType // ACCIDENT, NEAR_MISS, OBSERVATION, BEST_PRACTICE
-  whatHappened    String   @db.Text
-  whyHappened     String   @db.Text
-  whatWeLearned   String   @db.Text
-  whatWeChanged   String   @db.Text
-  mediaUrls       String[] // fotos, diagramas
-  applicableContracts String[]
-  relatedCourses  Course[]
-  microLearning   MicroLearning?
-  isPublished     Boolean  @default(false)
-  publishedAt     DateTime?
-  views           LessonView[]
-  quizzes         LessonQuiz[]
-  createdBy       String
-  createdAt       DateTime @default(now())
-}
-
-model PreOpTalk {
-  id              String   @id @default(cuid())
-  title           String
-  content         String   @db.Text
-  duration        Int      // minutos (típicamente 5)
-  category        String   // tema
-  activityTypes   String[] // actividades relacionadas
-  mediaUrl        String?
-  questions       Json     // 3 preguntas de verificación
-  isActive        Boolean  @default(true)
-}
-
-model PreOpTalkSession {
-  id              String   @id @default(cuid())
-  talkId          String
-  talk            PreOpTalk @relation(fields: [talkId], references: [id])
-  conductedBy     String   // userId del jefe de cuadrilla
-  location        Json     // {lat, lng, accuracy}
-  timestamp       DateTime @default(now())
-  photoUrl        String?
-  plannedActivity String
-  whatCouldGoWrong String[] // respuestas de los trabajadores
-  attendees       PreOpAttendance[]
-  quizResponses   Json     // respuestas al mini-quiz
-}
-
-model PreOpAttendance {
-  id              String   @id @default(cuid())
-  sessionId       String
-  session         PreOpTalkSession @relation(fields: [sessionId], references: [id])
-  userId          String
-  user            User     @relation(fields: [userId], references: [id])
-  signatureType   String   // QR, MANUAL
-  timestamp       DateTime @default(now())
-  location        Json?
-}
-```
-
 #### Entregables Fase 5
-- [ ] Sistema de lecciones aprendidas
+- [ ] App lessons_learned completa
 - [ ] Generador de micro-learning
-- [ ] Módulo de charlas pre-operacionales
+- [ ] App preop_talks
 - [ ] Registro de asistencia con QR
 - [ ] Geolocalización de charlas
 - [ ] Funcionamiento offline completo
@@ -703,44 +760,38 @@ model PreOpAttendance {
 - Reportes exportables
 - Integración con operaciones
 
-#### Módulos a Desarrollar
+#### App reports
 
-##### 6.1 Servicio de Reportes
-```typescript
-// Dashboards
+##### 6.1 Dashboards (HTMX + ECharts)
+```python
+# Dashboards
 - Cumplimiento general del plan de formación
 - Trabajadores con formación vencida
 - Brechas de competencias por contrato
 - Horas de formación ejecutadas vs planificadas
 - Ranking de módulos con mayor reprobación
 - Estado de formación por equipo
+```
 
-// Reportes Exportables
-- Matriz de competencias
-- Certificaciones vigentes/vencidas
+##### 6.2 Reportes Exportables
+```python
+# Reportes
+- Matriz de competencias (Excel)
+- Certificaciones vigentes/vencidas (PDF/Excel)
 - Registro de charlas pre-operacionales
 - Detalle de evaluaciones
 - Informe para ARL
 - Informe para auditorías SST
 ```
 
-##### 6.2 Portal Auditor ISA
-```typescript
-// Funcionalidades (solo lectura)
+##### 6.3 Portal Auditor ISA
+```python
+# Funcionalidades (solo lectura)
 - Dashboard de cumplimiento
 - Evidencias de formación
 - Histórico de formación por trabajador
 - Exportación de reportes
 - Verificación de certificados
-```
-
-##### 6.3 Integración con Operaciones
-```typescript
-// Funcionalidades
-- API para verificar formación antes de asignar actividades
-- Pasaporte de Competencias digital
-- Bloqueo suave/duro configurable
-- Sugerencia de cursos tras casi-accidentes
 ```
 
 #### Entregables Fase 6
@@ -755,15 +806,9 @@ model PreOpAttendance {
 
 ### Fase 7: Gamificación y Notificaciones (Semanas 27-28)
 
-#### Objetivos
-- Sistema de gamificación completo
-- Notificaciones multicanal
-
-#### Módulos a Desarrollar
-
-##### 7.1 Sistema de Gamificación
-```typescript
-// Elementos
+#### Sistema de Gamificación
+```python
+# Elementos
 - Puntos por completar cursos y evaluaciones
 - Insignias (Experto en Altura, Héroe SWA, etc.)
 - Rankings por cuadrilla e individual
@@ -771,14 +816,14 @@ model PreOpAttendance {
 - Reconocimientos especiales
 ```
 
-##### 7.2 Sistema de Notificaciones
-```typescript
-// Canales
-- Push notifications (móvil)
-- Email (SES)
-- SMS (SNS) para urgentes
+#### Sistema de Notificaciones
+```python
+# Canales
+- Push notifications (Firebase FCM)
+- Email (SendGrid)
+- SMS (Twilio) para urgentes
 
-// Eventos
+# Eventos
 - Nuevo curso asignado
 - Curso próximo a vencer
 - Curso vencido
@@ -790,56 +835,47 @@ model PreOpAttendance {
 #### Entregables Fase 7
 - [ ] Sistema de puntos e insignias
 - [ ] Rankings y leaderboards
-- [ ] Notificaciones push
-- [ ] Notificaciones email
-- [ ] Notificaciones SMS
+- [ ] Notificaciones push, email, SMS
 - [ ] Panel de configuración de notificaciones
 
 ---
 
 ### Fase 8: Pruebas, Optimización y Despliegue (Semanas 29-32)
 
-#### Objetivos
-- Testing exhaustivo
-- Optimización de rendimiento
-- Despliegue a producción
-
-#### Actividades
-
-##### 8.1 Testing
-```
-- Pruebas unitarias (cobertura >80%)
-- Pruebas de integración
-- Pruebas E2E (Cypress para web, Detox para móvil)
-- Pruebas de carga (k6)
-- Pruebas de seguridad (OWASP)
-- Pruebas de usabilidad con usuarios reales
-- Pruebas de funcionamiento offline
+#### Testing (Alineado con Indunnova)
+```python
+# Stack de testing
+- pytest-django (cobertura >80%)
+- factory_boy + faker
+- playwright (E2E web)
+- Detox (E2E móvil)
+- k6 (pruebas de carga)
+- OWASP ZAP (seguridad)
 ```
 
-##### 8.2 Optimización
-```
-- Optimización de queries (análisis EXPLAIN)
-- Caché estratégico (Redis)
-- Compresión de assets
-- Lazy loading
-- Code splitting
-- Optimización de imágenes y videos
+#### Optimización
+```python
+# Mejoras de rendimiento
+- django-cachalot (cache de QuerySets)
+- Query optimization (select_related, prefetch_related)
+- Redis caching
+- WhiteNoise (archivos estáticos)
+- Lazy loading de componentes
 ```
 
-##### 8.3 Despliegue
-```
-- Configuración de producción
-- Migración de datos
-- Capacitación a administradores
-- Documentación de usuario
+#### Despliegue
+```python
+# Producción
+- Cloud Run deployment
+- Cloud SQL configuración final
+- Monitoreo con Sentry + Cloud Monitoring
 - Runbooks operativos
-- Monitoreo (DataDog/CloudWatch)
+- Capacitación a administradores
 ```
 
 #### Entregables Fase 8
-- [ ] Suite de tests completa
-- [ ] Documentación de usuario
+- [ ] Suite de tests completa (>80% cobertura)
+- [ ] Documentación de usuario (MkDocs)
 - [ ] Manual de administrador
 - [ ] Runbooks operativos
 - [ ] Sistema desplegado en producción
@@ -874,12 +910,12 @@ Fase 8                                                          ████  De
 
 | Rol | Cantidad | Responsabilidades |
 |-----|----------|-------------------|
-| **Tech Lead / Arquitecto** | 1 | Arquitectura, decisiones técnicas, code review |
-| **Backend Developer Senior** | 2 | APIs, servicios, integraciones |
-| **Frontend Developer Senior** | 1 | Web app, panel admin |
-| **Mobile Developer Senior** | 2 | App React Native, offline |
-| **DevOps Engineer** | 1 | Infraestructura, CI/CD, monitoreo |
-| **QA Engineer** | 1 | Testing, automatización |
+| **Tech Lead / Arquitecto** | 1 | Arquitectura Django, decisiones técnicas, code review |
+| **Backend Developer Senior (Python/Django)** | 2 | APIs, servicios, Celery tasks |
+| **Frontend Developer (Django + HTMX)** | 1 | Templates, HTMX, Alpine.js, Tailwind |
+| **Mobile Developer Senior (React Native)** | 2 | App móvil, offline, sincronización |
+| **DevOps Engineer** | 1 | GCP, Cloud Run, CI/CD, monitoreo |
+| **QA Engineer** | 1 | pytest, playwright, automatización |
 | **UX/UI Designer** | 1 | Diseño de interfaces, experiencia de usuario |
 
 ### Equipo Extendido
@@ -899,8 +935,8 @@ Fase 8                                                          ████  De
 | Complejidad del modo offline | Alta | Alto | PoC temprano en Fase 0, experto en sync |
 | Conectividad en zonas remotas | Alta | Alto | Diseño offline-first, compresión agresiva |
 | Adopción por usuarios operativos | Media | Alto | UX simple, capacitación, gamificación |
-| Integración SCORM | Media | Medio | Usar librería probada (scorm-again) |
-| Escalabilidad | Baja | Alto | Arquitectura cloud-native desde inicio |
+| Integración SCORM | Media | Medio | Usar librería probada |
+| Escalabilidad | Baja | Alto | Cloud Run auto-scaling, CQRS para reportes |
 | Cumplimiento normativo | Baja | Alto | Revisión legal temprana, cifrado |
 
 ---
@@ -916,6 +952,7 @@ Fase 8                                                          ████  De
 | Cobertura de tests | > 80% |
 | Tamaño de APK | < 50MB |
 | Memoria máxima (móvil) | < 200MB |
+| Latencia API P95 | < 200ms |
 
 ---
 
@@ -924,9 +961,20 @@ Fase 8                                                          ████  De
 1. **Validar este plan** con stakeholders de S.D. S.A.S.
 2. **Definir MVP** - Priorizar funcionalidades para primera release
 3. **Configurar repositorio** y ambiente de desarrollo
-4. **Iniciar diseño UX/UI** de las pantallas principales
-5. **Comenzar Fase 0** - Setup de infraestructura base
+4. **Setup pre-commit hooks** (Ruff, mypy, djLint)
+5. **Iniciar diseño UX/UI** de las pantallas principales
+6. **Comenzar Fase 0** - Setup de infraestructura GCP base
 
 ---
 
-*Documento generado como parte del plan de desarrollo del Sistema LMS para S.D. S.A.S.*
+## 10. Documentos Relacionados
+
+| Documento | Descripción |
+|-----------|-------------|
+| [Arquitectura GCP](./ARQUITECTURA_INFRAESTRUCTURA_GCP.md) | Propuesta de infraestructura Google Cloud |
+| [Alineación Indunnova](./ALINEACION_ESTANDAR_INDUNNOVA.md) | Comparativa con estándar Indunnova v2.0 |
+| [Especificación Funcional](../ESPECIFICACION_FUNCIONAL.md) | Requisitos detallados del sistema |
+
+---
+
+*Documento generado como parte del plan de desarrollo del Sistema LMS para S.D. S.A.S., alineado con el Estándar de Infraestructura Tecnológica de Indunnova SAS v2.0*
