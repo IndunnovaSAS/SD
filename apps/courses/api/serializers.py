@@ -5,6 +5,7 @@ Serializers for courses API.
 from rest_framework import serializers
 
 from apps.courses.models import (
+    Category,
     Course,
     Enrollment,
     Lesson,
@@ -12,6 +13,45 @@ from apps.courses.models import (
     MediaAsset,
     Module,
 )
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    """Serializer for Category model."""
+
+    children = serializers.SerializerMethodField()
+    course_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "description",
+            "icon",
+            "color",
+            "parent",
+            "order",
+            "is_active",
+            "children",
+            "course_count",
+        ]
+        read_only_fields = ["id"]
+
+    def get_children(self, obj):
+        children = obj.children.filter(is_active=True)
+        return CategoryListSerializer(children, many=True).data
+
+    def get_course_count(self, obj):
+        return obj.courses.filter(status="published").count()
+
+
+class CategoryListSerializer(serializers.ModelSerializer):
+    """Simplified serializer for category lists."""
+
+    class Meta:
+        model = Category
+        fields = ["id", "name", "slug", "icon", "color"]
 
 
 class LessonSerializer(serializers.ModelSerializer):
@@ -92,6 +132,9 @@ class CourseSerializer(serializers.ModelSerializer):
     modules = ModuleSerializer(many=True, read_only=True)
     total_duration = serializers.ReadOnlyField()
     created_by_name = serializers.SerializerMethodField()
+    category_name = serializers.SerializerMethodField()
+    category_detail = CategoryListSerializer(source="category", read_only=True)
+    contract_names = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -110,6 +153,11 @@ class CourseSerializer(serializers.ModelSerializer):
             "target_profiles",
             "prerequisites",
             "validity_months",
+            "category",
+            "category_name",
+            "category_detail",
+            "contracts",
+            "contract_names",
             "created_by",
             "created_by_name",
             "published_at",
@@ -123,12 +171,19 @@ class CourseSerializer(serializers.ModelSerializer):
     def get_created_by_name(self, obj):
         return obj.created_by.get_full_name() if obj.created_by else None
 
+    def get_category_name(self, obj):
+        return obj.category.name if obj.category else None
+
+    def get_contract_names(self, obj):
+        return [c.name for c in obj.contracts.all()]
+
 
 class CourseListSerializer(serializers.ModelSerializer):
     """Simplified serializer for course lists."""
 
     module_count = serializers.SerializerMethodField()
     enrollment_count = serializers.SerializerMethodField()
+    category_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -141,6 +196,8 @@ class CourseListSerializer(serializers.ModelSerializer):
             "status",
             "duration",
             "thumbnail",
+            "category",
+            "category_name",
             "module_count",
             "enrollment_count",
         ]
@@ -150,6 +207,9 @@ class CourseListSerializer(serializers.ModelSerializer):
 
     def get_enrollment_count(self, obj):
         return obj.enrollments.count()
+
+    def get_category_name(self, obj):
+        return obj.category.name if obj.category else None
 
 
 class CourseCreateSerializer(serializers.ModelSerializer):
@@ -169,11 +229,17 @@ class CourseCreateSerializer(serializers.ModelSerializer):
             "target_profiles",
             "prerequisites",
             "validity_months",
+            "category",
+            "contracts",
         ]
 
     def create(self, validated_data):
+        contracts = validated_data.pop("contracts", [])
         validated_data["created_by"] = self.context["request"].user
-        return super().create(validated_data)
+        course = super().create(validated_data)
+        if contracts:
+            course.contracts.set(contracts)
+        return course
 
 
 class MediaAssetSerializer(serializers.ModelSerializer):

@@ -1,0 +1,154 @@
+{% extends "base/base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <a href="{% url 'courses:detail' course.id %}" class="btn btn-ghost btn-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                        Volver al curso
+                    </a>
+                    <div class="hidden sm:block">
+                        <h1 class="text-lg font-semibold text-gray-900 dark:text-white">{{ lesson.title }}</h1>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ course.title }}</p>
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div class="flex items-center gap-4">
+                    <div class="text-sm text-gray-500 dark:text-gray-400">
+                        {{ enrollment.progress|floatformat:0 }}% completado
+                    </div>
+                    <div class="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+                        <div class="h-2 bg-primary rounded-full" style="width: {{ enrollment.progress }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            <!-- Lesson Content -->
+            <div class="p-6">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">{{ lesson.title }}</h2>
+
+                {% if lesson.description %}
+                <p class="text-gray-600 dark:text-gray-300 mb-6">{{ lesson.description }}</p>
+                {% endif %}
+
+                <!-- Content based on type -->
+                {% if lesson.lesson_type == 'video' %}
+                <div class="aspect-video bg-black rounded-lg overflow-hidden mb-6">
+                    {% if lesson.video_url %}
+                    <iframe src="{{ lesson.video_url }}"
+                            class="w-full h-full"
+                            allowfullscreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+                    </iframe>
+                    {% elif lesson.content_file %}
+                    <video controls class="w-full h-full" id="lesson-video">
+                        <source src="{{ lesson.content_file.url }}" type="video/mp4">
+                        Tu navegador no soporta video HTML5.
+                    </video>
+                    {% else %}
+                    <div class="flex items-center justify-center h-full text-gray-400">
+                        Video no disponible
+                    </div>
+                    {% endif %}
+                </div>
+                {% elif lesson.lesson_type == 'pdf' %}
+                <div class="mb-6">
+                    {% if lesson.content_file %}
+                    <iframe src="{{ lesson.content_file.url }}"
+                            class="w-full h-[600px] rounded-lg border dark:border-gray-700">
+                    </iframe>
+                    <a href="{{ lesson.content_file.url }}" download class="btn btn-ghost btn-sm mt-2">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Descargar PDF
+                    </a>
+                    {% else %}
+                    <div class="text-center py-12 text-gray-400">
+                        PDF no disponible
+                    </div>
+                    {% endif %}
+                </div>
+                {% elif lesson.lesson_type == 'text' or lesson.lesson_type == 'interactive' %}
+                <div class="prose prose-lg dark:prose-invert max-w-none mb-6">
+                    {{ lesson.content|safe }}
+                </div>
+                {% else %}
+                <div class="text-center py-12 text-gray-400">
+                    Contenido de tipo "{{ lesson.get_lesson_type_display }}" no soportado en visualización web.
+                </div>
+                {% endif %}
+
+                <!-- Mark as Complete -->
+                {% if not progress.is_completed %}
+                <div class="border-t dark:border-gray-700 pt-6 mt-6">
+                    <form hx-post="{% url 'courses:update_progress' course.id lesson.id %}"
+                          hx-swap="outerHTML"
+                          hx-target="#complete-btn">
+                        {% csrf_token %}
+                        <input type="hidden" name="progress" value="100">
+                        <button type="submit" id="complete-btn" class="btn btn-success">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Marcar como completado
+                        </button>
+                    </form>
+                </div>
+                {% else %}
+                <div class="border-t dark:border-gray-700 pt-6 mt-6">
+                    <div class="flex items-center gap-2 text-success">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="font-medium">Lección completada</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex justify-between mt-6">
+            {% if prev_lesson %}
+            <a href="{% url 'courses:lesson' course.id prev_lesson.id %}" class="btn btn-ghost">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                {{ prev_lesson.title|truncatechars:30 }}
+            </a>
+            {% else %}
+            <div></div>
+            {% endif %}
+
+            {% if next_lesson %}
+            <a href="{% url 'courses:lesson' course.id next_lesson.id %}" class="btn btn-primary">
+                {{ next_lesson.title|truncatechars:30 }}
+                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+            {% else %}
+            <a href="{% url 'courses:detail' course.id %}" class="btn btn-success">
+                Finalizar Curso
+                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+            </a>
+            {% endif %}
+        </div>
+    </main>
+</div>
+{% endblock %}

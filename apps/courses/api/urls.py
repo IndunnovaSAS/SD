@@ -11,6 +11,7 @@ from . import views
 app_name = "courses_api"
 
 router = DefaultRouter()
+router.register(r"categories", views.CategoryViewSet, basename="category")
 router.register(r"courses", views.CourseViewSet, basename="course")
 router.register(r"media-assets", views.MediaAssetViewSet, basename="media-asset")
 router.register(r"enrollments", views.EnrollmentViewSet, basename="enrollment")

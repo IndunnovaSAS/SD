@@ -3,6 +3,7 @@ API views for courses app.
 """
 
 from django.db import transaction
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import permissions, status, viewsets
@@ -11,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.courses.models import (
+    Category,
     Course,
     Enrollment,
     Lesson,
@@ -21,6 +23,8 @@ from apps.courses.models import (
 
 from .serializers import (
     BulkEnrollmentSerializer,
+    CategoryListSerializer,
+    CategorySerializer,
     CourseCreateSerializer,
     CourseListSerializer,
     CourseSerializer,
@@ -32,6 +36,45 @@ from .serializers import (
     MediaAssetSerializer,
     ModuleSerializer,
 )
+
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    """ViewSet for Category CRUD operations."""
+
+    queryset = Category.objects.filter(is_active=True)
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return CategoryListSerializer
+        return CategorySerializer
+
+    def get_queryset(self):
+        queryset = Category.objects.filter(is_active=True)
+
+        # Filter only root categories (no parent)
+        root_only = self.request.query_params.get("root_only")
+        if root_only and root_only.lower() == "true":
+            queryset = queryset.filter(parent__isnull=True)
+
+        # Filter by parent category
+        parent_id = self.request.query_params.get("parent")
+        if parent_id:
+            queryset = queryset.filter(parent_id=parent_id)
+
+        return queryset.annotate(
+            course_count=Count("courses", filter=Q(courses__status="published"))
+        ).order_by("order", "name")
+
+    @action(detail=True, methods=["get"])
+    def courses(self, request, pk=None):
+        """Get all courses in this category."""
+        category = self.get_object()
+        courses = Course.objects.filter(
+            category=category, status=Course.Status.PUBLISHED
+        )
+        serializer = CourseListSerializer(courses, many=True)
+        return Response(serializer.data)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -48,7 +91,9 @@ class CourseViewSet(viewsets.ModelViewSet):
         return CourseSerializer
 
     def get_queryset(self):
-        queryset = Course.objects.prefetch_related("modules", "modules__lessons")
+        queryset = Course.objects.prefetch_related(
+            "modules", "modules__lessons", "category", "contracts"
+        ).select_related("category", "created_by")
 
         # Filter by status
         status_filter = self.request.query_params.get("status")
@@ -70,7 +115,29 @@ class CourseViewSet(viewsets.ModelViewSet):
         if profile:
             queryset = queryset.filter(target_profiles__contains=[profile])
 
-        return queryset
+        # Filter by category
+        category = self.request.query_params.get("category")
+        if category:
+            queryset = queryset.filter(category_id=category)
+
+        # Filter by category slug
+        category_slug = self.request.query_params.get("category_slug")
+        if category_slug:
+            queryset = queryset.filter(category__slug=category_slug)
+
+        # Filter by contract
+        contract = self.request.query_params.get("contract")
+        if contract:
+            queryset = queryset.filter(contracts__id=contract)
+
+        # Search by title or code
+        search = self.request.query_params.get("search")
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) | Q(code__icontains=search)
+            )
+
+        return queryset.distinct()
 
     @action(detail=True, methods=["post"])
     def publish(self, request, pk=None):

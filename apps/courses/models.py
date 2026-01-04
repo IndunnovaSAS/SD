@@ -6,6 +6,58 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
+class Category(models.Model):
+    """
+    Category for organizing courses by theme/topic.
+    """
+
+    name = models.CharField(_("Nombre"), max_length=100)
+    slug = models.SlugField(_("Slug"), max_length=100, unique=True)
+    description = models.TextField(_("Descripción"), blank=True)
+    icon = models.CharField(
+        _("Ícono"),
+        max_length=50,
+        blank=True,
+        help_text=_("Clase de ícono CSS (ej: heroicons)"),
+    )
+    color = models.CharField(
+        _("Color"),
+        max_length=7,
+        default="#3B82F6",
+        help_text=_("Color en formato hexadecimal"),
+    )
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="children",
+        verbose_name=_("Categoría padre"),
+    )
+    order = models.PositiveIntegerField(_("Orden"), default=0)
+    is_active = models.BooleanField(_("Activa"), default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "course_categories"
+        verbose_name = _("Categoría")
+        verbose_name_plural = _("Categorías")
+        ordering = ["order", "name"]
+
+    def __str__(self):
+        if self.parent:
+            return f"{self.parent.name} > {self.name}"
+        return self.name
+
+    @property
+    def full_path(self):
+        """Get full category path."""
+        if self.parent:
+            return f"{self.parent.full_path} > {self.name}"
+        return self.name
+
+
 class Course(models.Model):
     """
     Course model representing a training course.
@@ -77,6 +129,21 @@ class Course(models.Model):
         null=True,
         blank=True,
         help_text=_("Meses de validez de la certificación (null = sin vencimiento)"),
+    )
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="courses",
+        verbose_name=_("Categoría"),
+    )
+    contracts = models.ManyToManyField(
+        "accounts.Contract",
+        blank=True,
+        related_name="courses",
+        verbose_name=_("Contratos aplicables"),
+        help_text=_("Contratos donde aplica este curso"),
     )
     created_by = models.ForeignKey(
         "accounts.User",
