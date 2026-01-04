@@ -2,7 +2,6 @@
 Learning path models for SD LMS.
 """
 
-from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -19,8 +18,7 @@ class LearningPath(models.Model):
 
     name = models.CharField(_("Nombre"), max_length=200)
     description = models.TextField(_("Descripción"))
-    target_profiles = ArrayField(
-        models.CharField(max_length=50),
+    target_profiles = models.JSONField(
         verbose_name=_("Perfiles objetivo"),
         help_text=_("Lista de perfiles ocupacionales para esta ruta"),
         default=list,

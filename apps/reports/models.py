@@ -2,7 +2,6 @@
 Reports and analytics models for SD LMS.
 """
 
-from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -198,8 +197,7 @@ class ScheduledReport(models.Model):
         _("Filtros"),
         default=dict,
     )
-    recipients = ArrayField(
-        models.EmailField(),
+    recipients = models.JSONField(
         verbose_name=_("Destinatarios"),
         default=list,
     )
@@ -268,8 +266,7 @@ class Dashboard(models.Model):
     )
     is_active = models.BooleanField(_("Activo"), default=True)
     is_public = models.BooleanField(_("Público"), default=False)
-    allowed_roles = ArrayField(
-        models.CharField(max_length=50),
+    allowed_roles = models.JSONField(
         verbose_name=_("Roles permitidos"),
         default=list,
         blank=True,

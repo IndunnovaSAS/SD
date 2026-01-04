@@ -2,7 +2,6 @@
 Course and content models for SD LMS.
 """
 
-from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -61,8 +60,7 @@ class Course(models.Model):
         default=Status.DRAFT,
     )
     version = models.PositiveIntegerField(_("Versión"), default=1)
-    target_profiles = ArrayField(
-        models.CharField(max_length=50),
+    target_profiles = models.JSONField(
         verbose_name=_("Perfiles objetivo"),
         help_text=_("Lista de perfiles ocupacionales para este curso"),
         default=list,

@@ -173,6 +173,7 @@ class Role(models.Model):
     users = models.ManyToManyField(
         User,
         through="UserRole",
+        through_fields=("role", "user"),
         related_name="custom_roles",
         verbose_name=_("Usuarios"),
     )

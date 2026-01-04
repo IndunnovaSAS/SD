@@ -2,7 +2,6 @@
 Lessons learned models for SD LMS.
 """
 
-from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -118,14 +117,12 @@ class LessonLearned(models.Model):
         null=True,
         blank=True,
     )
-    tags = ArrayField(
-        models.CharField(max_length=50),
+    tags = models.JSONField(
         verbose_name=_("Etiquetas"),
         default=list,
         blank=True,
     )
-    target_profiles = ArrayField(
-        models.CharField(max_length=50),
+    target_profiles = models.JSONField(
         verbose_name=_("Perfiles objetivo"),
         default=list,
         blank=True,

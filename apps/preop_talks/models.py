@@ -2,7 +2,6 @@
 Pre-operational talks models for SD LMS.
 """
 
-from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -27,13 +26,11 @@ class TalkTemplate(models.Model):
         default=Type.DAILY,
     )
     content = models.TextField(_("Contenido"))
-    key_points = ArrayField(
-        models.TextField(),
+    key_points = models.JSONField(
         verbose_name=_("Puntos clave"),
         default=list,
     )
-    safety_topics = ArrayField(
-        models.CharField(max_length=200),
+    safety_topics = models.JSONField(
         verbose_name=_("Temas de seguridad"),
         default=list,
     )
@@ -45,8 +42,7 @@ class TalkTemplate(models.Model):
         _("Requiere firma"),
         default=True,
     )
-    target_activities = ArrayField(
-        models.CharField(max_length=100),
+    target_activities = models.JSONField(
         verbose_name=_("Actividades objetivo"),
         default=list,
         help_text=_("Tipos de actividades para las que aplica"),
@@ -92,8 +88,7 @@ class PreopTalk(models.Model):
     )
     title = models.CharField(_("Título"), max_length=200)
     content = models.TextField(_("Contenido"))
-    key_points = ArrayField(
-        models.TextField(),
+    key_points = models.JSONField(
         verbose_name=_("Puntos clave"),
         default=list,
     )

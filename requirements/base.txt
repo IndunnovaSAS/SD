@@ -5,10 +5,17 @@
 
 # Django
 Django>=5.1,<5.2
-django-environ>=0.11.2
+python-decouple>=3.8
 
 # Database
 psycopg[binary]>=3.1.18
+dj-database-url>=2.1.0
+
+# Static files
+whitenoise>=6.6.0
+
+# Form widgets
+django-widget-tweaks>=1.5.0
 
 # Django REST Framework
 djangorestframework>=3.15.1

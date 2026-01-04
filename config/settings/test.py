@@ -6,6 +6,9 @@ from .base import *  # noqa: F403, F401
 
 DEBUG = False
 
+# Remove PostgreSQL-specific apps for SQLite testing
+INSTALLED_APPS = [app for app in INSTALLED_APPS if app != "django.contrib.postgres"]  # noqa: F405
+
 # Use faster password hasher in tests
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",

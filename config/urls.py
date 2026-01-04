@@ -5,6 +5,7 @@ URL configuration for SD LMS project.
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import include, path
 from drf_spectacular.views import (
     SpectacularAPIView,
@@ -17,7 +18,22 @@ admin.site.site_header = "SD LMS Administración"
 admin.site.site_title = "SD LMS"
 admin.site.index_title = "Panel de Administración"
 
+
+def home(request):
+    """Home page placeholder."""
+    return HttpResponse("<h1>SD LMS</h1><p>Sistema de Gestión de Aprendizaje</p>")
+
+
+def health_check(request):
+    """Health check endpoint."""
+    return HttpResponse("OK")
+
+
 urlpatterns = [
+    # Health check
+    path("health/", health_check, name="health"),
+    # Home
+    path("", home, name="home"),
     # Admin
     path("admin/", admin.site.urls),
     # API Documentation
@@ -37,7 +53,7 @@ urlpatterns = [
     path("api/v1/sync/", include("apps.sync.api.urls")),
     path("api/v1/reports/", include("apps.reports.api.urls")),
     # Web views (HTMX)
-    path("", include("apps.accounts.urls")),
+    path("accounts/", include("apps.accounts.urls")),
     path("courses/", include("apps.courses.urls")),
     path("learning-paths/", include("apps.learning_paths.urls")),
     path("assessments/", include("apps.assessments.urls")),
