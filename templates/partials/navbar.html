@@ -16,27 +16,11 @@
             {% if user.is_authenticated %}
             <ul class="menu menu-horizontal px-1 gap-1">
                 <li>
-                    <a href="{% url 'courses:list' %}" class="hover:bg-primary-100 dark:hover:bg-primary-900/30">
+                    <a href="{% url 'accounts:dashboard' %}" class="hover:bg-primary-100 dark:hover:bg-primary-900/30">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                         </svg>
-                        Cursos
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'learning_paths:list' %}" class="hover:bg-primary-100 dark:hover:bg-primary-900/30">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
-                        </svg>
-                        Rutas
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'lessons_learned:list' %}" class="hover:bg-primary-100 dark:hover:bg-primary-900/30">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                        </svg>
-                        Lecciones
+                        Dashboard
                     </a>
                 </li>
             </ul>
@@ -45,20 +29,19 @@
             <div class="dropdown dropdown-end">
                 <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
                     <div class="w-10 rounded-full bg-primary-500 text-white flex items-center justify-center">
-                        <span class="text-sm font-medium">{{ user.first_name.0 }}{{ user.last_name.0 }}</span>
+                        <span class="text-sm font-medium">{{ user.first_name.0|default:user.email.0|upper }}{{ user.last_name.0|default:"" }}</span>
                     </div>
                 </div>
                 <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 dark:bg-gray-700">
                     <li class="menu-title">
-                        <span>{{ user.get_full_name }}</span>
+                        <span>{{ user.get_full_name|default:user.email }}</span>
                     </li>
                     <li><a href="{% url 'accounts:profile' %}">Mi Perfil</a></li>
-                    <li><a href="{% url 'accounts:certificates' %}">Mis Certificados</a></li>
                     {% if user.is_staff %}
                     <li><a href="{% url 'admin:index' %}">Administración</a></li>
                     {% endif %}
                     <li class="border-t mt-2 pt-2">
-                        <a href="{% url 'accounts:logout' %}" hx-post="{% url 'accounts:logout' %}" hx-swap="none">
+                        <a href="{% url 'accounts:logout' %}">
                             Cerrar Sesión
                         </a>
                     </li>
@@ -103,9 +86,7 @@
          class="lg:hidden border-t dark:border-gray-700">
         <div class="px-2 pt-2 pb-3 space-y-1">
             {% if user.is_authenticated %}
-            <a href="{% url 'courses:list' %}" class="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">Cursos</a>
-            <a href="{% url 'learning_paths:list' %}" class="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">Rutas de Aprendizaje</a>
-            <a href="{% url 'lessons_learned:list' %}" class="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">Lecciones Aprendidas</a>
+            <a href="{% url 'accounts:dashboard' %}" class="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">Dashboard</a>
             <div class="border-t dark:border-gray-700 my-2"></div>
             <a href="{% url 'accounts:profile' %}" class="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">Mi Perfil</a>
             <a href="{% url 'accounts:logout' %}" class="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">Cerrar Sesión</a>

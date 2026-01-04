@@ -1,0 +1,94 @@
+{% extends "base/base.html" %}
+{% load widget_tweaks %}
+
+{% block title %}Configurar 2FA - SD LMS{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-2xl mb-4">
+                    Configurar autenticación de dos factores
+                </h2>
+
+                <div class="steps steps-vertical lg:steps-horizontal mb-8">
+                    <li class="step step-primary">Instalar app</li>
+                    <li class="step step-primary">Escanear código</li>
+                    <li class="step">Verificar</li>
+                </div>
+
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <!-- QR Code Section -->
+                    <div class="text-center">
+                        <h3 class="font-bold text-lg mb-4">1. Escanee el código QR</h3>
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">
+                            Use una aplicación como Google Authenticator o Authy
+                        </p>
+
+                        <!-- QR Code placeholder - in production use a QR library -->
+                        <div class="bg-white p-4 rounded-lg inline-block mb-4">
+                            <div class="bg-gray-100 border-2 border-dashed border-gray-300 p-8 rounded">
+                                <p class="text-sm text-gray-500">Código QR</p>
+                                <p class="text-xs text-gray-400 break-all mt-2">{{ totp_url }}</p>
+                            </div>
+                        </div>
+
+                        <div class="divider">O ingrese manualmente</div>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Clave secreta</span>
+                            </label>
+                            <div class="join w-full">
+                                <input type="text"
+                                       value="{{ secret_key }}"
+                                       class="input input-bordered join-item w-full font-mono text-sm"
+                                       readonly
+                                       id="secret-key">
+                                <button type="button"
+                                        class="btn join-item"
+                                        onclick="navigator.clipboard.writeText(document.getElementById('secret-key').value)">
+                                    Copiar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Verification Section -->
+                    <div>
+                        <h3 class="font-bold text-lg mb-4">2. Verifique la configuración</h3>
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">
+                            Ingrese el código de 6 dígitos de su aplicación
+                        </p>
+
+                        <form method="post">
+                            {% csrf_token %}
+
+                            <div class="form-control mb-6">
+                                <label class="label" for="id_token">
+                                    <span class="label-text font-medium">Código de verificación</span>
+                                </label>
+                                {{ form.token }}
+                                {% if form.token.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.token.errors.0 }}</span>
+                                </label>
+                                {% endif %}
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-full mb-4">
+                                Activar 2FA
+                            </button>
+
+                            <a href="{% url 'accounts:profile' %}" class="btn btn-ghost w-full">
+                                Cancelar
+                            </a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

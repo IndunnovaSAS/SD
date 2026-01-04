@@ -1,0 +1,51 @@
+{% extends "accounts/base_auth.html" %}
+{% load widget_tweaks %}
+
+{% block title %}Verificación 2FA - SD LMS{% endblock %}
+
+{% block auth_content %}
+<div id="2fa-form-container">
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
+        Verificación de dos factores
+    </h2>
+    <p class="text-gray-600 dark:text-gray-400 text-center mb-6">
+        Ingrese el código de su aplicación autenticadora
+    </p>
+
+    {% if error %}
+    <div class="alert alert-error mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <form method="post"
+          hx-post="{% url 'accounts:verify_2fa' %}"
+          hx-target="#2fa-form-container"
+          hx-swap="innerHTML">
+        {% csrf_token %}
+
+        <div class="form-control mb-6">
+            <label class="label" for="id_token">
+                <span class="label-text font-medium">Código de verificación</span>
+            </label>
+            {{ form.token }}
+            {% if form.token.errors %}
+            <label class="label">
+                <span class="label-text-alt text-error">{{ form.token.errors.0 }}</span>
+            </label>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary w-full mb-4">
+            Verificar
+        </button>
+
+        <a href="{% url 'accounts:login' %}" class="btn btn-ghost w-full">
+            Cancelar
+        </a>
+    </form>
+</div>
+{% endblock %}

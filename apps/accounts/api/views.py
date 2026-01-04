@@ -8,9 +8,11 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .serializers import (
     ChangePasswordSerializer,
+    LogoutSerializer,
     UserCreateSerializer,
     UserSerializer,
 )
@@ -53,6 +55,30 @@ class ChangePasswordView(generics.UpdateAPIView):
         user.save()
 
         return Response({"message": "Contraseña actualizada correctamente."})
+
+
+class LogoutView(APIView):
+    """Logout by blacklisting the refresh token."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = LogoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            refresh_token = serializer.validated_data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(
+                {"message": "Sesión cerrada correctamente."},
+                status=status.HTTP_200_OK,
+            )
+        except Exception:
+            return Response(
+                {"error": "Token inválido o ya revocado."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class UserViewSet(viewsets.ModelViewSet):

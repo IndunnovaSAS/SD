@@ -121,3 +121,9 @@ class ChangePasswordSerializer(serializers.Serializer):
         if not user.check_password(value):
             raise serializers.ValidationError("La contraseña actual es incorrecta.")
         return value
+
+
+class LogoutSerializer(serializers.Serializer):
+    """Serializer for logout (token blacklist)."""
+
+    refresh = serializers.CharField(required=True, help_text="Refresh token to blacklist")
