@@ -1,0 +1,150 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" class="h-full" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }" :class="{ 'dark': darkMode }">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{% block meta_description %}SD LMS - Sistema de Gestión de Aprendizaje{% endblock %}">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <title>{% block title %}SD LMS{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
+
+    <!-- Tailwind CSS (via CDN for development, replace with build for production) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                            950: '#172554',
+                        },
+                        secondary: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+
+    <!-- DaisyUI -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" rel="stylesheet" type="text/css" />
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.11" integrity="sha384-0gxUXCCR8yv9FM2b+U3FDbsKthCI66oH5ber7DGXRjVcNFNZK60cq+59qRsxbkqe" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.11/dist/ext/loading-states.js"></script>
+
+    <!-- HTMX Configuration -->
+    <meta name="htmx-config" content='{"defaultSwapStyle":"innerHTML","historyCacheSize":10}'>
+
+    <!-- Custom Styles -->
+    <style>
+        [x-cloak] { display: none !important; }
+
+        /* HTMX loading indicator */
+        .htmx-indicator {
+            opacity: 0;
+            transition: opacity 200ms ease-in;
+        }
+        .htmx-request .htmx-indicator {
+            opacity: 1;
+        }
+        .htmx-request.htmx-indicator {
+            opacity: 1;
+        }
+
+        /* Page transitions */
+        .htmx-swapping {
+            opacity: 0.5;
+            transition: opacity 200ms ease-out;
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="min-h-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+      hx-ext="loading-states"
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+    {% block body %}
+    <div class="min-h-screen flex flex-col">
+        <!-- Navigation -->
+        {% include "partials/navbar.html" %}
+
+        <!-- Flash Messages -->
+        {% include "partials/messages.html" %}
+
+        <!-- Main Content -->
+        <main class="flex-1">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Footer -->
+        {% include "partials/footer.html" %}
+    </div>
+    {% endblock %}
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay"
+         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden"
+         x-data
+         @htmx:before-request.window="$el.classList.remove('hidden')"
+         @htmx:after-request.window="$el.classList.add('hidden')">
+        <div class="loading loading-spinner loading-lg text-primary-500"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // HTMX event handling
+        document.body.addEventListener('htmx:responseError', function(evt) {
+            console.error('HTMX Error:', evt.detail.error);
+            // Show error notification
+            const toast = document.getElementById('toast-container');
+            if (toast) {
+                toast.innerHTML = `
+                    <div class="alert alert-error">
+                        <span>Error en la solicitud. Por favor, intente nuevamente.</span>
+                    </div>
+                `;
+                setTimeout(() => toast.innerHTML = '', 5000);
+            }
+        });
+
+        // CSRF token for HTMX requests
+        document.body.addEventListener('htmx:configRequest', function(evt) {
+            evt.detail.headers['X-CSRFToken'] = document.querySelector('meta[name="csrf-token"]').content;
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,256 @@
+"""
+Admin configuration for courses app.
+"""
+
+from django.contrib import admin
+from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
+
+from .models import Course, Enrollment, Lesson, LessonProgress, MediaAsset, Module
+
+
+class ModuleInline(admin.TabularInline):
+    """Inline for modules in course admin."""
+
+    model = Module
+    extra = 1
+    ordering = ["order"]
+    fields = ["title", "order", "description"]
+
+
+class LessonInline(admin.TabularInline):
+    """Inline for lessons in module admin."""
+
+    model = Lesson
+    extra = 1
+    ordering = ["order"]
+    fields = ["title", "lesson_type", "duration", "order", "is_mandatory"]
+
+
+@admin.register(Course)
+class CourseAdmin(admin.ModelAdmin):
+    """Admin configuration for Course model."""
+
+    list_display = [
+        "code",
+        "title",
+        "course_type",
+        "risk_level",
+        "status",
+        "version",
+        "duration",
+        "created_at",
+    ]
+    list_filter = ["status", "course_type", "risk_level", "created_at"]
+    search_fields = ["code", "title", "description"]
+    readonly_fields = ["created_at", "updated_at", "published_at"]
+    date_hierarchy = "created_at"
+    inlines = [ModuleInline]
+
+    fieldsets = [
+        (
+            None,
+            {
+                "fields": ["code", "title", "description", "objectives"],
+            },
+        ),
+        (
+            _("Configuración"),
+            {
+                "fields": [
+                    "course_type",
+                    "risk_level",
+                    "duration",
+                    "validity_months",
+                    "version",
+                ],
+            },
+        ),
+        (
+            _("Asignación"),
+            {
+                "fields": ["target_profiles", "prerequisites"],
+            },
+        ),
+        (
+            _("Media"),
+            {
+                "fields": ["thumbnail"],
+                "classes": ["collapse"],
+            },
+        ),
+        (
+            _("Estado"),
+            {
+                "fields": ["status", "published_at", "created_by"],
+            },
+        ),
+        (
+            _("Auditoría"),
+            {
+                "fields": ["created_at", "updated_at"],
+                "classes": ["collapse"],
+            },
+        ),
+    ]
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(Module)
+class ModuleAdmin(admin.ModelAdmin):
+    """Admin configuration for Module model."""
+
+    list_display = ["title", "course", "order", "lesson_count", "created_at"]
+    list_filter = ["course", "created_at"]
+    search_fields = ["title", "description", "course__title"]
+    ordering = ["course", "order"]
+    inlines = [LessonInline]
+
+    def lesson_count(self, obj):
+        return obj.lessons.count()
+
+    lesson_count.short_description = _("Lecciones")
+
+
+@admin.register(Lesson)
+class LessonAdmin(admin.ModelAdmin):
+    """Admin configuration for Lesson model."""
+
+    list_display = [
+        "title",
+        "module",
+        "lesson_type",
+        "duration",
+        "order",
+        "is_mandatory",
+        "is_offline_available",
+    ]
+    list_filter = ["lesson_type", "is_mandatory", "is_offline_available", "created_at"]
+    search_fields = ["title", "description", "module__title"]
+    ordering = ["module", "order"]
+
+    fieldsets = [
+        (
+            None,
+            {
+                "fields": ["module", "title", "description", "lesson_type"],
+            },
+        ),
+        (
+            _("Contenido"),
+            {
+                "fields": ["content", "content_file", "video_url"],
+            },
+        ),
+        (
+            _("Configuración"),
+            {
+                "fields": [
+                    "duration",
+                    "order",
+                    "is_mandatory",
+                    "is_offline_available",
+                ],
+            },
+        ),
+        (
+            _("Metadatos"),
+            {
+                "fields": ["metadata"],
+                "classes": ["collapse"],
+            },
+        ),
+    ]
+
+
+@admin.register(MediaAsset)
+class MediaAssetAdmin(admin.ModelAdmin):
+    """Admin configuration for MediaAsset model."""
+
+    list_display = [
+        "original_name",
+        "file_type",
+        "size_display",
+        "status",
+        "uploaded_by",
+        "created_at",
+    ]
+    list_filter = ["file_type", "status", "created_at"]
+    search_fields = ["filename", "original_name"]
+    readonly_fields = ["filename", "mime_type", "size", "created_at", "updated_at"]
+    date_hierarchy = "created_at"
+
+    def size_display(self, obj):
+        """Display file size in human readable format."""
+        size = obj.size
+        for unit in ["B", "KB", "MB", "GB"]:
+            if size < 1024:
+                return f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{size:.1f} TB"
+
+    size_display.short_description = _("Tamaño")
+
+
+@admin.register(Enrollment)
+class EnrollmentAdmin(admin.ModelAdmin):
+    """Admin configuration for Enrollment model."""
+
+    list_display = [
+        "user",
+        "course",
+        "status",
+        "progress_display",
+        "due_date",
+        "assigned_by",
+        "created_at",
+    ]
+    list_filter = ["status", "created_at", "due_date"]
+    search_fields = ["user__email", "user__first_name", "course__title"]
+    readonly_fields = ["created_at", "updated_at"]
+    date_hierarchy = "created_at"
+    raw_id_fields = ["user", "course", "assigned_by"]
+
+    def progress_display(self, obj):
+        """Display progress as a colored bar."""
+        color = "green" if obj.progress >= 100 else "blue" if obj.progress >= 50 else "orange"
+        return format_html(
+            '<div style="width:100px;background:#eee;border-radius:3px;">'
+            '<div style="width:{}%;background:{};height:20px;border-radius:3px;text-align:center;color:white;">'
+            "{}%</div></div>",
+            min(obj.progress, 100),
+            color,
+            obj.progress,
+        )
+
+    progress_display.short_description = _("Progreso")
+
+
+@admin.register(LessonProgress)
+class LessonProgressAdmin(admin.ModelAdmin):
+    """Admin configuration for LessonProgress model."""
+
+    list_display = [
+        "enrollment",
+        "lesson",
+        "is_completed",
+        "progress_percent",
+        "time_spent_display",
+        "completed_at",
+    ]
+    list_filter = ["is_completed", "created_at"]
+    search_fields = ["enrollment__user__email", "lesson__title"]
+    readonly_fields = ["created_at", "updated_at"]
+    raw_id_fields = ["enrollment", "lesson"]
+
+    def time_spent_display(self, obj):
+        """Display time spent in human readable format."""
+        minutes = obj.time_spent // 60
+        seconds = obj.time_spent % 60
+        return f"{minutes}m {seconds}s"
+
+    time_spent_display.short_description = _("Tiempo")

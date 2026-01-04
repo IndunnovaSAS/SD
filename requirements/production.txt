@@ -1,0 +1,28 @@
+# =============================================================================
+# SD LMS - Production Requirements
+# =============================================================================
+
+-r base.txt
+
+# Production Server
+gunicorn>=21.2.0
+uvicorn[standard]>=0.29.0
+
+# Monitoring
+sentry-sdk[django,celery]>=1.45.0
+
+# GCP Storage
+google-cloud-storage>=2.16.0
+django-storages[google]>=1.14.2
+
+# Security
+argon2-cffi>=23.1.0
+
+# Performance
+orjson>=3.10.1
+
+# Logging
+python-json-logger>=2.0.7
+
+# Health monitoring
+django-watchman>=1.3.0
