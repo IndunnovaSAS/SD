@@ -1,0 +1,373 @@
+"""
+Web views for assessments app.
+"""
+
+from decimal import Decimal
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db.models import Max
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+
+from .models import Answer, Assessment, AssessmentAttempt, AttemptAnswer, Question
+
+
+@login_required
+def assessment_list(request):
+    """List available assessments."""
+    assessments = Assessment.objects.filter(
+        status=Assessment.Status.PUBLISHED
+    ).select_related("course", "created_by")
+
+    # Filter by course
+    course_id = request.GET.get("course")
+    if course_id:
+        assessments = assessments.filter(course_id=course_id)
+
+    # Filter by type
+    assessment_type = request.GET.get("type")
+    if assessment_type:
+        assessments = assessments.filter(assessment_type=assessment_type)
+
+    context = {
+        "assessments": assessments,
+        "current_type": assessment_type,
+        "assessment_types": Assessment.Type.choices,
+    }
+    return render(request, "assessments/assessment_list.html", context)
+
+
+@login_required
+def assessment_detail(request, assessment_id):
+    """View assessment details."""
+    assessment = get_object_or_404(
+        Assessment.objects.select_related("course", "created_by"),
+        pk=assessment_id,
+    )
+
+    # Get user's attempts
+    user_attempts = AssessmentAttempt.objects.filter(
+        user=request.user,
+        assessment=assessment,
+    ).order_by("-started_at")
+
+    # Check if can start new attempt
+    can_start = True
+    if assessment.max_attempts > 0:
+        if user_attempts.count() >= assessment.max_attempts:
+            can_start = False
+
+    # Check for in-progress attempt
+    in_progress = user_attempts.filter(
+        status=AssessmentAttempt.Status.IN_PROGRESS
+    ).first()
+
+    context = {
+        "assessment": assessment,
+        "user_attempts": user_attempts,
+        "can_start": can_start,
+        "in_progress": in_progress,
+        "best_attempt": user_attempts.filter(
+            status=AssessmentAttempt.Status.GRADED
+        ).order_by("-score").first(),
+    }
+    return render(request, "assessments/assessment_detail.html", context)
+
+
+@login_required
+@require_POST
+def start_attempt(request, assessment_id):
+    """Start a new assessment attempt."""
+    assessment = get_object_or_404(
+        Assessment,
+        pk=assessment_id,
+        status=Assessment.Status.PUBLISHED,
+    )
+
+    # Check max attempts
+    if assessment.max_attempts > 0:
+        existing_count = AssessmentAttempt.objects.filter(
+            user=request.user,
+            assessment=assessment,
+        ).count()
+
+        if existing_count >= assessment.max_attempts:
+            messages.error(request, "Has alcanzado el número máximo de intentos.")
+            return redirect("assessments:detail", assessment_id=assessment_id)
+
+    # Check for existing in-progress attempt
+    in_progress = AssessmentAttempt.objects.filter(
+        user=request.user,
+        assessment=assessment,
+        status=AssessmentAttempt.Status.IN_PROGRESS,
+    ).first()
+
+    if in_progress:
+        return redirect("assessments:take", attempt_id=in_progress.id)
+
+    # Calculate attempt number
+    attempt_number = AssessmentAttempt.objects.filter(
+        user=request.user,
+        assessment=assessment,
+    ).count() + 1
+
+    # Create new attempt
+    attempt = AssessmentAttempt.objects.create(
+        user=request.user,
+        assessment=assessment,
+        attempt_number=attempt_number,
+        ip_address=request.META.get("REMOTE_ADDR", ""),
+        user_agent=request.META.get("HTTP_USER_AGENT", ""),
+    )
+
+    return redirect("assessments:take", attempt_id=attempt.id)
+
+
+@login_required
+def take_assessment(request, attempt_id):
+    """Take an assessment."""
+    attempt = get_object_or_404(
+        AssessmentAttempt.objects.select_related("assessment"),
+        pk=attempt_id,
+        user=request.user,
+    )
+
+    if attempt.status != AssessmentAttempt.Status.IN_PROGRESS:
+        return redirect("assessments:result", attempt_id=attempt_id)
+
+    assessment = attempt.assessment
+    questions = assessment.questions.prefetch_related("answers").order_by("order")
+
+    # Get user's current answers
+    answered = {
+        aa.question_id: {
+            "selected": list(aa.selected_answers.values_list("id", flat=True)),
+            "text": aa.text_answer,
+        }
+        for aa in attempt.attempt_answers.prefetch_related("selected_answers")
+    }
+
+    context = {
+        "attempt": attempt,
+        "assessment": assessment,
+        "questions": questions,
+        "answered": answered,
+        "time_limit": assessment.time_limit,
+    }
+    return render(request, "assessments/take_assessment.html", context)
+
+
+@login_required
+@require_POST
+def save_answer(request, attempt_id):
+    """Save a single answer (AJAX)."""
+    attempt = get_object_or_404(
+        AssessmentAttempt,
+        pk=attempt_id,
+        user=request.user,
+        status=AssessmentAttempt.Status.IN_PROGRESS,
+    )
+
+    question_id = request.POST.get("question_id")
+    selected_ids = request.POST.getlist("selected_answers")
+    text_answer = request.POST.get("text_answer", "")
+
+    try:
+        question = Question.objects.get(
+            pk=question_id,
+            assessment=attempt.assessment,
+        )
+    except Question.DoesNotExist:
+        return JsonResponse({"error": "Pregunta no válida"}, status=400)
+
+    # Create or update answer
+    attempt_answer, created = AttemptAnswer.objects.get_or_create(
+        attempt=attempt,
+        question=question,
+        defaults={"text_answer": text_answer},
+    )
+
+    if not created:
+        attempt_answer.text_answer = text_answer
+        attempt_answer.save()
+
+    # Set selected answers
+    if selected_ids:
+        attempt_answer.selected_answers.set(
+            Answer.objects.filter(pk__in=selected_ids, question=question)
+        )
+
+    return JsonResponse({"status": "saved"})
+
+
+@login_required
+@require_POST
+def submit_attempt(request, attempt_id):
+    """Submit an assessment attempt."""
+    attempt = get_object_or_404(
+        AssessmentAttempt,
+        pk=attempt_id,
+        user=request.user,
+        status=AssessmentAttempt.Status.IN_PROGRESS,
+    )
+
+    # Save any remaining answers
+    for key, value in request.POST.items():
+        if key.startswith("question_"):
+            question_id = key.replace("question_", "")
+            selected_ids = request.POST.getlist(key)
+
+            try:
+                question = Question.objects.get(
+                    pk=question_id,
+                    assessment=attempt.assessment,
+                )
+
+                attempt_answer, created = AttemptAnswer.objects.get_or_create(
+                    attempt=attempt,
+                    question=question,
+                )
+
+                if selected_ids:
+                    attempt_answer.selected_answers.set(
+                        Answer.objects.filter(pk__in=selected_ids, question=question)
+                    )
+            except Question.DoesNotExist:
+                continue
+
+    # Update attempt
+    time_spent = int(request.POST.get("time_spent", 0))
+    attempt.time_spent = time_spent
+    attempt.submitted_at = timezone.now()
+    attempt.status = AssessmentAttempt.Status.SUBMITTED
+    attempt.save()
+
+    # Auto-grade
+    _auto_grade(attempt)
+
+    messages.success(request, "Evaluación enviada correctamente.")
+    return redirect("assessments:result", attempt_id=attempt_id)
+
+
+@login_required
+def attempt_result(request, attempt_id):
+    """View attempt result."""
+    attempt = get_object_or_404(
+        AssessmentAttempt.objects.select_related("assessment"),
+        pk=attempt_id,
+        user=request.user,
+    )
+
+    if attempt.status == AssessmentAttempt.Status.IN_PROGRESS:
+        return redirect("assessments:take", attempt_id=attempt_id)
+
+    assessment = attempt.assessment
+
+    # Get questions with answers
+    questions = assessment.questions.prefetch_related("answers").order_by("order")
+
+    # Get user's answers
+    user_answers = {
+        aa.question_id: aa
+        for aa in attempt.attempt_answers.prefetch_related("selected_answers")
+    }
+
+    context = {
+        "attempt": attempt,
+        "assessment": assessment,
+        "questions": questions,
+        "user_answers": user_answers,
+        "show_correct": assessment.show_correct_answers,
+    }
+    return render(request, "assessments/attempt_result.html", context)
+
+
+@login_required
+def my_attempts(request):
+    """View user's assessment attempts."""
+    attempts = AssessmentAttempt.objects.filter(
+        user=request.user
+    ).select_related("assessment").order_by("-started_at")
+
+    # Filter by status
+    status_filter = request.GET.get("status")
+    if status_filter:
+        attempts = attempts.filter(status=status_filter)
+
+    context = {
+        "attempts": attempts,
+        "current_status": status_filter,
+        "statuses": AssessmentAttempt.Status.choices,
+    }
+    return render(request, "assessments/my_attempts.html", context)
+
+
+def _auto_grade(attempt):
+    """Auto-grade objective questions."""
+    total_points = 0
+    earned_points = 0
+    all_gradeable = True
+
+    for attempt_answer in attempt.attempt_answers.all():
+        question = attempt_answer.question
+
+        if question.question_type in [
+            Question.Type.SINGLE_CHOICE,
+            Question.Type.MULTIPLE_CHOICE,
+            Question.Type.TRUE_FALSE,
+        ]:
+            correct_answers = set(
+                question.answers.filter(is_correct=True).values_list("id", flat=True)
+            )
+            selected_answers = set(
+                attempt_answer.selected_answers.values_list("id", flat=True)
+            )
+
+            is_correct = correct_answers == selected_answers
+            points_awarded = question.points if is_correct else 0
+
+            attempt_answer.is_correct = is_correct
+            attempt_answer.points_awarded = points_awarded
+            attempt_answer.save()
+
+            total_points += question.points
+            earned_points += points_awarded
+        else:
+            all_gradeable = False
+            total_points += question.points
+
+    # Handle unanswered questions
+    answered_questions = attempt.attempt_answers.values_list("question_id", flat=True)
+    unanswered = attempt.assessment.questions.exclude(id__in=answered_questions)
+
+    for question in unanswered:
+        total_points += question.points
+        if question.question_type in [
+            Question.Type.SINGLE_CHOICE,
+            Question.Type.MULTIPLE_CHOICE,
+            Question.Type.TRUE_FALSE,
+        ]:
+            AttemptAnswer.objects.create(
+                attempt=attempt,
+                question=question,
+                is_correct=False,
+                points_awarded=0,
+            )
+
+    attempt.points_earned = earned_points
+
+    if total_points > 0:
+        attempt.score = Decimal(str((earned_points / total_points) * 100))
+        attempt.passed = attempt.score >= attempt.assessment.passing_score
+    else:
+        attempt.score = Decimal("0")
+        attempt.passed = False
+
+    if all_gradeable:
+        attempt.status = AssessmentAttempt.Status.GRADED
+        attempt.graded_at = timezone.now()
+
+    attempt.save()
