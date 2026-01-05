@@ -1,0 +1,63 @@
+<div id="training-trend-container" class="h-full">
+    <canvas id="training-line"></canvas>
+</div>
+<script>
+(function() {
+    const container = document.getElementById('training-trend-container');
+    if (container && typeof echarts !== 'undefined') {
+        const chart = echarts.init(container);
+        const trendData = {{ trend_data|safe }};
+
+        const weeks = trendData.map(item => {
+            if (item.week) {
+                const date = new Date(item.week);
+                return date.toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
+            }
+            return '';
+        });
+        const counts = trendData.map(item => item.count);
+
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: weeks,
+                axisLabel: {
+                    rotate: 45
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: 'Completados'
+            },
+            series: [{
+                name: 'Cursos Completados',
+                type: 'bar',
+                data: counts,
+                itemStyle: {
+                    color: '#3b82f6',
+                    borderRadius: [4, 4, 0, 0]
+                },
+                emphasis: {
+                    itemStyle: {
+                        color: '#2563eb'
+                    }
+                }
+            }]
+        };
+        chart.setOption(option);
+        window.addEventListener('resize', () => chart.resize());
+    }
+})();
+</script>

@@ -1,0 +1,54 @@
+<div id="compliance-chart-container" class="h-full">
+    <canvas id="compliance-pie"></canvas>
+</div>
+<script>
+(function() {
+    const ctx = document.getElementById('compliance-pie');
+    if (ctx && typeof echarts !== 'undefined') {
+        const chart = echarts.init(ctx.parentElement);
+        const option = {
+            tooltip: {
+                trigger: 'item',
+                formatter: '{b}: {c} ({d}%)'
+            },
+            legend: {
+                bottom: '0%',
+                left: 'center'
+            },
+            series: [{
+                name: 'Cumplimiento',
+                type: 'pie',
+                radius: ['40%', '70%'],
+                avoidLabelOverlap: false,
+                itemStyle: {
+                    borderRadius: 10,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                },
+                label: {
+                    show: false,
+                    position: 'center'
+                },
+                emphasis: {
+                    label: {
+                        show: true,
+                        fontSize: 20,
+                        fontWeight: 'bold'
+                    }
+                },
+                labelLine: {
+                    show: false
+                },
+                data: [
+                    { value: {{ chart_data.completed }}, name: 'Completados', itemStyle: { color: '#22c55e' } },
+                    { value: {{ chart_data.in_progress }}, name: 'En Progreso', itemStyle: { color: '#3b82f6' } },
+                    { value: {{ chart_data.not_started }}, name: 'Sin Iniciar', itemStyle: { color: '#94a3b8' } },
+                    { value: {{ chart_data.expired }}, name: 'Vencidos', itemStyle: { color: '#ef4444' } }
+                ]
+            }]
+        };
+        chart.setOption(option);
+        window.addEventListener('resize', () => chart.resize());
+    }
+})();
+</script>
