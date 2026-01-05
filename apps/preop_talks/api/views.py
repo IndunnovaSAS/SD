@@ -310,9 +310,16 @@ class PreopTalkViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def today(self, request):
         """Get talks scheduled for today."""
-        today = timezone.now().date()
+        today = timezone.localdate()
+        today_start = timezone.make_aware(
+            timezone.datetime.combine(today, timezone.datetime.min.time())
+        )
+        today_end = timezone.make_aware(
+            timezone.datetime.combine(today, timezone.datetime.max.time())
+        )
         talks = PreopTalk.objects.filter(
-            scheduled_at__date=today
+            scheduled_at__gte=today_start,
+            scheduled_at__lte=today_end,
         ).order_by("scheduled_at")
 
         serializer = PreopTalkListSerializer(talks, many=True)
