@@ -52,6 +52,7 @@ urlpatterns = [
     path("api/v1/notifications/", include("apps.notifications.api.urls")),
     path("api/v1/sync/", include("apps.sync.api.urls")),
     path("api/v1/reports/", include("apps.reports.api.urls")),
+    path("api/v1/integrations/", include("apps.integrations.api.urls")),
     # Web views (HTMX)
     path("accounts/", include("apps.accounts.urls")),
     path("courses/", include("apps.courses.urls")),
