@@ -63,6 +63,7 @@ urlpatterns = [
     path("preop-talks/", include("apps.preop_talks.urls")),
     path("notifications/", include("apps.notifications.urls")),
     path("reports/", include("apps.reports.urls")),
+    path("gamification/", include("apps.gamification.urls")),
 ]
 
 # Debug toolbar (only in debug mode)
