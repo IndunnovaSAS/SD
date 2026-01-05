@@ -14,11 +14,15 @@ from rest_framework.views import APIView
 from apps.courses.models import (
     Category,
     Course,
+    CourseVersion,
     Enrollment,
     Lesson,
     LessonProgress,
     MediaAsset,
     Module,
+    ResourceLibrary,
+    ScormAttempt,
+    ScormPackage,
 )
 
 from .serializers import (
@@ -28,6 +32,8 @@ from .serializers import (
     CourseCreateSerializer,
     CourseListSerializer,
     CourseSerializer,
+    CourseVersionCreateSerializer,
+    CourseVersionSerializer,
     EnrollmentCreateSerializer,
     EnrollmentSerializer,
     LessonProgressSerializer,
@@ -35,6 +41,12 @@ from .serializers import (
     LessonSerializer,
     MediaAssetSerializer,
     ModuleSerializer,
+    ResourceLibraryCreateSerializer,
+    ResourceLibraryListSerializer,
+    ResourceLibrarySerializer,
+    ScormAttemptSerializer,
+    ScormDataUpdateSerializer,
+    ScormPackageSerializer,
 )
 
 
@@ -426,3 +438,210 @@ class LessonProgressView(APIView):
             enrollment.completed_at = timezone.now()
 
         enrollment.save()
+
+
+class CourseVersionViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for viewing course versions."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CourseVersionSerializer
+
+    def get_queryset(self):
+        course_id = self.kwargs.get("course_pk")
+        return CourseVersion.objects.filter(course_id=course_id).select_related(
+            "created_by"
+        )
+
+
+class CreateCourseVersionView(APIView):
+    """View for creating a new course version."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, course_id):
+        """Create a new version snapshot of a course."""
+        course = get_object_or_404(Course, pk=course_id)
+
+        serializer = CourseVersionCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        version = CourseVersion.create_snapshot(
+            course=course,
+            user=request.user,
+            changelog=serializer.validated_data.get("changelog", ""),
+            is_major=serializer.validated_data.get("is_major", False),
+        )
+
+        return Response(
+            CourseVersionSerializer(version).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ScormPackageViewSet(viewsets.ModelViewSet):
+    """ViewSet for SCORM package management."""
+
+    queryset = ScormPackage.objects.all()
+    serializer_class = ScormPackageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = ScormPackage.objects.select_related("lesson", "lesson__module")
+
+        lesson_id = self.request.query_params.get("lesson")
+        if lesson_id:
+            queryset = queryset.filter(lesson_id=lesson_id)
+
+        status_filter = self.request.query_params.get("status")
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        return queryset
+
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        # Queue for processing
+        from apps.courses.services import ScormService
+        ScormService.process_package(instance)
+
+    @action(detail=True, methods=["post"])
+    def reprocess(self, request, pk=None):
+        """Reprocess a SCORM package."""
+        scorm_package = self.get_object()
+
+        from apps.courses.services import ScormService
+        ScormService.process_package(scorm_package)
+
+        return Response(ScormPackageSerializer(scorm_package).data)
+
+
+class ScormAttemptViewSet(viewsets.ModelViewSet):
+    """ViewSet for SCORM attempts."""
+
+    queryset = ScormAttempt.objects.all()
+    serializer_class = ScormAttemptSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = ScormAttempt.objects.select_related(
+            "enrollment", "enrollment__user", "scorm_package", "scorm_package__lesson"
+        )
+
+        enrollment_id = self.request.query_params.get("enrollment")
+        if enrollment_id:
+            queryset = queryset.filter(enrollment_id=enrollment_id)
+
+        package_id = self.request.query_params.get("package")
+        if package_id:
+            queryset = queryset.filter(scorm_package_id=package_id)
+
+        return queryset
+
+    @action(detail=True, methods=["post"])
+    def update_cmi(self, request, pk=None):
+        """Update SCORM CMI data."""
+        attempt = self.get_object()
+
+        serializer = ScormDataUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        cmi_element = serializer.validated_data["cmi_element"]
+        value = serializer.validated_data["value"]
+
+        # Update CMI data
+        attempt.cmi_data[cmi_element] = value
+
+        # Handle common SCORM elements
+        if cmi_element == "cmi.core.lesson_status":
+            status_map = {
+                "passed": ScormAttempt.Status.PASSED,
+                "completed": ScormAttempt.Status.COMPLETED,
+                "failed": ScormAttempt.Status.FAILED,
+                "incomplete": ScormAttempt.Status.INCOMPLETE,
+            }
+            attempt.lesson_status = status_map.get(value, attempt.lesson_status)
+
+        elif cmi_element == "cmi.core.score.raw":
+            try:
+                attempt.score_raw = float(value)
+            except ValueError:
+                pass
+
+        elif cmi_element == "cmi.core.lesson_location":
+            attempt.location = value
+
+        elif cmi_element == "cmi.suspend_data":
+            attempt.suspend_data = value
+
+        attempt.save()
+
+        return Response({"success": True, "element": cmi_element, "value": value})
+
+
+class ResourceLibraryViewSet(viewsets.ModelViewSet):
+    """ViewSet for resource library management."""
+
+    queryset = ResourceLibrary.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ResourceLibraryListSerializer
+        if self.action == "create":
+            return ResourceLibraryCreateSerializer
+        return ResourceLibrarySerializer
+
+    def get_queryset(self):
+        queryset = ResourceLibrary.objects.filter(is_public=True)
+
+        resource_type = self.request.query_params.get("type")
+        if resource_type:
+            queryset = queryset.filter(resource_type=resource_type)
+
+        category = self.request.query_params.get("category")
+        if category:
+            queryset = queryset.filter(category_id=category)
+
+        search = self.request.query_params.get("search")
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) | Q(description__icontains=search)
+            )
+
+        return queryset.order_by("-usage_count", "-created_at")
+
+    def perform_create(self, serializer):
+        file = self.request.FILES.get("file")
+        if file:
+            serializer.save(
+                uploaded_by=self.request.user,
+                file_size=file.size,
+            )
+        else:
+            serializer.save(uploaded_by=self.request.user)
+
+    @action(detail=True, methods=["post"])
+    def increment_usage(self, request, pk=None):
+        """Increment usage count when resource is used."""
+        resource = self.get_object()
+        resource.usage_count += 1
+        resource.save()
+        return Response({"usage_count": resource.usage_count})
+
+    @action(detail=False, methods=["get"])
+    def popular(self, request):
+        """Get most popular resources."""
+        resources = ResourceLibrary.objects.filter(is_public=True).order_by(
+            "-usage_count"
+        )[:20]
+        serializer = ResourceLibraryListSerializer(resources, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def my_resources(self, request):
+        """Get resources uploaded by current user."""
+        resources = ResourceLibrary.objects.filter(
+            uploaded_by=request.user
+        ).order_by("-created_at")
+        serializer = ResourceLibraryListSerializer(resources, many=True)
+        return Response(serializer.data)

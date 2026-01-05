@@ -316,6 +316,332 @@ class MediaAsset(models.Model):
         return self.original_name
 
 
+class CourseVersion(models.Model):
+    """
+    Versioned snapshot of a course for auditing and rollback.
+    """
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="versions",
+        verbose_name=_("Curso"),
+    )
+    version_number = models.PositiveIntegerField(_("Número de versión"))
+    snapshot = models.JSONField(
+        _("Snapshot"),
+        help_text=_("Complete course data snapshot"),
+    )
+    changelog = models.TextField(_("Cambios"), blank=True)
+    is_major_version = models.BooleanField(_("Versión mayor"), default=False)
+    published_at = models.DateTimeField(_("Fecha de publicación"), null=True, blank=True)
+    created_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="course_versions_created",
+        verbose_name=_("Creado por"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "course_versions"
+        verbose_name = _("Versión de curso")
+        verbose_name_plural = _("Versiones de curso")
+        ordering = ["-version_number"]
+        unique_together = ["course", "version_number"]
+
+    def __str__(self):
+        return f"{self.course.code} v{self.version_number}"
+
+    @classmethod
+    def create_snapshot(cls, course, user, changelog="", is_major=False):
+        """Create a new version snapshot of the course."""
+        # Get the latest version number
+        latest = cls.objects.filter(course=course).order_by("-version_number").first()
+        new_version = (latest.version_number + 1) if latest else 1
+
+        # Create snapshot data
+        snapshot = {
+            "title": course.title,
+            "description": course.description,
+            "objectives": course.objectives,
+            "duration": course.duration,
+            "course_type": course.course_type,
+            "risk_level": course.risk_level,
+            "target_profiles": course.target_profiles,
+            "validity_months": course.validity_months,
+            "modules": [],
+        }
+
+        for module in course.modules.all():
+            module_data = {
+                "id": module.id,
+                "title": module.title,
+                "description": module.description,
+                "order": module.order,
+                "lessons": [],
+            }
+            for lesson in module.lessons.all():
+                module_data["lessons"].append({
+                    "id": lesson.id,
+                    "title": lesson.title,
+                    "description": lesson.description,
+                    "lesson_type": lesson.lesson_type,
+                    "duration": lesson.duration,
+                    "order": lesson.order,
+                    "is_mandatory": lesson.is_mandatory,
+                })
+            snapshot["modules"].append(module_data)
+
+        return cls.objects.create(
+            course=course,
+            version_number=new_version,
+            snapshot=snapshot,
+            changelog=changelog,
+            is_major_version=is_major,
+            created_by=user,
+        )
+
+
+class ScormPackage(models.Model):
+    """
+    SCORM package for e-learning content.
+    """
+
+    class Version(models.TextChoices):
+        SCORM_12 = "1.2", _("SCORM 1.2")
+        SCORM_2004 = "2004", _("SCORM 2004")
+        XAPI = "xapi", _("xAPI/TinCan")
+
+    class Status(models.TextChoices):
+        UPLOADED = "uploaded", _("Subido")
+        EXTRACTING = "extracting", _("Extrayendo")
+        VALIDATING = "validating", _("Validando")
+        READY = "ready", _("Listo")
+        ERROR = "error", _("Error")
+
+    lesson = models.OneToOneField(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name="scorm_package",
+        verbose_name=_("Lección"),
+    )
+    package_file = models.FileField(
+        _("Paquete SCORM"),
+        upload_to="scorm_packages/",
+    )
+    extracted_path = models.CharField(
+        _("Ruta extraída"),
+        max_length=500,
+        blank=True,
+    )
+    entry_point = models.CharField(
+        _("Punto de entrada"),
+        max_length=255,
+        blank=True,
+        help_text=_("HTML de inicio del paquete"),
+    )
+    scorm_version = models.CharField(
+        _("Versión SCORM"),
+        max_length=10,
+        choices=Version.choices,
+        default=Version.SCORM_12,
+    )
+    status = models.CharField(
+        _("Estado"),
+        max_length=20,
+        choices=Status.choices,
+        default=Status.UPLOADED,
+    )
+    manifest_data = models.JSONField(
+        _("Datos del manifiesto"),
+        default=dict,
+        blank=True,
+    )
+    error_message = models.TextField(_("Mensaje de error"), blank=True)
+    file_size = models.PositiveBigIntegerField(_("Tamaño (bytes)"), default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "scorm_packages"
+        verbose_name = _("Paquete SCORM")
+        verbose_name_plural = _("Paquetes SCORM")
+
+    def __str__(self):
+        return f"SCORM: {self.lesson.title}"
+
+    @property
+    def launch_url(self):
+        """Get the URL to launch the SCORM content."""
+        if self.entry_point and self.extracted_path:
+            return f"/media/{self.extracted_path}/{self.entry_point}"
+        return None
+
+
+class ScormAttempt(models.Model):
+    """
+    Track SCORM interactions and progress.
+    """
+
+    class Status(models.TextChoices):
+        NOT_ATTEMPTED = "not attempted", _("No iniciado")
+        INCOMPLETE = "incomplete", _("Incompleto")
+        COMPLETED = "completed", _("Completado")
+        PASSED = "passed", _("Aprobado")
+        FAILED = "failed", _("Reprobado")
+
+    enrollment = models.ForeignKey(
+        "Enrollment",
+        on_delete=models.CASCADE,
+        related_name="scorm_attempts",
+        verbose_name=_("Inscripción"),
+    )
+    scorm_package = models.ForeignKey(
+        ScormPackage,
+        on_delete=models.CASCADE,
+        related_name="attempts",
+        verbose_name=_("Paquete SCORM"),
+    )
+    attempt_number = models.PositiveIntegerField(_("Número de intento"), default=1)
+    lesson_status = models.CharField(
+        _("Estado de lección"),
+        max_length=20,
+        choices=Status.choices,
+        default=Status.NOT_ATTEMPTED,
+    )
+    score_raw = models.DecimalField(
+        _("Puntuación"),
+        max_digits=7,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    score_min = models.DecimalField(
+        _("Puntuación mínima"),
+        max_digits=7,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    score_max = models.DecimalField(
+        _("Puntuación máxima"),
+        max_digits=7,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    session_time = models.DurationField(
+        _("Tiempo de sesión"),
+        null=True,
+        blank=True,
+    )
+    total_time = models.DurationField(
+        _("Tiempo total"),
+        null=True,
+        blank=True,
+    )
+    suspend_data = models.TextField(
+        _("Datos de suspensión"),
+        blank=True,
+        help_text=_("Datos para continuar la sesión"),
+    )
+    location = models.CharField(
+        _("Ubicación"),
+        max_length=255,
+        blank=True,
+        help_text=_("Última ubicación en el contenido"),
+    )
+    interactions = models.JSONField(
+        _("Interacciones"),
+        default=list,
+        blank=True,
+    )
+    cmi_data = models.JSONField(
+        _("Datos CMI"),
+        default=dict,
+        blank=True,
+        help_text=_("Todos los datos CMI del intento"),
+    )
+    started_at = models.DateTimeField(_("Inicio"), auto_now_add=True)
+    last_accessed_at = models.DateTimeField(_("Último acceso"), auto_now=True)
+    completed_at = models.DateTimeField(_("Completado"), null=True, blank=True)
+
+    class Meta:
+        db_table = "scorm_attempts"
+        verbose_name = _("Intento SCORM")
+        verbose_name_plural = _("Intentos SCORM")
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        return f"{self.enrollment.user} - {self.scorm_package.lesson.title} (Intento {self.attempt_number})"
+
+
+class ResourceLibrary(models.Model):
+    """
+    Shared resource library for reusable content.
+    """
+
+    class Type(models.TextChoices):
+        IMAGE = "image", _("Imagen")
+        VIDEO = "video", _("Video")
+        AUDIO = "audio", _("Audio")
+        DOCUMENT = "document", _("Documento")
+        TEMPLATE = "template", _("Plantilla")
+        INFOGRAPHIC = "infographic", _("Infografía")
+
+    name = models.CharField(_("Nombre"), max_length=200)
+    description = models.TextField(_("Descripción"), blank=True)
+    resource_type = models.CharField(
+        _("Tipo"),
+        max_length=20,
+        choices=Type.choices,
+    )
+    file = models.FileField(_("Archivo"), upload_to="resource_library/")
+    thumbnail = models.ImageField(
+        _("Miniatura"),
+        upload_to="resource_library/thumbnails/",
+        blank=True,
+        null=True,
+    )
+    file_size = models.PositiveBigIntegerField(_("Tamaño (bytes)"), default=0)
+    mime_type = models.CharField(_("MIME type"), max_length=100, blank=True)
+    tags = models.JSONField(
+        verbose_name=_("Etiquetas"),
+        default=list,
+        blank=True,
+    )
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resources",
+        verbose_name=_("Categoría"),
+    )
+    usage_count = models.PositiveIntegerField(_("Veces usado"), default=0)
+    is_public = models.BooleanField(_("Público"), default=True)
+    uploaded_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="library_resources",
+        verbose_name=_("Subido por"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "resource_library"
+        verbose_name = _("Recurso de biblioteca")
+        verbose_name_plural = _("Recursos de biblioteca")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.name
+
+
 class Enrollment(models.Model):
     """
     User enrollment in a course.

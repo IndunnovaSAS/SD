@@ -7,11 +7,15 @@ from rest_framework import serializers
 from apps.courses.models import (
     Category,
     Course,
+    CourseVersion,
     Enrollment,
     Lesson,
     LessonProgress,
     MediaAsset,
     Module,
+    ResourceLibrary,
+    ScormAttempt,
+    ScormPackage,
 )
 
 
@@ -363,3 +367,189 @@ class LessonProgressUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = LessonProgress
         fields = ["progress_percent", "time_spent", "last_position", "is_completed"]
+
+
+class CourseVersionSerializer(serializers.ModelSerializer):
+    """Serializer for CourseVersion model."""
+
+    created_by_name = serializers.CharField(
+        source="created_by.get_full_name", read_only=True
+    )
+
+    class Meta:
+        model = CourseVersion
+        fields = [
+            "id",
+            "course",
+            "version_number",
+            "snapshot",
+            "changelog",
+            "is_major_version",
+            "published_at",
+            "created_by",
+            "created_by_name",
+            "created_at",
+        ]
+        read_only_fields = ["id", "course", "version_number", "snapshot", "created_by", "created_at"]
+
+
+class CourseVersionCreateSerializer(serializers.Serializer):
+    """Serializer for creating course versions."""
+
+    changelog = serializers.CharField(required=False, default="")
+    is_major = serializers.BooleanField(required=False, default=False)
+
+
+class ScormPackageSerializer(serializers.ModelSerializer):
+    """Serializer for ScormPackage model."""
+
+    lesson_title = serializers.CharField(source="lesson.title", read_only=True)
+    launch_url = serializers.ReadOnlyField()
+
+    class Meta:
+        model = ScormPackage
+        fields = [
+            "id",
+            "lesson",
+            "lesson_title",
+            "package_file",
+            "extracted_path",
+            "entry_point",
+            "scorm_version",
+            "status",
+            "manifest_data",
+            "error_message",
+            "file_size",
+            "launch_url",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "extracted_path",
+            "entry_point",
+            "scorm_version",
+            "status",
+            "manifest_data",
+            "error_message",
+            "file_size",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class ScormAttemptSerializer(serializers.ModelSerializer):
+    """Serializer for ScormAttempt model."""
+
+    lesson_title = serializers.CharField(
+        source="scorm_package.lesson.title", read_only=True
+    )
+    user_name = serializers.CharField(
+        source="enrollment.user.get_full_name", read_only=True
+    )
+
+    class Meta:
+        model = ScormAttempt
+        fields = [
+            "id",
+            "enrollment",
+            "scorm_package",
+            "lesson_title",
+            "user_name",
+            "attempt_number",
+            "lesson_status",
+            "score_raw",
+            "score_min",
+            "score_max",
+            "session_time",
+            "total_time",
+            "suspend_data",
+            "location",
+            "interactions",
+            "started_at",
+            "last_accessed_at",
+            "completed_at",
+        ]
+        read_only_fields = ["id", "enrollment", "scorm_package", "attempt_number", "started_at"]
+
+
+class ScormDataUpdateSerializer(serializers.Serializer):
+    """Serializer for updating SCORM data from client."""
+
+    cmi_element = serializers.CharField()
+    value = serializers.CharField(allow_blank=True)
+
+
+class ResourceLibrarySerializer(serializers.ModelSerializer):
+    """Serializer for ResourceLibrary model."""
+
+    uploaded_by_name = serializers.CharField(
+        source="uploaded_by.get_full_name", read_only=True
+    )
+    category_name = serializers.CharField(source="category.name", read_only=True)
+
+    class Meta:
+        model = ResourceLibrary
+        fields = [
+            "id",
+            "name",
+            "description",
+            "resource_type",
+            "file",
+            "thumbnail",
+            "file_size",
+            "mime_type",
+            "tags",
+            "category",
+            "category_name",
+            "usage_count",
+            "is_public",
+            "uploaded_by",
+            "uploaded_by_name",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "file_size",
+            "mime_type",
+            "usage_count",
+            "uploaded_by",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class ResourceLibraryCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating library resources."""
+
+    class Meta:
+        model = ResourceLibrary
+        fields = ["name", "description", "resource_type", "file", "tags", "category"]
+
+    def create(self, validated_data):
+        file = validated_data.get("file")
+        validated_data["uploaded_by"] = self.context["request"].user
+        validated_data["file_size"] = file.size if file else 0
+
+        import mimetypes
+        mime_type, _ = mimetypes.guess_type(file.name) if file else (None, None)
+        validated_data["mime_type"] = mime_type or "application/octet-stream"
+
+        return super().create(validated_data)
+
+
+class ResourceLibraryListSerializer(serializers.ModelSerializer):
+    """Simplified serializer for resource lists."""
+
+    class Meta:
+        model = ResourceLibrary
+        fields = [
+            "id",
+            "name",
+            "resource_type",
+            "thumbnail",
+            "file_size",
+            "usage_count",
+            "created_at",
+        ]
