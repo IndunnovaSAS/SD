@@ -13,8 +13,8 @@
     <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
 
     <!-- Tailwind CSS (via CDN for development, replace with build for production) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <script src="https://cdn.tailwindcss.com" nonce="{{ request.csp_nonce }}"></script>
+    <script nonce="{{ request.csp_nonce }}">
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -56,17 +56,17 @@
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" rel="stylesheet" type="text/css" />
 
     <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" nonce="{{ request.csp_nonce }}"></script>
 
     <!-- HTMX -->
-    <script src="https://unpkg.com/htmx.org@1.9.11" integrity="sha384-0gxUXCCR8yv9FM2b+U3FDbsKthCI66oH5ber7DGXRjVcNFNZK60cq+59qRsxbkqe" crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.11/dist/ext/loading-states.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.11" integrity="sha384-0gxUXCCR8yv9FM2b+U3FDbsKthCI66oH5ber7DGXRjVcNFNZK60cq+59qRsxbkqe" crossorigin="anonymous" nonce="{{ request.csp_nonce }}"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.11/dist/ext/loading-states.js" nonce="{{ request.csp_nonce }}"></script>
 
     <!-- HTMX Configuration -->
     <meta name="htmx-config" content='{"defaultSwapStyle":"innerHTML","historyCacheSize":10}'>
 
     <!-- Custom Styles -->
-    <style>
+    <style nonce="{{ request.csp_nonce }}">
         [x-cloak] { display: none !important; }
 
         /* HTMX loading indicator */
@@ -123,7 +123,7 @@
     </div>
 
     <!-- Scripts -->
-    <script>
+    <script nonce="{{ request.csp_nonce }}">
         // HTMX event handling
         document.body.addEventListener('htmx:responseError', function(evt) {
             console.error('HTMX Error:', evt.detail.error);

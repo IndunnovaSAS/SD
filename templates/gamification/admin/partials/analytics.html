@@ -1,0 +1,50 @@
+<div class="analytics-section">
+    <h4>Estadisticas Generales</h4>
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h5>Puntos Totales</h5>
+                <span class="stat-number">{{ points.total|default:0 }}</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h5>Puntos Hoy</h5>
+                <span class="stat-number">{{ points.today|default:0 }}</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h5>Puntos Esta Semana</h5>
+                <span class="stat-number">{{ points.this_week|default:0 }}</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h5>Insignias Otorgadas</h5>
+                <span class="stat-number">{{ badges.total_awarded|default:0 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <h5>Usuarios Activos (Semana)</h5>
+                <span class="stat-number">{{ users.active_this_week|default:0 }}</span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <h5>Desafios Activos</h5>
+                <span class="stat-number">{{ challenges.active|default:0 }}</span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <h5>Desafios Completados</h5>
+                <span class="stat-number">{{ challenges.completed|default:0 }}</span>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,12 +1,12 @@
 <div class="overflow-x-auto">
-    <table class="table">
+    <table class="table" role="table" aria-label="Lista de asistentes a charla preoperacional">
         <thead>
             <tr>
-                <th>Nombre</th>
-                <th>Documento</th>
-                <th>Cargo</th>
-                <th>Firma</th>
-                <th></th>
+                <th scope="col">Nombre</th>
+                <th scope="col">Documento</th>
+                <th scope="col">Cargo</th>
+                <th scope="col">Firma</th>
+                <th scope="col"><span class="sr-only">Acciones</span></th>
             </tr>
         </thead>
         <tbody>
@@ -29,15 +29,17 @@
                 <td>
                     {% if attendee.signed_at %}
                     <div class="flex items-center gap-1 text-success">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         <span class="text-sm">{{ attendee.signed_at|time:"H:i" }}</span>
+                        <span class="sr-only">Firmado a las {{ attendee.signed_at|time:"H:i" }}</span>
                     </div>
                     {% else %}
                     <button class="btn btn-primary btn-sm"
-                            onclick="openSignatureModal({{ attendee.id }}, '{{ attendee.user.get_full_name }}')">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            onclick="openSignatureModal({{ attendee.id }}, '{{ attendee.user.get_full_name }}')"
+                            aria-label="Firmar asistencia de {{ attendee.user.get_full_name }}">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                         </svg>
                         Firmar
@@ -50,8 +52,9 @@
                             hx-delete="{% url 'preop_talks:remove-attendee' attendee.id %}"
                             hx-target="#attendee-{{ attendee.id }}"
                             hx-swap="outerHTML"
-                            hx-confirm="¿Eliminar a {{ attendee.user.get_full_name }} de la lista?">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            hx-confirm="¿Eliminar a {{ attendee.user.get_full_name }} de la lista?"
+                            aria-label="Eliminar a {{ attendee.user.get_full_name }} de la lista">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
@@ -82,28 +85,28 @@
 {% endif %}
 
 <!-- Signature Modal -->
-<dialog id="signature-modal" class="modal">
+<dialog id="signature-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="signature-modal-title">
     <div class="modal-box">
-        <h3 class="font-bold text-lg">Firma de <span id="signer-name"></span></h3>
-        <form id="signature-form" hx-swap="innerHTML" hx-target="#attendees-list">
+        <h3 id="signature-modal-title" class="font-bold text-lg">Firma de <span id="signer-name"></span></h3>
+        <form id="signature-form" hx-swap="innerHTML" hx-target="#attendees-list" aria-label="Formulario de firma">
             {% csrf_token %}
             <input type="hidden" name="attendee_id" id="attendee-id">
             <div class="py-4">
-                <p class="text-sm text-gray-500 mb-4">
+                <p id="signature-instructions" class="text-sm text-gray-500 mb-4">
                     Dibuja tu firma en el recuadro de abajo
                 </p>
                 <div class="border-2 border-dashed border-gray-300 rounded-lg p-2 bg-white">
-                    <canvas id="signature-canvas" width="400" height="200" class="w-full cursor-crosshair"></canvas>
+                    <canvas id="signature-canvas" width="400" height="200" class="w-full cursor-crosshair" role="img" aria-describedby="signature-instructions" aria-label="Area de firma - dibuja tu firma aqui"></canvas>
                 </div>
                 <div class="flex justify-end mt-2">
-                    <button type="button" class="btn btn-ghost btn-sm" onclick="clearSignature()">
+                    <button type="button" class="btn btn-ghost btn-sm" onclick="clearSignature()" aria-label="Limpiar area de firma">
                         Limpiar
                     </button>
                 </div>
             </div>
             <div class="modal-action">
-                <button type="button" class="btn" onclick="document.getElementById('signature-modal').close()">Cancelar</button>
-                <button type="submit" class="btn btn-primary">Confirmar Firma</button>
+                <button type="button" class="btn" onclick="document.getElementById('signature-modal').close()" aria-label="Cancelar firma">Cancelar</button>
+                <button type="submit" class="btn btn-primary" aria-label="Confirmar y guardar firma">Confirmar Firma</button>
             </div>
         </form>
     </div>

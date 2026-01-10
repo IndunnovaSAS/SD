@@ -5,7 +5,7 @@ Business logic services for learning paths.
 import logging
 from datetime import timedelta
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 
@@ -105,8 +105,20 @@ class LearningPathService:
                         assigned_by=assigned_by,
                     )
                     assignments.append(assignment)
+                except ValueError as e:
+                    # Errores de validacion (ej: usuario ya asignado, prerequisitos no cumplidos)
+                    logger.warning(
+                        f"Error de validacion asignando ruta {path.id} a usuario {user.id}: {e}"
+                    )
+                except IntegrityError as e:
+                    # Errores de base de datos (ej: violacion de unicidad)
+                    logger.error(
+                        f"Error de integridad asignando ruta {path.id} a usuario {user.id}: {e}"
+                    )
                 except Exception as e:
-                    logger.error(f"Error assigning path {path.id} to user {user.id}: {e}")
+                    logger.exception(
+                        f"Error inesperado asignando ruta {path.id} a usuario {user.id}: {e}"
+                    )
 
         return assignments
 

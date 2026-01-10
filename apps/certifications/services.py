@@ -163,9 +163,19 @@ class CertificateService:
 
             logger.info(f"Certificate generated: {certificate.certificate_number}")
 
+        except ImportError as e:
+            logger.warning(f"Dependencia faltante para generar certificado {certificate.id}: {e}")
+            certificate.metadata["generation_error"] = f"Dependencia faltante: {e}"
+            certificate.save()
+            raise
+        except (IOError, OSError) as e:
+            logger.error(f"Error de I/O generando certificado {certificate.id}: {e}")
+            certificate.metadata["generation_error"] = f"Error de archivo: {e}"
+            certificate.save()
+            raise
         except Exception as e:
-            logger.error(f"Error generating certificate {certificate.id}: {e}")
-            certificate.metadata["generation_error"] = str(e)
+            logger.exception(f"Error inesperado generando certificado {certificate.id}: {e}")
+            certificate.metadata["generation_error"] = "Error inesperado durante la generacion."
             certificate.save()
             raise
 
@@ -201,9 +211,11 @@ class CertificateService:
             certificate.qr_code.save(filename, ContentFile(buffer.read()), save=False)
 
         except ImportError:
-            logger.warning("qrcode library not installed, skipping QR generation")
+            logger.warning("Biblioteca qrcode no instalada, saltando generacion de QR")
+        except (IOError, OSError) as e:
+            logger.error(f"Error de I/O generando codigo QR para certificado {certificate.id}: {e}")
         except Exception as e:
-            logger.error(f"Error generating QR code: {e}")
+            logger.exception(f"Error inesperado generando codigo QR para certificado {certificate.id}: {e}")
 
     @staticmethod
     def _generate_pdf(certificate: Certificate) -> None:
@@ -247,15 +259,18 @@ class CertificateService:
             certificate.certificate_file.save(filename, ContentFile(pdf), save=False)
 
         except ImportError:
-            logger.warning("weasyprint not installed, using placeholder PDF")
+            logger.warning("weasyprint no esta instalado, usando PDF placeholder")
             # Create a simple placeholder
             placeholder = CertificateService._generate_placeholder_pdf(certificate)
             filename = f"cert_{certificate.certificate_number}.pdf"
             certificate.certificate_file.save(
                 filename, ContentFile(placeholder), save=False
             )
+        except (IOError, OSError) as e:
+            logger.error(f"Error de I/O generando PDF para certificado {certificate.id}: {e}")
+            raise
         except Exception as e:
-            logger.error(f"Error generating PDF: {e}")
+            logger.exception(f"Error inesperado generando PDF para certificado {certificate.id}: {e}")
             raise
 
     @staticmethod

@@ -16,11 +16,11 @@
                 </div>
                 <div class="flex items-center gap-4">
                     {% if time_limit %}
-                    <div id="timer" class="text-lg font-mono font-bold text-error">
+                    <div id="timer" class="text-lg font-mono font-bold text-error" role="timer" aria-live="polite" aria-label="Tiempo restante">
                         {{ time_limit }}:00
                     </div>
                     {% endif %}
-                    <button type="submit" form="assessment-form" class="btn btn-primary">
+                    <button type="submit" form="assessment-form" class="btn btn-primary" aria-label="Enviar evaluacion completa">
                         Enviar Evaluación
                     </button>
                 </div>
@@ -47,7 +47,7 @@
                                 <span class="badge badge-ghost badge-sm">{{ question.get_question_type_display }}</span>
                                 <span class="text-sm text-gray-500 dark:text-gray-400">{{ question.points }} punto{{ question.points|pluralize:"s" }}</span>
                             </div>
-                            <p class="text-gray-900 dark:text-white font-medium">
+                            <p id="question-title-{{ question.id }}" class="text-gray-900 dark:text-white font-medium">
                                 {{ question.text }}
                             </p>
                         </div>
@@ -60,7 +60,8 @@
                     {% endif %}
 
                     <!-- Answers -->
-                    <div class="pl-12 space-y-2">
+                    <fieldset class="pl-12 space-y-2" aria-describedby="question-title-{{ question.id }}">
+                        <legend class="sr-only">Opciones para: {{ question.text }}</legend>
                         {% if question.question_type == 'single_choice' or question.question_type == 'true_false' %}
                         {% for answer in question.answers.all %}
                         <label class="flex items-center gap-3 p-3 rounded-lg border dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
@@ -68,6 +69,7 @@
                                    name="question_{{ question.id }}"
                                    value="{{ answer.id }}"
                                    class="radio radio-primary"
+                                   aria-describedby="question-title-{{ question.id }}"
                                    {% if answer.id in answered|default:""  %}{% with current=answered|default:"{}"|get_item:question.id %}{% if answer.id in current.selected %}checked{% endif %}{% endwith %}{% endif %}
                                    hx-post="{% url 'assessments:save_answer' attempt.id %}"
                                    hx-trigger="change"
@@ -84,6 +86,7 @@
                                    name="question_{{ question.id }}"
                                    value="{{ answer.id }}"
                                    class="checkbox checkbox-primary"
+                                   aria-describedby="question-title-{{ question.id }}"
                                    {% if answer.id in answered|default:""  %}{% with current=answered|default:"{}"|get_item:question.id %}{% if answer.id in current.selected %}checked{% endif %}{% endwith %}{% endif %}>
                             <span class="text-gray-700 dark:text-gray-300">{{ answer.text }}</span>
                         </label>
@@ -93,16 +96,18 @@
                         <textarea name="text_answer_{{ question.id }}"
                                   rows="{% if question.question_type == 'essay' %}6{% else %}2{% endif %}"
                                   class="textarea textarea-bordered w-full dark:bg-gray-700 dark:text-white"
+                                  aria-describedby="question-title-{{ question.id }}"
+                                  aria-label="Respuesta a la pregunta {{ forloop.counter }}"
                                   placeholder="Escribe tu respuesta aquí...">{% if answered|default:"" %}{% with current=answered|default:"{}"|get_item:question.id %}{{ current.text }}{% endwith %}{% endif %}</textarea>
                         {% endif %}
-                    </div>
+                    </fieldset>
                 </div>
                 {% endfor %}
             </div>
 
             <!-- Submit -->
             <div class="mt-8 flex justify-end">
-                <button type="submit" class="btn btn-primary btn-lg">
+                <button type="submit" class="btn btn-primary btn-lg" aria-label="Enviar evaluacion y finalizar">
                     Enviar Evaluación
                 </button>
             </div>

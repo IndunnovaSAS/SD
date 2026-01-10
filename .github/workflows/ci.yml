@@ -152,7 +152,7 @@ jobs:
           pip install safety bandit
 
       - name: Run safety check
-        run: safety check -r requirements/base.txt --full-report || true
+        run: safety check -r requirements/base.txt --full-report
 
       - name: Run bandit security linter
         run: bandit -r apps/ -ll -ii

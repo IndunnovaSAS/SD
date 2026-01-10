@@ -2,8 +2,50 @@
 Course and content models for SD LMS.
 """
 
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+from apps.core.validators import (
+    validate_target_profiles,
+    validate_hex_color,
+    validate_content_extension,
+    validate_scorm_extension,
+    validate_percentage,
+    validate_url,
+)
+
+
+class CourseManager(models.Manager):
+    """Custom manager for Course model."""
+
+    def published(self):
+        return self.filter(status='published')
+
+    def draft(self):
+        return self.filter(status='draft')
+
+    def for_profile(self, profile):
+        return self.filter(target_profiles__contains=[profile])
+
+    def with_modules(self):
+        return self.prefetch_related('modules__lessons')
+
+
+class EnrollmentManager(models.Manager):
+    """Custom manager for Enrollment model."""
+
+    def active(self):
+        return self.filter(status__in=['enrolled', 'in_progress'])
+
+    def completed(self):
+        return self.filter(status='completed')
+
+    def for_user(self, user):
+        return self.filter(user=user)
+
+    def for_course(self, course):
+        return self.filter(course=course)
 
 
 class Category(models.Model):
@@ -25,6 +67,7 @@ class Category(models.Model):
         max_length=7,
         default="#3B82F6",
         help_text=_("Color en formato hexadecimal"),
+        validators=[validate_hex_color],
     )
     parent = models.ForeignKey(
         "self",
@@ -86,6 +129,7 @@ class Course(models.Model):
     duration = models.PositiveIntegerField(
         _("Duración (minutos)"),
         help_text=_("Duración estimada en minutos"),
+        validators=[MinValueValidator(0)],
     )
     course_type = models.CharField(
         _("Tipo"),
@@ -116,6 +160,7 @@ class Course(models.Model):
         verbose_name=_("Perfiles objetivo"),
         help_text=_("Lista de perfiles ocupacionales para este curso"),
         default=list,
+        validators=[validate_target_profiles],
     )
     prerequisites = models.ManyToManyField(
         "self",
@@ -155,6 +200,8 @@ class Course(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = CourseManager()
+
     class Meta:
         db_table = "courses"
         verbose_name = _("Curso")
@@ -167,7 +214,11 @@ class Course(models.Model):
     @property
     def total_duration(self):
         """Calculate total duration including all lessons."""
-        return sum(lesson.duration for module in self.modules.all() for lesson in module.lessons.all())
+        from django.db.models import Sum
+        result = self.modules.aggregate(
+            total=Sum('lessons__duration')
+        )
+        return result['total'] or 0
 
 
 class Module(models.Model):
@@ -193,6 +244,9 @@ class Module(models.Model):
         verbose_name_plural = _("Módulos")
         ordering = ["order"]
         unique_together = ["course", "order"]
+        indexes = [
+            models.Index(fields=["course", "order"]),
+        ]
 
     def __str__(self):
         return f"{self.course.code} - {self.title}"
@@ -231,9 +285,14 @@ class Lesson(models.Model):
         upload_to="courses/content/",
         blank=True,
         null=True,
+        validators=[validate_content_extension],
     )
-    video_url = models.URLField(_("URL del video"), blank=True)
-    duration = models.PositiveIntegerField(_("Duración (minutos)"), default=0)
+    video_url = models.URLField(_("URL del video"), blank=True, validators=[validate_url])
+    duration = models.PositiveIntegerField(
+        _("Duración (minutos)"),
+        default=0,
+        validators=[MinValueValidator(0)],
+    )
     order = models.PositiveIntegerField(_("Orden"), default=0)
     is_mandatory = models.BooleanField(_("Obligatorio"), default=True)
     is_offline_available = models.BooleanField(_("Disponible offline"), default=True)
@@ -246,6 +305,9 @@ class Lesson(models.Model):
         verbose_name = _("Lección")
         verbose_name_plural = _("Lecciones")
         ordering = ["order"]
+        indexes = [
+            models.Index(fields=["module", "order"]),
+        ]
 
     def __str__(self):
         return f"{self.module.title} - {self.title}"
@@ -430,6 +492,7 @@ class ScormPackage(models.Model):
     package_file = models.FileField(
         _("Paquete SCORM"),
         upload_to="scorm_packages/",
+        validators=[validate_scorm_extension],
     )
     extracted_path = models.CharField(
         _("Ruta extraída"),
@@ -677,6 +740,7 @@ class Enrollment(models.Model):
         max_digits=5,
         decimal_places=2,
         default=0,
+        validators=[validate_percentage],
     )
     started_at = models.DateTimeField(_("Fecha de inicio"), null=True, blank=True)
     completed_at = models.DateTimeField(_("Fecha de completado"), null=True, blank=True)
@@ -691,11 +755,17 @@ class Enrollment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = EnrollmentManager()
+
     class Meta:
         db_table = "enrollments"
         verbose_name = _("Inscripción")
         verbose_name_plural = _("Inscripciones")
         unique_together = ["user", "course"]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["course", "status"]),
+        ]
 
     def __str__(self):
         return f"{self.user} - {self.course}"
@@ -724,6 +794,7 @@ class LessonProgress(models.Model):
         max_digits=5,
         decimal_places=2,
         default=0,
+        validators=[validate_percentage],
     )
     time_spent = models.PositiveIntegerField(
         _("Tiempo empleado (segundos)"),
@@ -744,6 +815,9 @@ class LessonProgress(models.Model):
         verbose_name = _("Progreso de lección")
         verbose_name_plural = _("Progreso de lecciones")
         unique_together = ["enrollment", "lesson"]
+        indexes = [
+            models.Index(fields=["enrollment"]),
+        ]
 
     def __str__(self):
         return f"{self.enrollment.user} - {self.lesson}"

@@ -69,7 +69,7 @@ def points_history(request):
 @require_GET
 def points_transactions(request):
     """Get points transactions (HTMX partial)."""
-    limit = int(request.GET.get("limit", 50))
+    limit = max(1, int(request.GET.get("limit", 50)))  # Ensure positive limit
     transactions = PointService.get_transaction_history(request.user, limit=limit)
     return render(
         request,
@@ -182,7 +182,7 @@ def leaderboard_list(request):
 @require_GET
 def leaderboard_detail(request, slug):
     """Get specific leaderboard entries."""
-    limit = int(request.GET.get("limit", 20))
+    limit = max(1, int(request.GET.get("limit", 20)))  # Ensure positive limit
     data = LeaderboardService.get_leaderboard_entries(
         leaderboard_slug=slug,
         limit=limit,

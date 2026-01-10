@@ -21,8 +21,11 @@ argon2-cffi>=23.1.0
 # Performance
 orjson>=3.10.1
 
+# Cache optimization
+django-cachalot>=2.6.0,<3
+
 # Logging
-python-json-logger>=2.0.7
+python-json-logger>=2.0.7,<3
 
 # Health monitoring
 django-watchman>=1.3.0

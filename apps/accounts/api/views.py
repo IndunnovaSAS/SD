@@ -2,13 +2,18 @@
 API views for accounts app.
 """
 
+import logging
+
 from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+
+logger = logging.getLogger(__name__)
 
 from .serializers import (
     ChangePasswordSerializer,
@@ -71,13 +76,20 @@ class LogoutView(APIView):
             token = RefreshToken(refresh_token)
             token.blacklist()
             return Response(
-                {"message": "Sesión cerrada correctamente."},
+                {"message": "Sesion cerrada correctamente."},
                 status=status.HTTP_200_OK,
             )
-        except Exception:
+        except TokenError as e:
+            logger.warning(f"Token invalido o expirado durante logout: {e}")
             return Response(
-                {"error": "Token inválido o ya revocado."},
+                {"error": "Token invalido o ya revocado."},
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            logger.exception(f"Error inesperado durante logout: {e}")
+            return Response(
+                {"error": "Error interno del servidor."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 

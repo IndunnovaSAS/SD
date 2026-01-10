@@ -4,6 +4,7 @@ Tests for certification services.
 
 from datetime import date, timedelta
 from decimal import Decimal
+from unittest.mock import patch, MagicMock
 
 from django.test import TestCase
 from django.utils import timezone
@@ -16,6 +17,15 @@ from apps.certifications.models import (
 )
 from apps.certifications.services import CertificateService, CertificateTemplateService
 from apps.courses.models import Course, Enrollment
+
+
+def mock_generate_certificate_file(certificate):
+    """Mock that skips PDF/QR generation and just sets the certificate as issued."""
+    certificate.status = Certificate.Status.ISSUED
+    certificate.issued_at = timezone.now()
+    certificate.verification_url = f"https://example.com/verify/{certificate.certificate_number}/"
+    certificate.save()
+    return certificate
 
 
 class CertificateServiceTest(TestCase):
@@ -151,7 +161,8 @@ class CertificateServiceTest(TestCase):
         self.assertFalse(result["can_issue"])
         self.assertIn("Ya existe un certificado", result["reason"])
 
-    def test_issue_certificate(self):
+    @patch.object(CertificateService, 'generate_certificate_file', side_effect=mock_generate_certificate_file)
+    def test_issue_certificate(self, mock_gen):
         """Test issuing a certificate."""
         certificate = CertificateService.issue_certificate(
             user=self.user,
@@ -166,7 +177,8 @@ class CertificateServiceTest(TestCase):
         self.assertTrue(certificate.certificate_number.startswith("SD-"))
         self.assertIsNotNone(certificate.issued_at)
 
-    def test_issue_certificate_with_score(self):
+    @patch.object(CertificateService, 'generate_certificate_file', side_effect=mock_generate_certificate_file)
+    def test_issue_certificate_with_score(self, mock_gen):
         """Test issuing certificate with specific score."""
         certificate = CertificateService.issue_certificate(
             user=self.user,
@@ -176,7 +188,8 @@ class CertificateServiceTest(TestCase):
 
         self.assertEqual(float(certificate.score), 95.5)
 
-    def test_verify_certificate_valid(self):
+    @patch.object(CertificateService, 'generate_certificate_file', side_effect=mock_generate_certificate_file)
+    def test_verify_certificate_valid(self, mock_gen):
         """Test verifying a valid certificate."""
         certificate = CertificateService.issue_certificate(
             user=self.user,
@@ -202,7 +215,8 @@ class CertificateServiceTest(TestCase):
         self.assertFalse(result["valid"])
         self.assertEqual(result["reason"], "Certificado no encontrado")
 
-    def test_verify_certificate_revoked(self):
+    @patch.object(CertificateService, 'generate_certificate_file', side_effect=mock_generate_certificate_file)
+    def test_verify_certificate_revoked(self, mock_gen):
         """Test verifying revoked certificate."""
         certificate = CertificateService.issue_certificate(
             user=self.user,
@@ -238,7 +252,8 @@ class CertificateServiceTest(TestCase):
         certificate.refresh_from_db()
         self.assertEqual(certificate.status, Certificate.Status.EXPIRED)
 
-    def test_revoke_certificate(self):
+    @patch.object(CertificateService, 'generate_certificate_file', side_effect=mock_generate_certificate_file)
+    def test_revoke_certificate(self, mock_gen):
         """Test revoking a certificate."""
         certificate = CertificateService.issue_certificate(
             user=self.user,
@@ -255,7 +270,8 @@ class CertificateServiceTest(TestCase):
         self.assertIsNotNone(revoked.revoked_at)
         self.assertEqual(revoked.revoked_reason, "Fraude detectado")
 
-    def test_revoke_already_revoked(self):
+    @patch.object(CertificateService, 'generate_certificate_file', side_effect=mock_generate_certificate_file)
+    def test_revoke_already_revoked(self, mock_gen):
         """Test cannot revoke already revoked certificate."""
         certificate = CertificateService.issue_certificate(
             user=self.user,
@@ -266,7 +282,8 @@ class CertificateServiceTest(TestCase):
         with self.assertRaises(ValueError):
             CertificateService.revoke_certificate(certificate, "Second revoke")
 
-    def test_reissue_certificate(self):
+    @patch.object(CertificateService, 'generate_certificate_file', side_effect=mock_generate_certificate_file)
+    def test_reissue_certificate(self, mock_gen):
         """Test reissuing a certificate."""
         original = CertificateService.issue_certificate(
             user=self.user,
@@ -305,7 +322,8 @@ class CertificateServiceTest(TestCase):
         self.assertEqual(expiring.count(), 1)
         self.assertEqual(expiring.first().id, certificate.id)
 
-    def test_get_user_certificates(self):
+    @patch.object(CertificateService, 'generate_certificate_file', side_effect=mock_generate_certificate_file)
+    def test_get_user_certificates(self, mock_gen):
         """Test getting user's certificates."""
         CertificateService.issue_certificate(self.user, self.course)
 
@@ -329,7 +347,8 @@ class CertificateServiceTest(TestCase):
 
         self.assertEqual(count, 1)
 
-    def test_get_certificate_statistics(self):
+    @patch.object(CertificateService, 'generate_certificate_file', side_effect=mock_generate_certificate_file)
+    def test_get_certificate_statistics(self, mock_gen):
         """Test getting certificate statistics."""
         CertificateService.issue_certificate(self.user, self.course)
 

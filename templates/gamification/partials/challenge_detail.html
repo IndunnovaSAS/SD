@@ -1,0 +1,45 @@
+<div class="challenge-detail">
+    <h3>{{ challenge.name }}</h3>
+    <p>{{ challenge.description }}</p>
+
+    <div class="challenge-info">
+        <div class="info-row">
+            <span>Tipo:</span>
+            <span>{{ challenge.get_challenge_type_display }}</span>
+        </div>
+        <div class="info-row">
+            <span>Objetivo:</span>
+            <span>{{ challenge.target_value }} {{ challenge.target_metric }}</span>
+        </div>
+        <div class="info-row">
+            <span>Recompensa:</span>
+            <span>{{ challenge.points_reward }} puntos</span>
+        </div>
+        <div class="info-row">
+            <span>Fecha inicio:</span>
+            <span>{{ challenge.start_date|date:"d/m/Y H:i" }}</span>
+        </div>
+        <div class="info-row">
+            <span>Fecha fin:</span>
+            <span>{{ challenge.end_date|date:"d/m/Y H:i" }}</span>
+        </div>
+    </div>
+
+    {% if participation %}
+    <div class="user-progress mt-3">
+        <h5>Tu Progreso</h5>
+        <div class="progress">
+            <div class="progress-bar" style="width: {{ participation.progress_percentage }}%"></div>
+        </div>
+        <span>{{ participation.current_value }}/{{ challenge.target_value }}</span>
+        <span class="badge bg-{{ participation.status }}">{{ participation.get_status_display }}</span>
+    </div>
+    {% else %}
+    <div class="mt-3">
+        <form method="post" action="{% url 'gamification:join-challenge' challenge.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">Unirse al Desafio</button>
+        </form>
+    </div>
+    {% endif %}
+</div>

@@ -2,8 +2,6 @@
 Web views for assessments app.
 """
 
-from decimal import Decimal
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Max
@@ -13,6 +11,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import Answer, Assessment, AssessmentAttempt, AttemptAnswer, Question
+from .services import AssessmentService
 
 
 @login_required
@@ -245,8 +244,8 @@ def submit_attempt(request, attempt_id):
     attempt.status = AssessmentAttempt.Status.SUBMITTED
     attempt.save()
 
-    # Auto-grade
-    _auto_grade(attempt)
+    # Auto-grade using the service
+    AssessmentService.auto_grade_attempt(attempt)
 
     messages.success(request, "Evaluación enviada correctamente.")
     return redirect("assessments:result", attempt_id=attempt_id)
@@ -303,71 +302,3 @@ def my_attempts(request):
         "statuses": AssessmentAttempt.Status.choices,
     }
     return render(request, "assessments/my_attempts.html", context)
-
-
-def _auto_grade(attempt):
-    """Auto-grade objective questions."""
-    total_points = 0
-    earned_points = 0
-    all_gradeable = True
-
-    for attempt_answer in attempt.attempt_answers.all():
-        question = attempt_answer.question
-
-        if question.question_type in [
-            Question.Type.SINGLE_CHOICE,
-            Question.Type.MULTIPLE_CHOICE,
-            Question.Type.TRUE_FALSE,
-        ]:
-            correct_answers = set(
-                question.answers.filter(is_correct=True).values_list("id", flat=True)
-            )
-            selected_answers = set(
-                attempt_answer.selected_answers.values_list("id", flat=True)
-            )
-
-            is_correct = correct_answers == selected_answers
-            points_awarded = question.points if is_correct else 0
-
-            attempt_answer.is_correct = is_correct
-            attempt_answer.points_awarded = points_awarded
-            attempt_answer.save()
-
-            total_points += question.points
-            earned_points += points_awarded
-        else:
-            all_gradeable = False
-            total_points += question.points
-
-    # Handle unanswered questions
-    answered_questions = attempt.attempt_answers.values_list("question_id", flat=True)
-    unanswered = attempt.assessment.questions.exclude(id__in=answered_questions)
-
-    for question in unanswered:
-        total_points += question.points
-        if question.question_type in [
-            Question.Type.SINGLE_CHOICE,
-            Question.Type.MULTIPLE_CHOICE,
-            Question.Type.TRUE_FALSE,
-        ]:
-            AttemptAnswer.objects.create(
-                attempt=attempt,
-                question=question,
-                is_correct=False,
-                points_awarded=0,
-            )
-
-    attempt.points_earned = earned_points
-
-    if total_points > 0:
-        attempt.score = Decimal(str((earned_points / total_points) * 100))
-        attempt.passed = attempt.score >= attempt.assessment.passing_score
-    else:
-        attempt.score = Decimal("0")
-        attempt.passed = False
-
-    if all_gradeable:
-        attempt.status = AssessmentAttempt.Status.GRADED
-        attempt.graded_at = timezone.now()
-
-    attempt.save()

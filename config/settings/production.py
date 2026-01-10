@@ -16,15 +16,18 @@ SECURE_HSTS_PRELOAD = True
 SECURE_SSL_REDIRECT = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-# Content Security Policy
+# Content Security Policy - Nonce-based (secure, no unsafe-inline)
 CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "unpkg.com")
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'", "cdn.jsdelivr.net", "fonts.googleapis.com")
+CSP_SCRIPT_SRC = ("'self'", "cdn.jsdelivr.net", "cdn.tailwindcss.com", "unpkg.com")
+CSP_STYLE_SRC = ("'self'", "cdn.jsdelivr.net", "fonts.googleapis.com")
 CSP_IMG_SRC = ("'self'", "data:", "storage.googleapis.com", "*.googleusercontent.com")
 CSP_FONT_SRC = ("'self'", "fonts.gstatic.com", "cdn.jsdelivr.net")
 CSP_CONNECT_SRC = ("'self'",)
 CSP_FRAME_ANCESTORS = ("'none'",)
 CSP_FORM_ACTION = ("'self'",)
+
+# Enable nonce for inline scripts and styles
+CSP_INCLUDE_NONCE_IN = ["script-src", "style-src"]
 
 # Static files with WhiteNoise
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"

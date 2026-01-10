@@ -6,7 +6,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Base Python image
 # -----------------------------------------------------------------------------
-FROM python:3.12-slim as python-base
+FROM python:3.12.1-slim as python-base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -33,7 +33,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements/base.txt requirements/base.txt
 COPY requirements/production.txt requirements/production.txt
 RUN pip install --upgrade pip && \
-    pip install -r requirements/production.txt
+    pip install --no-cache-dir -r requirements/production.txt
 
 # -----------------------------------------------------------------------------
 # Stage 3: Development
@@ -93,7 +93,7 @@ WORKDIR /app
 COPY --chown=appuser:appuser . .
 
 # Collect static files
-RUN python manage.py collectstatic --noinput --settings=config.settings.production || true
+RUN python manage.py collectstatic --noinput --settings=config.settings.production
 
 # Switch to non-root user
 USER appuser

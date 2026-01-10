@@ -1,0 +1,41 @@
+<div class="reward-detail">
+    <h3>{{ reward.name }}</h3>
+    <p>{{ reward.description }}</p>
+
+    <div class="reward-info">
+        <div class="info-row">
+            <span>Costo:</span>
+            <span class="points-cost">{{ reward.points_cost }} puntos</span>
+        </div>
+        <div class="info-row">
+            <span>Tipo:</span>
+            <span>{{ reward.get_reward_type_display }}</span>
+        </div>
+        {% if reward.quantity_available %}
+        <div class="info-row">
+            <span>Disponibles:</span>
+            <span>{{ reward.quantity_available|add:"-"|add:reward.quantity_redeemed }}</span>
+        </div>
+        {% endif %}
+        {% if reward.min_level %}
+        <div class="info-row">
+            <span>Nivel requerido:</span>
+            <span>{{ reward.min_level.name }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="user-status mt-3">
+        <p>Tus puntos disponibles: {{ available_points }}</p>
+        {% if can_afford and level_ok %}
+        <form method="post" action="{% url 'gamification:redeem-reward' reward.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">Canjear Recompensa</button>
+        </form>
+        {% elif not can_afford %}
+        <p class="text-danger">No tienes suficientes puntos</p>
+        {% elif not level_ok %}
+        <p class="text-warning">Necesitas alcanzar el nivel {{ reward.min_level.name }}</p>
+        {% endif %}
+    </div>
+</div>

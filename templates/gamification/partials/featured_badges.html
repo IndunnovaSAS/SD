@@ -1,0 +1,10 @@
+<div class="featured-badges">
+    {% for user_badge in featured %}
+    <div class="featured-badge">
+        <i class="fa-solid fa-{{ user_badge.badge.icon }}"></i>
+        <span>{{ user_badge.badge.name }}</span>
+    </div>
+    {% empty %}
+    <p class="text-muted">No hay insignias destacadas</p>
+    {% endfor %}
+</div>

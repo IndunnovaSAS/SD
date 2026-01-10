@@ -5,6 +5,13 @@ Certification models for SD LMS.
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.validators import (
+    validate_certificate_template_extension,
+    validate_image_extension,
+    validate_percentage,
+    validate_https_url,
+)
+
 
 class CertificateTemplate(models.Model):
     """
@@ -17,24 +24,28 @@ class CertificateTemplate(models.Model):
         _("Archivo de plantilla"),
         upload_to="certificates/templates/",
         help_text=_("Archivo HTML/PDF de la plantilla"),
+        validators=[validate_certificate_template_extension],
     )
     background_image = models.ImageField(
         _("Imagen de fondo"),
         upload_to="certificates/backgrounds/",
         blank=True,
         null=True,
+        validators=[validate_image_extension],
     )
     logo = models.ImageField(
         _("Logo"),
         upload_to="certificates/logos/",
         blank=True,
         null=True,
+        validators=[validate_image_extension],
     )
     signature_image = models.ImageField(
         _("Imagen de firma"),
         upload_to="certificates/signatures/",
         blank=True,
         null=True,
+        validators=[validate_image_extension],
     )
     signer_name = models.CharField(
         _("Nombre del firmante"),
@@ -107,6 +118,7 @@ class Certificate(models.Model):
         decimal_places=2,
         null=True,
         blank=True,
+        validators=[validate_percentage],
     )
     certificate_file = models.FileField(
         _("Archivo de certificado"),
@@ -118,7 +130,11 @@ class Certificate(models.Model):
     expires_at = models.DateTimeField(_("Fecha de vencimiento"), null=True, blank=True)
     revoked_at = models.DateTimeField(_("Fecha de revocación"), null=True, blank=True)
     revoked_reason = models.TextField(_("Motivo de revocación"), blank=True)
-    verification_url = models.URLField(_("URL de verificación"), blank=True)
+    verification_url = models.URLField(
+        _("URL de verificación"),
+        blank=True,
+        validators=[validate_https_url],
+    )
     qr_code = models.ImageField(
         _("Código QR"),
         upload_to="certificates/qr/",

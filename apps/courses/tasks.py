@@ -50,14 +50,26 @@ def process_media_asset(self, asset_id: int):
 
         logger.info(f"MediaAsset {asset_id} processed successfully")
 
-    except Exception as e:
-        logger.exception(f"Error processing MediaAsset {asset_id}: {e}")
+    except (subprocess.SubprocessError, FileNotFoundError) as e:
+        logger.error(f"Error de procesamiento multimedia para asset {asset_id}: {e}")
         asset.status = MediaAsset.Status.ERROR
-        asset.processing_error = str(e)
+        asset.processing_error = f"Error de procesamiento: {e}"
         asset.save()
-
-        # Retry on failure
-        self.retry(exc=e)
+        # Retry con backoff exponencial
+        raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
+    except OSError as e:
+        logger.error(f"Error de I/O para asset {asset_id}: {e}")
+        asset.status = MediaAsset.Status.ERROR
+        asset.processing_error = f"Error de archivo: {e}"
+        asset.save()
+        raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
+    except Exception as e:
+        logger.exception(f"Error inesperado procesando MediaAsset {asset_id}: {e}")
+        asset.status = MediaAsset.Status.ERROR
+        asset.processing_error = "Error inesperado durante el procesamiento."
+        asset.save()
+        # Retry con backoff exponencial
+        raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
 
 
 def _process_video(asset):
@@ -241,8 +253,12 @@ def _process_image(asset):
 
             os.unlink(thumb_path)
 
+    except (IOError, OSError) as e:
+        logger.warning(f"Error de I/O procesando imagen {asset.id}: {e}")
+    except ImportError:
+        logger.warning("PIL/Pillow no esta instalado, saltando procesamiento de imagen")
     except Exception as e:
-        logger.warning(f"Could not process image: {e}")
+        logger.exception(f"Error inesperado procesando imagen {asset.id}: {e}")
 
 
 def _process_document(asset):
@@ -272,8 +288,12 @@ def _process_document(asset):
 
                 os.unlink(thumb_path)
 
+        except ImportError:
+            logger.warning("pdf2image no esta instalado, saltando generacion de thumbnail PDF")
+        except (IOError, OSError) as e:
+            logger.warning(f"Error de I/O generando thumbnail PDF para asset {asset.id}: {e}")
         except Exception as e:
-            logger.warning(f"Could not generate PDF thumbnail: {e}")
+            logger.exception(f"Error inesperado generando thumbnail PDF para asset {asset.id}: {e}")
 
 
 def _process_scorm_package(asset):
@@ -318,7 +338,7 @@ def _process_scorm_package(asset):
         raise ValueError("Invalid ZIP file")
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, max_retries=3, default_retry_delay=120)
 def generate_course_package(self, course_id: int, include_videos: bool = True):
     """
     Generate offline package for a course.
@@ -387,11 +407,20 @@ def generate_course_package(self, course_id: int, include_videos: bool = True):
 
         logger.info(f"Course package for {course_id} generated successfully")
 
-    except Exception as e:
-        logger.exception(f"Error generating package for course {course_id}: {e}")
+    except (IOError, OSError) as e:
+        logger.error(f"Error de I/O generando paquete para curso {course_id}: {e}")
         package.status = OfflinePackage.Status.ERROR
-        package.error_message = str(e)
+        package.error_message = f"Error de sistema de archivos: {e}"
         package.save()
+        raise self.retry(exc=e, countdown=120 * (2 ** self.request.retries))
+    except Exception as e:
+        logger.exception(f"Error inesperado generando paquete para curso {course_id}: {e}")
+        package.status = OfflinePackage.Status.ERROR
+        package.error_message = "Error inesperado durante la generacion."
+        package.save()
+        # Solo reintentar si no hemos alcanzado el maximo
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e, countdown=120 * (2 ** self.request.retries))
 
 
 @shared_task

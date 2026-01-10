@@ -5,10 +5,13 @@ Includes points, badges, levels, streaks, leaderboards, and challenges.
 """
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import BaseModel
+from apps.core.validators import validate_date_range
 
 
 class PointCategory(BaseModel):
@@ -279,6 +282,9 @@ class UserBadge(BaseModel):
         verbose_name_plural = "User Badges"
         ordering = ["-earned_at"]
         unique_together = ["user", "badge"]
+        indexes = [
+            models.Index(fields=["user", "-earned_at"]),
+        ]
 
     def __str__(self):
         return f"{self.user.email} - {self.badge.name}"
@@ -360,9 +366,21 @@ class LeaderboardEntry(BaseModel):
         verbose_name_plural = "Leaderboard Entries"
         ordering = ["rank"]
         unique_together = ["leaderboard", "user", "period_start"]
+        indexes = [
+            models.Index(fields=["leaderboard", "rank"]),
+        ]
 
     def __str__(self):
         return f"{self.leaderboard.name} - #{self.rank}: {self.user.email}"
+
+    def clean(self):
+        """Validate that period_end is after period_start."""
+        super().clean()
+        validate_date_range(
+            self.period_start,
+            self.period_end,
+            field_names=("period_start", "period_end")
+        )
 
     @property
     def rank_change(self):
@@ -426,6 +444,11 @@ class Challenge(BaseModel):
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        """Validate that end_date is after start_date."""
+        super().clean()
+        validate_date_range(self.start_date, self.end_date)
 
     @property
     def is_active(self):
@@ -623,6 +646,15 @@ class Reward(BaseModel):
 
     def __str__(self):
         return f"{self.name} ({self.points_cost} pts)"
+
+    def clean(self):
+        """Validate that valid_until is after valid_from."""
+        super().clean()
+        validate_date_range(
+            self.valid_from,
+            self.valid_until,
+            field_names=("valid_from", "valid_until")
+        )
 
     @property
     def is_available(self):

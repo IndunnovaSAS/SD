@@ -353,8 +353,16 @@ class AssessmentService:
         assessment = attempt.assessment
         questions_results = []
 
-        for question in assessment.questions.all():
-            attempt_answer = attempt.attempt_answers.filter(question=question).first()
+        # Prefetch attempt answers with selected_answers to avoid N+1 queries
+        attempt_answers = attempt.attempt_answers.select_related('question').prefetch_related('selected_answers')
+        # Create dictionary for O(1) lookup by question_id
+        answers_by_question = {aa.question_id: aa for aa in attempt_answers}
+
+        # Prefetch questions with their answers to avoid N+1 queries
+        questions = assessment.questions.prefetch_related('answers').all()
+
+        for question in questions:
+            attempt_answer = answers_by_question.get(question.id)
 
             result = {
                 "question_id": question.id,
@@ -372,9 +380,8 @@ class AssessmentService:
                     Question.Type.MULTIPLE_CHOICE,
                     Question.Type.TRUE_FALSE,
                 ]:
-                    result["selected_answers"] = list(
-                        attempt_answer.selected_answers.values_list("id", flat=True)
-                    )
+                    # Use prefetched selected_answers
+                    result["selected_answers"] = [sa.id for sa in attempt_answer.selected_answers.all()]
                 else:
                     result["text_answer"] = attempt_answer.text_answer
 
@@ -382,9 +389,8 @@ class AssessmentService:
 
             # Add correct answers if enabled
             if assessment.show_correct_answers:
-                result["correct_answers"] = list(
-                    question.answers.filter(is_correct=True).values_list("id", flat=True)
-                )
+                # Use prefetched answers
+                result["correct_answers"] = [a.id for a in question.answers.all() if a.is_correct]
                 result["explanation"] = question.explanation
 
             questions_results.append(result)
@@ -487,6 +493,124 @@ class AssessmentService:
             "correct_rate": (correct / total) * 100 if total > 0 else 0,
             "answer_distribution": distribution,
         }
+
+    @staticmethod
+    @transaction.atomic
+    def auto_grade_attempt(attempt: AssessmentAttempt) -> AssessmentAttempt:
+        """
+        Auto-grade objective questions in an assessment attempt.
+
+        This method grades all auto-gradable questions (single choice, multiple choice,
+        true/false) and calculates the score. For attempts that contain only auto-gradable
+        questions, it also marks the attempt as graded.
+
+        Args:
+            attempt: The AssessmentAttempt instance to grade.
+
+        Returns:
+            The updated AssessmentAttempt instance.
+        """
+        total_points = 0
+        earned_points = 0
+        all_gradeable = True
+
+        for attempt_answer in attempt.attempt_answers.all():
+            question = attempt_answer.question
+
+            # Check if question can be auto-graded
+            if question.question_type in [
+                Question.Type.SINGLE_CHOICE,
+                Question.Type.MULTIPLE_CHOICE,
+                Question.Type.TRUE_FALSE,
+            ]:
+                # Get correct answers
+                correct_answers = set(
+                    question.answers.filter(is_correct=True).values_list("id", flat=True)
+                )
+                selected_answers = set(
+                    attempt_answer.selected_answers.values_list("id", flat=True)
+                )
+
+                is_correct = correct_answers == selected_answers
+                points_awarded = question.points if is_correct else 0
+
+                attempt_answer.is_correct = is_correct
+                attempt_answer.points_awarded = points_awarded
+                attempt_answer.save()
+
+                total_points += question.points
+                earned_points += points_awarded
+            else:
+                # Essay, short answer need manual grading
+                all_gradeable = False
+                total_points += question.points
+
+        # Include unanswered questions in total
+        answered_questions = attempt.attempt_answers.values_list("question_id", flat=True)
+        unanswered = attempt.assessment.questions.exclude(id__in=answered_questions)
+
+        for question in unanswered:
+            total_points += question.points
+            if question.question_type in [
+                Question.Type.SINGLE_CHOICE,
+                Question.Type.MULTIPLE_CHOICE,
+                Question.Type.TRUE_FALSE,
+            ]:
+                # Create empty answer marked as wrong
+                AttemptAnswer.objects.create(
+                    attempt=attempt,
+                    question=question,
+                    is_correct=False,
+                    points_awarded=0,
+                )
+
+        attempt.points_earned = earned_points
+
+        if total_points > 0:
+            attempt.score = Decimal(str((earned_points / total_points) * 100))
+            attempt.passed = attempt.score >= attempt.assessment.passing_score
+        else:
+            attempt.score = Decimal("0")
+            attempt.passed = False
+
+        if all_gradeable:
+            attempt.status = AssessmentAttempt.Status.GRADED
+            attempt.graded_at = timezone.now()
+
+        attempt.save()
+        return attempt
+
+    @staticmethod
+    def calculate_score(attempt: AssessmentAttempt) -> AssessmentAttempt:
+        """
+        Recalculate the score for an attempt based on awarded points.
+
+        This method is typically used after manually grading essay or short answer
+        questions to recalculate the total score.
+
+        Args:
+            attempt: The AssessmentAttempt instance to recalculate.
+
+        Returns:
+            The updated AssessmentAttempt instance.
+        """
+        total_points = attempt.assessment.total_points
+        earned_points = sum(
+            (aa.points_awarded or 0)
+            for aa in attempt.attempt_answers.all()
+        )
+
+        attempt.points_earned = earned_points
+
+        if total_points > 0:
+            attempt.score = Decimal(str((earned_points / total_points) * 100))
+            attempt.passed = attempt.score >= attempt.assessment.passing_score
+        else:
+            attempt.score = Decimal("0")
+            attempt.passed = False
+
+        attempt.save()
+        return attempt
 
 
 class QuestionBankService:

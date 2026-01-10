@@ -1,0 +1,28 @@
+<div class="top-earners-section">
+    <h4>Top 10 - Esta Semana</h4>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Usuario</th>
+                <th>Puntos</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for earner in top_earners %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                    {{ earner.user__first_name }} {{ earner.user__last_name }}
+                    <small class="text-muted">({{ earner.user__email }})</small>
+                </td>
+                <td>{{ earner.total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3" class="text-center">No hay datos esta semana</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

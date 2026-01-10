@@ -24,6 +24,7 @@ from apps.courses.models import (
     ScormAttempt,
     ScormPackage,
 )
+from apps.courses.services import EnrollmentService
 
 from .serializers import (
     BulkEnrollmentSerializer,
@@ -404,40 +405,10 @@ class LessonProgressView(APIView):
             progress.completed_at = timezone.now()
             progress.save()
 
-        # Update enrollment status and progress
-        self._update_enrollment_progress(enrollment)
+        # Update enrollment status and progress using the service
+        EnrollmentService.update_enrollment_progress(enrollment)
 
         return Response(LessonProgressSerializer(progress).data)
-
-    def _update_enrollment_progress(self, enrollment):
-        """Update enrollment progress based on lesson completion."""
-        course = enrollment.course
-        total_lessons = sum(
-            module.lessons.filter(is_mandatory=True).count()
-            for module in course.modules.all()
-        )
-
-        if total_lessons == 0:
-            return
-
-        completed_lessons = LessonProgress.objects.filter(
-            enrollment=enrollment,
-            is_completed=True,
-            lesson__is_mandatory=True,
-        ).count()
-
-        enrollment.progress = (completed_lessons / total_lessons) * 100
-
-        # Update status
-        if enrollment.progress > 0 and enrollment.status == Enrollment.Status.ENROLLED:
-            enrollment.status = Enrollment.Status.IN_PROGRESS
-            enrollment.started_at = timezone.now()
-
-        if enrollment.progress >= 100:
-            enrollment.status = Enrollment.Status.COMPLETED
-            enrollment.completed_at = timezone.now()
-
-        enrollment.save()
 
 
 class CourseVersionViewSet(viewsets.ReadOnlyModelViewSet):

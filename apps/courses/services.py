@@ -12,7 +12,7 @@ from typing import Any
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.db import transaction
+from django.db import models, transaction
 from django.utils import timezone
 
 from apps.courses.models import (
@@ -125,8 +125,8 @@ class CourseService:
             created_by=user,
         )
 
-        # Clone modules and lessons
-        for module in course.modules.all():
+        # Clone modules and lessons - use prefetch_related to avoid N+1 queries
+        for module in course.modules.prefetch_related('lessons').all():
             new_module = Module.objects.create(
                 course=new_course,
                 title=module.title,
@@ -258,15 +258,26 @@ class EnrollmentService:
         return lesson_progress
 
     @staticmethod
-    def _update_enrollment_progress(enrollment: Enrollment):
-        """Recalculate enrollment progress based on lesson completion."""
+    def update_enrollment_progress(enrollment: Enrollment) -> Enrollment:
+        """
+        Recalculate enrollment progress based on lesson completion.
+
+        This method calculates the overall progress of an enrollment based on
+        completed mandatory lessons and updates the enrollment status accordingly.
+
+        Args:
+            enrollment: The Enrollment instance to update.
+
+        Returns:
+            The updated Enrollment instance.
+        """
         total_lessons = Lesson.objects.filter(
             module__course=enrollment.course,
             is_mandatory=True,
         ).count()
 
         if total_lessons == 0:
-            return
+            return enrollment
 
         completed_lessons = LessonProgress.objects.filter(
             enrollment=enrollment,
@@ -277,7 +288,7 @@ class EnrollmentService:
         progress = (completed_lessons / total_lessons) * 100
         enrollment.progress = round(progress, 2)
 
-        if enrollment.status == Enrollment.Status.ENROLLED:
+        if enrollment.progress > 0 and enrollment.status == Enrollment.Status.ENROLLED:
             enrollment.status = Enrollment.Status.IN_PROGRESS
             enrollment.started_at = timezone.now()
 
@@ -286,6 +297,10 @@ class EnrollmentService:
             enrollment.completed_at = timezone.now()
 
         enrollment.save()
+        return enrollment
+
+    # Alias for backward compatibility
+    _update_enrollment_progress = update_enrollment_progress
 
 
 class MediaService:
@@ -438,10 +453,22 @@ class ScormService:
                 scorm_package.file_size = os.path.getsize(file_path)
                 scorm_package.status = ScormPackage.Status.READY
 
-        except Exception as e:
+        except zipfile.BadZipFile as e:
+            scorm_package.status = ScormPackage.Status.ERROR
+            scorm_package.error_message = "Archivo ZIP invalido o corrupto."
+            logger.warning(f"SCORM package {scorm_package.id} tiene ZIP invalido: {e}")
+        except ValueError as e:
             scorm_package.status = ScormPackage.Status.ERROR
             scorm_package.error_message = str(e)
-            logger.exception(f"Error processing SCORM package {scorm_package.id}: {e}")
+            logger.warning(f"Error de validacion en SCORM package {scorm_package.id}: {e}")
+        except OSError as e:
+            scorm_package.status = ScormPackage.Status.ERROR
+            scorm_package.error_message = f"Error de sistema de archivos: {e}"
+            logger.error(f"Error de I/O procesando SCORM package {scorm_package.id}: {e}")
+        except Exception as e:
+            scorm_package.status = ScormPackage.Status.ERROR
+            scorm_package.error_message = "Error inesperado procesando el paquete."
+            logger.exception(f"Error inesperado procesando SCORM package {scorm_package.id}: {e}")
 
         scorm_package.save()
         return scorm_package

@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
 from .models import Category, Course, Enrollment, Lesson, LessonProgress, Module
+from .services import EnrollmentService
 
 
 @login_required
@@ -186,8 +187,8 @@ def update_progress(request, course_id, lesson_id):
 
     progress.save()
 
-    # Update enrollment progress
-    _update_enrollment_progress(enrollment)
+    # Update enrollment progress using the service
+    EnrollmentService.update_enrollment_progress(enrollment)
 
     if request.headers.get("HX-Request"):
         return render(
@@ -197,39 +198,6 @@ def update_progress(request, course_id, lesson_id):
         )
 
     return JsonResponse({"status": "ok", "progress": float(progress.progress_percent)})
-
-
-def _update_enrollment_progress(enrollment):
-    """Update overall enrollment progress."""
-    course = enrollment.course
-    total_lessons = sum(
-        module.lessons.filter(is_mandatory=True).count()
-        for module in course.modules.all()
-    )
-
-    if total_lessons == 0:
-        return
-
-    completed_lessons = LessonProgress.objects.filter(
-        enrollment=enrollment,
-        is_completed=True,
-        lesson__is_mandatory=True,
-    ).count()
-
-    enrollment.progress = (completed_lessons / total_lessons) * 100
-
-    # Update status
-    from django.utils import timezone
-
-    if enrollment.progress > 0 and enrollment.status == Enrollment.Status.ENROLLED:
-        enrollment.status = Enrollment.Status.IN_PROGRESS
-        enrollment.started_at = timezone.now()
-
-    if enrollment.progress >= 100:
-        enrollment.status = Enrollment.Status.COMPLETED
-        enrollment.completed_at = timezone.now()
-
-    enrollment.save()
 
 
 @login_required

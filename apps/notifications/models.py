@@ -5,6 +5,18 @@ Notification models for SD LMS.
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.validators import validate_url
+
+
+class NotificationManager(models.Manager):
+    """Custom manager for Notification model."""
+
+    def unread(self):
+        return self.filter(status='unread')
+
+    def for_user(self, user):
+        return self.filter(user=user)
+
 
 class NotificationTemplate(models.Model):
     """
@@ -108,6 +120,7 @@ class Notification(models.Model):
         _("URL de acción"),
         blank=True,
         help_text=_("URL a la que dirigir al usuario"),
+        validators=[validate_url],
     )
     action_text = models.CharField(
         _("Texto de acción"),
@@ -126,11 +139,17 @@ class Notification(models.Model):
     retry_count = models.PositiveIntegerField(_("Intentos"), default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    objects = NotificationManager()
+
     class Meta:
         db_table = "notifications"
         verbose_name = _("Notificación")
         verbose_name_plural = _("Notificaciones")
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "status"]),
+            models.Index(fields=["-created_at", "user"]),
+        ]
 
     def __str__(self):
         return f"{self.user} - {self.subject}"

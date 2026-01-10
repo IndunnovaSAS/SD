@@ -1,12 +1,13 @@
 <div id="training-trend-container" class="h-full">
     <canvas id="training-line"></canvas>
 </div>
+{{ trend_data|json_script:"trend-data-json" }}
 <script>
 (function() {
     const container = document.getElementById('training-trend-container');
     if (container && typeof echarts !== 'undefined') {
         const chart = echarts.init(container);
-        const trendData = {{ trend_data|safe }};
+        const trendData = JSON.parse(document.getElementById('trend-data-json').textContent);
 
         const weeks = trendData.map(item => {
             if (item.week) {

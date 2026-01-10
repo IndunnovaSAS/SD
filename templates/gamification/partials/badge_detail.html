@@ -1,0 +1,22 @@
+<div class="badge-detail">
+    <div class="badge-icon">
+        <i class="fa-solid fa-{{ badge.icon }}"></i>
+    </div>
+    <h3>{{ badge.name }}</h3>
+    <p class="badge-description">{{ badge.description }}</p>
+    <div class="badge-info">
+        <span class="badge-rarity badge-{{ badge.rarity }}">{{ badge.get_rarity_display }}</span>
+        <span class="badge-points">+{{ badge.points_reward }} puntos</span>
+    </div>
+    {% if user_badge %}
+    <div class="badge-earned">
+        <i class="fa-solid fa-check-circle text-success"></i>
+        Obtenida el {{ user_badge.earned_at|date:"d/m/Y" }}
+    </div>
+    {% else %}
+    <div class="badge-locked">
+        <i class="fa-solid fa-lock text-muted"></i>
+        Insignia no obtenida
+    </div>
+    {% endif %}
+</div>

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Panel de Gamificacion - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1>Panel de Gamificacion</h1>
+            <p class="lead">Estadisticas y metricas del sistema de gamificacion.</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12"
+             hx-get="{% url 'gamification:admin-analytics' %}"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12"
+             hx-get="{% url 'gamification:admin-top-earners' %}"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

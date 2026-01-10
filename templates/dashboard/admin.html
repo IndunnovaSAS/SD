@@ -67,7 +67,7 @@
             <div class="card-body">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="card-title text-lg">Certificaciones por Vencer</h3>
-                    <a href="{% url 'certifications:list' %}?status=expiring" class="btn btn-ghost btn-sm">
+                    <a href="{% url 'certifications:list' %}?status=expiring" class="btn btn-ghost btn-sm" aria-label="Ver todas las certificaciones por vencer">
                         Ver todas
                     </a>
                 </div>
@@ -86,7 +86,7 @@
             <div class="card-body">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="card-title text-lg">Asignaciones Vencidas</h3>
-                    <a href="{% url 'learning_paths:assignments' %}?status=overdue" class="btn btn-ghost btn-sm">
+                    <a href="{% url 'learning_paths:assignments' %}?status=overdue" class="btn btn-ghost btn-sm" aria-label="Ver todas las asignaciones vencidas">
                         Ver todas
                     </a>
                 </div>
@@ -107,11 +107,14 @@
             <div class="flex justify-between items-center mb-4">
                 <h3 class="card-title text-lg">Actividad Reciente</h3>
                 <div class="flex gap-2">
-                    <select class="select select-bordered select-sm"
+                    <label for="activity-filter" class="sr-only">Filtrar actividad por tipo</label>
+                    <select id="activity-filter"
+                            class="select select-bordered select-sm"
                             hx-get="{% url 'dashboard:recent-activity' %}"
                             hx-trigger="change"
                             hx-target="#activity-list"
-                            name="filter">
+                            name="filter"
+                            aria-label="Filtrar actividad reciente">
                         <option value="all">Todas</option>
                         <option value="enrollments">Inscripciones</option>
                         <option value="completions">Completados</option>
@@ -122,9 +125,13 @@
             <div id="activity-list"
                  hx-get="{% url 'dashboard:recent-activity' %}"
                  hx-trigger="load"
-                 hx-swap="innerHTML">
+                 hx-swap="innerHTML"
+                 role="region"
+                 aria-live="polite"
+                 aria-label="Lista de actividad reciente">
                 <div class="flex items-center justify-center h-32">
-                    <span class="loading loading-spinner loading-md"></span>
+                    <span class="loading loading-spinner loading-md" aria-hidden="true"></span>
+                    <span class="sr-only">Cargando actividad reciente...</span>
                 </div>
             </div>
         </div>

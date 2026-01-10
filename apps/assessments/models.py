@@ -5,6 +5,21 @@ Assessment models for SD LMS.
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.validators import validate_percentage
+
+
+class AssessmentManager(models.Manager):
+    """Custom manager for Assessment model."""
+
+    def published(self):
+        return self.filter(status='published')
+
+    def for_course(self, course):
+        return self.filter(course=course)
+
+    def with_questions(self):
+        return self.prefetch_related('questions__answers')
+
 
 class Assessment(models.Model):
     """
@@ -50,6 +65,7 @@ class Assessment(models.Model):
         _("Puntaje mínimo (%)"),
         default=80,
         help_text=_("Porcentaje mínimo para aprobar"),
+        validators=[validate_percentage],
     )
     time_limit = models.PositiveIntegerField(
         _("Tiempo límite (minutos)"),
@@ -88,6 +104,8 @@ class Assessment(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = AssessmentManager()
 
     class Meta:
         db_table = "assessments"
@@ -156,6 +174,9 @@ class Question(models.Model):
         verbose_name = _("Pregunta")
         verbose_name_plural = _("Preguntas")
         ordering = ["order"]
+        indexes = [
+            models.Index(fields=["assessment", "order"]),
+        ]
 
     def __str__(self):
         return f"{self.assessment.title} - Q{self.order}"
@@ -260,6 +281,10 @@ class AssessmentAttempt(models.Model):
         verbose_name = _("Intento de evaluación")
         verbose_name_plural = _("Intentos de evaluación")
         ordering = ["-started_at"]
+        indexes = [
+            models.Index(fields=["user", "assessment"]),
+            models.Index(fields=["status", "user"]),
+        ]
 
     def __str__(self):
         return f"{self.user} - {self.assessment} (Intento {self.attempt_number})"

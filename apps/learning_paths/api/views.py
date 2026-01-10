@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 
 from apps.courses.models import Course, Enrollment
 from apps.learning_paths.models import LearningPath, PathAssignment, PathCourse
+from apps.learning_paths.services import LearningPathService
 
 from .serializers import (
     BulkPathAssignmentSerializer,
@@ -316,29 +317,6 @@ class JoinLearningPathView(APIView):
         )
 
 
-def update_path_assignment_progress(assignment):
-    """Update progress for a path assignment based on course completions."""
-    path = assignment.learning_path
-    required_courses = path.path_courses.filter(is_required=True)
-    total_required = required_courses.count()
-
-    if total_required == 0:
-        assignment.progress = 100
-    else:
-        completed = Enrollment.objects.filter(
-            user=assignment.user,
-            course__in=[pc.course for pc in required_courses],
-            status=Enrollment.Status.COMPLETED,
-        ).count()
-        assignment.progress = (completed / total_required) * 100
-
-    # Update status
-    if assignment.progress > 0 and assignment.status == PathAssignment.Status.ASSIGNED:
-        assignment.status = PathAssignment.Status.IN_PROGRESS
-        assignment.started_at = timezone.now()
-
-    if assignment.progress >= 100:
-        assignment.status = PathAssignment.Status.COMPLETED
-        assignment.completed_at = timezone.now()
-
-    assignment.save()
+# NOTE: The update_path_assignment_progress functionality has been moved to
+# LearningPathService.update_assignment_progress() in apps/learning_paths/services.py
+# Use: LearningPathService.update_assignment_progress(assignment)

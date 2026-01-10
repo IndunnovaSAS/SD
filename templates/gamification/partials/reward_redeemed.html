@@ -1,0 +1,8 @@
+<div class="reward-redeemed text-center">
+    <i class="fa-solid fa-gift text-success fa-3x mb-3"></i>
+    <h4>Recompensa Canjeada</h4>
+    <p>{{ redemption.reward.name }}</p>
+    <p class="text-muted">-{{ redemption.points_spent }} puntos</p>
+    <p>Estado: {{ redemption.get_status_display }}</p>
+    <p>Fecha: {{ redemption.redeemed_at|date:"d/m/Y H:i" }}</p>
+</div>
