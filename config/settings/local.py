@@ -6,7 +6,7 @@ from .base import *  # noqa: F403, F401
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "35.184.159.138", "34.174.86.113", "*"]
 
 # Disable secure cookies in development
 SESSION_COOKIE_SECURE = False

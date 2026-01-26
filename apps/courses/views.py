@@ -2,12 +2,14 @@
 Web views for courses app.
 """
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
+from .forms import CategoryForm, CourseCreateForm
 from .models import Category, Course, Enrollment, Lesson, LessonProgress, Module
 from .services import EnrollmentService
 
@@ -27,10 +29,6 @@ def course_list(request):
     course_type = request.GET.get("type")
     if course_type:
         courses = courses.filter(course_type=course_type)
-
-    risk_level = request.GET.get("risk_level")
-    if risk_level:
-        courses = courses.filter(risk_level=risk_level)
 
     search = request.GET.get("search")
     if search:
@@ -54,7 +52,6 @@ def course_list(request):
         "user_enrollments": user_enrollments,
         "current_category": category_slug,
         "current_type": course_type,
-        "current_risk_level": risk_level,
         "search_query": search,
     }
     return render(request, "courses/course_list.html", context)
@@ -219,3 +216,127 @@ def my_courses(request):
         "current_status": status_filter,
     }
     return render(request, "courses/my_courses.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def course_create(request):
+    """Create a new course (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("courses:list")
+
+    form = CourseCreateForm(request.POST or None, request.FILES or None)
+
+    if request.method == "POST" and form.is_valid():
+        course = form.save(commit=False)
+        course.created_by = request.user
+        course.save()
+        messages.success(request, f"Curso '{course.title}' creado exitosamente.")
+        return redirect("courses:detail", course_id=course.id)
+
+    context = {"form": form}
+    return render(request, "courses/course_create.html", context)
+
+
+# =============================================================================
+# Category Management Views (Maestros de Categorías)
+# =============================================================================
+
+@login_required
+def category_list(request):
+    """List all categories (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("courses:list")
+
+    # Get root categories with children prefetched
+    categories = Category.objects.filter(parent__isnull=True).prefetch_related(
+        "children"
+    ).annotate(
+        course_count=Count("courses")
+    ).order_by("order", "name")
+
+    context = {"categories": categories}
+    return render(request, "courses/category_list.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def category_create(request):
+    """Create a new category (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("courses:list")
+
+    form = CategoryForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        category = form.save()
+        messages.success(request, f"Categoría '{category.name}' creada exitosamente.")
+
+        if request.headers.get("HX-Request"):
+            return render(
+                request,
+                "courses/partials/category_row.html",
+                {"category": category},
+            )
+        return redirect("courses:category_list")
+
+    context = {"form": form, "action": "Crear"}
+    return render(request, "courses/category_form.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def category_edit(request, category_id):
+    """Edit a category (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("courses:list")
+
+    category = get_object_or_404(Category, id=category_id)
+    form = CategoryForm(request.POST or None, instance=category)
+
+    if request.method == "POST" and form.is_valid():
+        category = form.save()
+        messages.success(request, f"Categoría '{category.name}' actualizada exitosamente.")
+        return redirect("courses:category_list")
+
+    context = {"form": form, "category": category, "action": "Editar"}
+    return render(request, "courses/category_form.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def category_delete(request, category_id):
+    """Delete a category (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("courses:list")
+
+    category = get_object_or_404(Category, id=category_id)
+
+    # Check if category has courses
+    if category.courses.exists():
+        messages.error(
+            request,
+            f"No se puede eliminar la categoría '{category.name}' porque tiene cursos asociados."
+        )
+        return redirect("courses:category_list")
+
+    # Check if category has children
+    if category.children.exists():
+        messages.error(
+            request,
+            f"No se puede eliminar la categoría '{category.name}' porque tiene subcategorías."
+        )
+        return redirect("courses:category_list")
+
+    name = category.name
+    category.delete()
+    messages.success(request, f"Categoría '{name}' eliminada exitosamente.")
+
+    if request.headers.get("HX-Request"):
+        return render(request, "courses/partials/category_deleted.html", {})
+    return redirect("courses:category_list")

@@ -1,0 +1,153 @@
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Profile Card -->
+    <div class="card bg-base-100 shadow-lg">
+        <div class="card-body items-center text-center">
+            <div class="avatar placeholder mb-4">
+                <div class="bg-primary text-primary-content rounded-full w-24">
+                    {% if user_obj.photo %}
+                    <img src="{{ user_obj.photo.url }}" alt="{{ user_obj.get_full_name }}">
+                    {% else %}
+                    <span class="text-3xl">{{ user_obj.first_name.0|default:user_obj.email.0|upper }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <h2 class="card-title">{{ user_obj.get_full_name|default:user_obj.email }}</h2>
+            <p class="text-gray-500">{{ user_obj.job_position|default:"Sin cargo" }}</p>
+
+            <div class="flex gap-2 mt-2">
+                <div class="badge badge-primary">
+                    {{ user_obj.get_status_display }}
+                </div>
+                {% if user_obj.is_active %}
+                <div class="badge badge-success">Activo</div>
+                {% else %}
+                <div class="badge badge-ghost">Inactivo</div>
+                {% endif %}
+                {% if user_obj.is_staff %}
+                <div class="badge badge-warning">Staff</div>
+                {% endif %}
+            </div>
+
+            <div class="stats shadow mt-4 w-full">
+                <div class="stat py-3">
+                    <div class="stat-title text-xs">Miembro desde</div>
+                    <div class="stat-value text-lg">{{ user_obj.hire_date|date:"d/m/Y" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Cards -->
+    <div class="lg:col-span-2 space-y-6">
+        <!-- Personal Info -->
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <h3 class="card-title text-lg mb-4">Información Personal</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-gray-500 text-sm">Correo electrónico</label>
+                        <p class="font-medium">{{ user_obj.email }}</p>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-sm">Teléfono</label>
+                        <p class="font-medium">{{ user_obj.phone|default:"No registrado" }}</p>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-sm">Tipo de documento</label>
+                        <p class="font-medium">{{ user_obj.get_document_type_display }}</p>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-sm">Número de documento</label>
+                        <p class="font-medium">{{ user_obj.document_number }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Work Info -->
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <h3 class="card-title text-lg mb-4">Información Laboral</h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-gray-500 text-sm">Cargo</label>
+                        <p class="font-medium">{{ user_obj.job_position|default:"No registrado" }}</p>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-sm">Perfil ocupacional</label>
+                        <p class="font-medium">{{ user_obj.job_profile|default:"No asignado" }}</p>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-sm">Tipo de vinculación</label>
+                        <p class="font-medium">{{ user_obj.get_employment_type_display|default:"No asignado" }}</p>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-sm">Fecha de ingreso</label>
+                        <p class="font-medium">{{ user_obj.hire_date|date:"d/m/Y"|default:"No registrado" }}</p>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-sm">Estado</label>
+                        <p class="font-medium">{{ user_obj.get_status_display }}</p>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-sm">Cuenta</label>
+                        <p class="font-medium">
+                            {% if user_obj.is_active %}
+                            <span class="text-success">Activa</span>
+                            {% else %}
+                            <span class="text-error">Inactiva</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if user_obj.is_staff %}
+                    <div>
+                        <label class="text-gray-500 text-sm">Permisos</label>
+                        <p class="font-medium">
+                            <span class="text-warning">Acceso administrativo</span>
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Security -->
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <h3 class="card-title text-lg mb-4">Seguridad</h3>
+
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-medium">Autenticación de dos factores (2FA)</p>
+                            <p class="text-gray-500 text-sm">
+                                {% if has_2fa %}
+                                <span class="text-success">Activada</span>
+                                {% else %}
+                                <span class="text-warning">No activada</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div>
+                        <label class="text-gray-500 text-sm">Cuenta creada</label>
+                        <p class="font-medium">{{ user_obj.created_at|date:"d/m/Y H:i" }}</p>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-sm">Última actualización</label>
+                        <p class="font-medium">{{ user_obj.updated_at|date:"d/m/Y H:i" }}</p>
+                    </div>
+                    <div>
+                        <label class="text-gray-500 text-sm">Último acceso</label>
+                        <p class="font-medium">{{ user_obj.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

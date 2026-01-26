@@ -9,12 +9,12 @@ from django.utils.translation import gettext_lazy as _
 
 
 class UserManager(BaseUserManager):
-    """Custom user manager for email-based authentication."""
+    """Custom user manager for email or document-based authentication."""
 
-    def create_user(self, email, password=None, **extra_fields):
-        if not email:
-            raise ValueError(_("El email es obligatorio"))
-        email = self.normalize_email(email)
+    def create_user(self, email=None, password=None, **extra_fields):
+        """Create user with email (optional for operational staff)."""
+        if email:
+            email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -53,9 +53,31 @@ class User(AbstractUser):
         TI = "TI", _("Tarjeta de Identidad")
         PASSPORT = "PA", _("Pasaporte")
 
-    # Remove username field, use email instead
+    class EmploymentType(models.TextChoices):
+        DIRECT = "direct", _("Directo")
+        CONTRACTOR = "contractor", _("Contratista")
+
+    class JobProfile(models.TextChoices):
+        # Personal operativo (usa cédula para login)
+        LINIERO = "LINIERO", _("Liniero")
+        TECNICO = "TECNICO", _("Técnico")
+        OPERADOR = "OPERADOR", _("Operador")
+        # Personal profesional (usa email para login)
+        JEFE_CUADRILLA = "JEFE_CUADRILLA", _("Jefe de Cuadrilla")
+        INGENIERO_RESIDENTE = "INGENIERO_RESIDENTE", _("Ingeniero Residente")
+        COORDINADOR_HSEQ = "COORDINADOR_HSEQ", _("Coordinador HSEQ")
+        # Personal administrativo (usa email para login)
+        ADMINISTRADOR = "ADMINISTRADOR", _("Administrador")
+
+    # Remove username field, use email or document for login
     username = None
-    email = models.EmailField(_("Correo electrónico"), unique=True)
+    email = models.EmailField(
+        _("Correo electrónico"),
+        unique=True,
+        null=True,
+        blank=True,
+        help_text=_("Requerido para personal profesional y administrativo")
+    )
 
     # Personal information
     document_type = models.CharField(
@@ -82,12 +104,14 @@ class User(AbstractUser):
     job_profile = models.CharField(
         _("Perfil ocupacional"),
         max_length=50,
-        help_text=_("Ej: LINIERO, JEFE_CUADRILLA, INGENIERO_RESIDENTE"),
+        choices=JobProfile.choices,
+        default=JobProfile.LINIERO,
     )
-    work_front = models.CharField(
-        _("Frente de trabajo"),
-        max_length=100,
-        blank=True,
+    employment_type = models.CharField(
+        _("Tipo de vinculación"),
+        max_length=20,
+        choices=EmploymentType.choices,
+        default=EmploymentType.DIRECT,
     )
     hire_date = models.DateField(_("Fecha de ingreso"))
     status = models.CharField(
@@ -97,26 +121,14 @@ class User(AbstractUser):
         default=Status.ACTIVE,
     )
 
-    # Emergency contact
-    emergency_contact_name = models.CharField(
-        _("Contacto de emergencia"),
-        max_length=100,
-        blank=True,
-    )
-    emergency_contact_phone = models.CharField(
-        _("Teléfono de emergencia"),
-        max_length=20,
-        blank=True,
-    )
-
     # Metadata
     created_at = models.DateTimeField(_("Fecha de creación"), auto_now_add=True)
     updated_at = models.DateTimeField(_("Fecha de actualización"), auto_now=True)
 
     objects = UserManager()
 
-    USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["first_name", "last_name", "document_number", "job_position", "hire_date"]
+    USERNAME_FIELD = "document_number"
+    REQUIRED_FIELDS = ["first_name", "last_name", "job_position", "hire_date"]
 
     class Meta:
         db_table = "users"
@@ -125,7 +137,7 @@ class User(AbstractUser):
         ordering = ["last_name", "first_name"]
 
     def __str__(self):
-        return f"{self.get_full_name()} ({self.email})"
+        return f"{self.get_full_name()} ({self.document_number})"
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
@@ -134,9 +146,41 @@ class User(AbstractUser):
         return self.first_name
 
     @property
+    def is_operational(self):
+        """Check if user is operational staff (uses document number for login)."""
+        return self.job_profile in [
+            self.JobProfile.LINIERO,
+            self.JobProfile.TECNICO,
+            self.JobProfile.OPERADOR,
+        ]
+
+    @property
+    def is_professional(self):
+        """Check if user is professional staff (requires email for login)."""
+        return self.job_profile in [
+            self.JobProfile.JEFE_CUADRILLA,
+            self.JobProfile.INGENIERO_RESIDENTE,
+            self.JobProfile.COORDINADOR_HSEQ,
+        ]
+
+    @property
+    def is_admin(self):
+        """Check if user is system administrator (requires email for login)."""
+        return self.job_profile == self.JobProfile.ADMINISTRADOR
+
+    @property
     def is_supervisor(self):
         """Check if user has supervisor role."""
-        return self.job_profile in ["JEFE_CUADRILLA", "INGENIERO_RESIDENTE", "COORDINADOR_HSEQ"]
+        return self.job_profile in [
+            self.JobProfile.JEFE_CUADRILLA,
+            self.JobProfile.INGENIERO_RESIDENTE,
+            self.JobProfile.COORDINADOR_HSEQ,
+        ]
+
+    @property
+    def requires_email(self):
+        """Check if user requires email for authentication."""
+        return self.is_professional or self.is_admin
 
     @property
     def can_access_field(self):
@@ -284,3 +328,65 @@ class UserContract(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.contract}"
+
+
+class JobHistory(models.Model):
+    """
+    Historical record of job position changes for traceability.
+    """
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="job_history",
+        verbose_name=_("Usuario"),
+    )
+    previous_position = models.CharField(
+        _("Cargo anterior"),
+        max_length=100,
+        blank=True,
+    )
+    new_position = models.CharField(
+        _("Cargo nuevo"),
+        max_length=100,
+    )
+    previous_profile = models.CharField(
+        _("Perfil anterior"),
+        max_length=50,
+        blank=True,
+    )
+    new_profile = models.CharField(
+        _("Perfil nuevo"),
+        max_length=50,
+    )
+    previous_employment_type = models.CharField(
+        _("Vinculación anterior"),
+        max_length=20,
+        blank=True,
+    )
+    new_employment_type = models.CharField(
+        _("Vinculación nueva"),
+        max_length=20,
+    )
+    change_date = models.DateField(_("Fecha de cambio"))
+    changed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="job_changes_made",
+        verbose_name=_("Modificado por"),
+    )
+    reason = models.TextField(_("Motivo"), blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "job_history"
+        verbose_name = _("Historial de cargo")
+        verbose_name_plural = _("Historial de cargos")
+        ordering = ["-change_date", "-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-change_date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} - {self.previous_position} → {self.new_position}"

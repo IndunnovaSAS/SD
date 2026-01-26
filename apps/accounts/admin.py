@@ -4,9 +4,33 @@ Admin configuration for accounts app.
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .models import Contract, Role, User, UserContract, UserRole
+from .models import Contract, JobHistory, Role, User, UserContract, UserRole
+
+
+class JobHistoryInline(admin.TabularInline):
+    """Inline for JobHistory in User admin."""
+
+    model = JobHistory
+    fk_name = "user"
+    extra = 0
+    readonly_fields = (
+        "previous_position",
+        "new_position",
+        "previous_profile",
+        "new_profile",
+        "previous_employment_type",
+        "new_employment_type",
+        "change_date",
+        "changed_by",
+        "reason",
+        "created_at",
+    )
+    can_delete = False
+    verbose_name = _("Cambio de cargo")
+    verbose_name_plural = _("Historial de cambios de cargo")
 
 
 @admin.register(User)
@@ -19,12 +43,14 @@ class UserAdmin(BaseUserAdmin):
         "last_name",
         "document_number",
         "job_position",
+        "employment_type",
         "status",
         "is_active",
     )
-    list_filter = ("status", "is_active", "is_staff", "job_profile", "hire_date")
+    list_filter = ("status", "is_active", "is_staff", "job_profile", "employment_type", "hire_date")
     search_fields = ("email", "first_name", "last_name", "document_number")
     ordering = ("last_name", "first_name")
+    inlines = [JobHistoryInline]
 
     fieldsets = (
         (None, {"fields": ("email", "password")}),
@@ -47,15 +73,11 @@ class UserAdmin(BaseUserAdmin):
                 "fields": (
                     "job_position",
                     "job_profile",
-                    "work_front",
+                    "employment_type",
                     "hire_date",
                     "status",
                 )
             },
-        ),
-        (
-            _("Contacto de Emergencia"),
-            {"fields": ("emergency_contact_name", "emergency_contact_phone")},
         ),
         (
             _("Permisos"),
@@ -87,11 +109,41 @@ class UserAdmin(BaseUserAdmin):
                     "document_number",
                     "job_position",
                     "job_profile",
+                    "employment_type",
                     "hire_date",
                 ),
             },
         ),
     )
+
+    def save_model(self, request, obj, form, change):
+        """Save user and create job history if position/profile/employment_type changed."""
+        if change:  # Only for existing users
+            try:
+                old_user = User.objects.get(pk=obj.pk)
+                # Check if job-related fields changed
+                position_changed = old_user.job_position != obj.job_position
+                profile_changed = old_user.job_profile != obj.job_profile
+                employment_changed = old_user.employment_type != obj.employment_type
+
+                if position_changed or profile_changed or employment_changed:
+                    # Create job history record
+                    JobHistory.objects.create(
+                        user=obj,
+                        previous_position=old_user.job_position,
+                        new_position=obj.job_position,
+                        previous_profile=old_user.job_profile,
+                        new_profile=obj.job_profile,
+                        previous_employment_type=old_user.employment_type,
+                        new_employment_type=obj.employment_type,
+                        change_date=timezone.now().date(),
+                        changed_by=request.user,
+                        reason=f"Modificado desde el panel de administración",
+                    )
+            except User.DoesNotExist:
+                pass
+
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Role)
@@ -133,3 +185,29 @@ class UserRoleInline(admin.TabularInline):
     model = UserRole
     extra = 0
     autocomplete_fields = ["role"]
+
+
+@admin.register(JobHistory)
+class JobHistoryAdmin(admin.ModelAdmin):
+    """Admin configuration for JobHistory model."""
+
+    list_display = (
+        "user",
+        "previous_position",
+        "new_position",
+        "previous_employment_type",
+        "new_employment_type",
+        "change_date",
+        "changed_by",
+    )
+    list_filter = ("change_date", "new_profile", "new_employment_type")
+    search_fields = (
+        "user__first_name",
+        "user__last_name",
+        "user__document_number",
+        "new_position",
+        "reason",
+    )
+    date_hierarchy = "change_date"
+    readonly_fields = ("created_at",)
+    autocomplete_fields = ["user", "changed_by"]

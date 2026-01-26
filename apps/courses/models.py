@@ -116,32 +116,16 @@ class Course(models.Model):
         PUBLISHED = "published", _("Publicado")
         ARCHIVED = "archived", _("Archivado")
 
-    class RiskLevel(models.TextChoices):
-        LOW = "low", _("Bajo")
-        MEDIUM = "medium", _("Medio")
-        HIGH = "high", _("Alto")
-        CRITICAL = "critical", _("Crítico")
-
     code = models.CharField(_("Código"), max_length=50, unique=True)
     title = models.CharField(_("Título"), max_length=200)
     description = models.TextField(_("Descripción"))
     objectives = models.TextField(_("Objetivos"), blank=True)
-    duration = models.PositiveIntegerField(
-        _("Duración (minutos)"),
-        help_text=_("Duración estimada en minutos"),
-        validators=[MinValueValidator(0)],
-    )
+    # duration is now calculated as total_duration property (sum of lesson durations)
     course_type = models.CharField(
         _("Tipo"),
         max_length=20,
         choices=Type.choices,
         default=Type.MANDATORY,
-    )
-    risk_level = models.CharField(
-        _("Nivel de riesgo"),
-        max_length=20,
-        choices=RiskLevel.choices,
-        default=RiskLevel.MEDIUM,
     )
     thumbnail = models.ImageField(
         _("Imagen miniatura"),
@@ -428,9 +412,8 @@ class CourseVersion(models.Model):
             "title": course.title,
             "description": course.description,
             "objectives": course.objectives,
-            "duration": course.duration,
+            "duration": course.total_duration,
             "course_type": course.course_type,
-            "risk_level": course.risk_level,
             "target_profiles": course.target_profiles,
             "validity_months": course.validity_months,
             "modules": [],

@@ -12,17 +12,18 @@ User = get_user_model()
 
 
 class LoginForm(forms.Form):
-    """Login form with email and password."""
+    """Login form with document number/email and password."""
 
-    email = forms.EmailField(
-        label=_("Correo electrónico"),
-        widget=forms.EmailInput(
+    username = forms.CharField(
+        label=_("Cédula o correo electrónico"),
+        widget=forms.TextInput(
             attrs={
                 "class": "input input-bordered w-full",
-                "placeholder": "correo@ejemplo.com",
-                "autocomplete": "email",
+                "placeholder": "Número de cédula o correo@ejemplo.com",
+                "autocomplete": "username",
             }
         ),
+        help_text=_("Personal operativo: ingrese su número de cédula. Personal profesional/administrativo: ingrese su correo electrónico."),
     )
     password = forms.CharField(
         label=_("Contraseña"),
@@ -190,3 +191,179 @@ class TwoFactorSetupForm(forms.Form):
         if token and not token.isdigit():
             raise forms.ValidationError(_("El código debe contener solo números."))
         return token
+
+
+class UserCreateForm(forms.ModelForm):
+    """Form for creating new users (admin only)."""
+
+    password1 = forms.CharField(
+        label=_("Contraseña"),
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "input input-bordered w-full",
+                "placeholder": "••••••••",
+            }
+        ),
+    )
+    password2 = forms.CharField(
+        label=_("Confirmar contraseña"),
+        widget=forms.PasswordInput(
+            attrs={
+                "class": "input input-bordered w-full",
+                "placeholder": "••••••••",
+            }
+        ),
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "email",
+            "first_name",
+            "last_name",
+            "document_type",
+            "document_number",
+            "phone",
+            "job_position",
+            "job_profile",
+            "employment_type",
+            "hire_date",
+            "status",
+        ]
+        widgets = {
+            "email": forms.EmailInput(attrs={"class": "input input-bordered w-full"}),
+            "first_name": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
+            "last_name": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
+            "document_type": forms.Select(attrs={"class": "select select-bordered w-full"}),
+            "document_number": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
+            "phone": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
+            "job_position": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
+            "job_profile": forms.Select(attrs={"class": "select select-bordered w-full"}),
+            "employment_type": forms.Select(attrs={"class": "select select-bordered w-full"}),
+            "hire_date": forms.DateInput(attrs={"class": "input input-bordered w-full", "type": "date"}),
+            "status": forms.Select(attrs={"class": "select select-bordered w-full"}),
+        }
+
+    def clean_password2(self):
+        password1 = self.cleaned_data.get("password1")
+        password2 = self.cleaned_data.get("password2")
+        if password1 and password2 and password1 != password2:
+            raise forms.ValidationError(_("Las contraseñas no coinciden."))
+        return password2
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if email and User.objects.filter(email=email).exists():
+            raise forms.ValidationError(_("Ya existe un usuario con este correo electrónico."))
+        return email
+
+    def clean_document_number(self):
+        document_number = self.cleaned_data.get("document_number")
+        if User.objects.filter(document_number=document_number).exists():
+            raise forms.ValidationError(_("Ya existe un usuario con este número de documento."))
+        return document_number
+
+    def clean(self):
+        cleaned_data = super().clean()
+        job_profile = cleaned_data.get("job_profile")
+        email = cleaned_data.get("email")
+
+        # Perfiles que requieren email (profesionales y administradores)
+        profiles_requiring_email = [
+            User.JobProfile.JEFE_CUADRILLA,
+            User.JobProfile.INGENIERO_RESIDENTE,
+            User.JobProfile.COORDINADOR_HSEQ,
+            User.JobProfile.ADMINISTRADOR,
+        ]
+
+        if job_profile in profiles_requiring_email and not email:
+            self.add_error(
+                "email",
+                _("El correo electrónico es requerido para este perfil ocupacional.")
+            )
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data["password1"])
+        if commit:
+            user.save()
+        return user
+
+
+class UserEditForm(forms.ModelForm):
+    """Form for editing existing users (admin only)."""
+
+    class Meta:
+        model = User
+        fields = [
+            "email",
+            "first_name",
+            "last_name",
+            "document_type",
+            "document_number",
+            "phone",
+            "job_position",
+            "job_profile",
+            "employment_type",
+            "hire_date",
+            "status",
+            "is_active",
+            "is_staff",
+        ]
+        widgets = {
+            "email": forms.EmailInput(attrs={"class": "input input-bordered w-full"}),
+            "first_name": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
+            "last_name": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
+            "document_type": forms.Select(attrs={"class": "select select-bordered w-full"}),
+            "document_number": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
+            "phone": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
+            "job_position": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
+            "job_profile": forms.Select(attrs={"class": "select select-bordered w-full"}),
+            "employment_type": forms.Select(attrs={"class": "select select-bordered w-full"}),
+            "hire_date": forms.DateInput(attrs={"class": "input input-bordered w-full", "type": "date"}),
+            "status": forms.Select(attrs={"class": "select select-bordered w-full"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "checkbox checkbox-primary"}),
+            "is_staff": forms.CheckboxInput(attrs={"class": "checkbox checkbox-primary"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make document_number validation skip current instance
+        # Email is optional for operational staff
+        self.fields["email"].required = False
+        self.fields["document_number"].required = True
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if email and User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError(_("Ya existe un usuario con este correo electrónico."))
+        return email
+
+    def clean_document_number(self):
+        document_number = self.cleaned_data.get("document_number")
+        if User.objects.filter(document_number=document_number).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError(_("Ya existe un usuario con este número de documento."))
+        return document_number
+
+    def clean(self):
+        cleaned_data = super().clean()
+        job_profile = cleaned_data.get("job_profile")
+        email = cleaned_data.get("email")
+
+        # Perfiles que requieren email (profesionales y administradores)
+        profiles_requiring_email = [
+            User.JobProfile.JEFE_CUADRILLA,
+            User.JobProfile.INGENIERO_RESIDENTE,
+            User.JobProfile.COORDINADOR_HSEQ,
+            User.JobProfile.ADMINISTRADOR,
+        ]
+
+        if job_profile in profiles_requiring_email and not email:
+            self.add_error(
+                "email",
+                _("El correo electrónico es requerido para este perfil ocupacional.")
+            )
+
+        return cleaned_data

@@ -2,6 +2,7 @@
 Web views for learning paths app.
 """
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -9,6 +10,7 @@ from django.views.decorators.http import require_http_methods
 
 from apps.courses.models import Enrollment
 
+from .forms import LearningPathCreateForm
 from .models import LearningPath, PathAssignment, PathCourse
 
 
@@ -168,3 +170,24 @@ def my_learning_paths(request):
         "current_status": status_filter,
     }
     return render(request, "learning_paths/my_paths.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def learning_path_create(request):
+    """Create a new learning path (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("learning_paths:list")
+
+    form = LearningPathCreateForm(request.POST or None, request.FILES or None)
+
+    if request.method == "POST" and form.is_valid():
+        path = form.save(commit=False)
+        path.created_by = request.user
+        path.save()
+        messages.success(request, f"Ruta '{path.name}' creada exitosamente.")
+        return redirect("learning_paths:detail", path_id=path.id)
+
+    context = {"form": form}
+    return render(request, "learning_paths/path_create.html", context)

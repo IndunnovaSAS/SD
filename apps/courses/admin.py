@@ -35,15 +35,14 @@ class CourseAdmin(admin.ModelAdmin):
         "code",
         "title",
         "course_type",
-        "risk_level",
         "status",
         "version",
-        "duration",
+        "get_total_duration",
         "created_at",
     ]
-    list_filter = ["status", "course_type", "risk_level", "created_at"]
+    list_filter = ["status", "course_type", "created_at"]
     search_fields = ["code", "title", "description"]
-    readonly_fields = ["created_at", "updated_at", "published_at"]
+    readonly_fields = ["created_at", "updated_at", "published_at", "get_total_duration"]
     date_hierarchy = "created_at"
     inlines = [ModuleInline]
 
@@ -59,10 +58,9 @@ class CourseAdmin(admin.ModelAdmin):
             {
                 "fields": [
                     "course_type",
-                    "risk_level",
-                    "duration",
                     "validity_months",
                     "version",
+                    "get_total_duration",
                 ],
             },
         ),
@@ -93,6 +91,12 @@ class CourseAdmin(admin.ModelAdmin):
             },
         ),
     ]
+
+    def get_total_duration(self, obj):
+        """Display total duration calculated from lessons."""
+        return f"{obj.total_duration} min"
+
+    get_total_duration.short_description = _("Duración total")
 
     def save_model(self, request, obj, form, change):
         if not change:

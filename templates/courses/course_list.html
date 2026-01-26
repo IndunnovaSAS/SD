@@ -2,9 +2,19 @@
 
 {% block page_title %}Catálogo de Cursos{% endblock %}
 {% block page_description %}
-<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-    Explora todos los cursos disponibles para tu formación
-</p>
+<div class="flex items-center justify-between">
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        Explora todos los cursos disponibles para tu formación
+    </p>
+    {% if user.is_staff %}
+    <a href="{% url 'courses:create' %}" class="btn btn-primary btn-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+        </svg>
+        Crear Curso
+    </a>
+    {% endif %}
+</div>
 {% endblock %}
 
 {% block main_classes %}lg:col-span-3{% endblock %}
@@ -25,7 +35,7 @@
                    hx-get="{% url 'courses:list' %}"
                    hx-trigger="keyup changed delay:500ms"
                    hx-target="#course-grid"
-                   hx-include="[name='category'],[name='type'],[name='risk_level']">
+                   hx-include="[name='category'],[name='type']">
         </div>
 
         <!-- Categories -->
@@ -52,27 +62,11 @@
                     hx-get="{% url 'courses:list' %}"
                     hx-trigger="change"
                     hx-target="#course-grid"
-                    hx-include="[name='search'],[name='category'],[name='risk_level']">
+                    hx-include="[name='search'],[name='category']">
                 <option value="">Todos</option>
                 <option value="mandatory" {% if current_type == 'mandatory' %}selected{% endif %}>Obligatorio</option>
                 <option value="optional" {% if current_type == 'optional' %}selected{% endif %}>Opcional</option>
                 <option value="refresher" {% if current_type == 'refresher' %}selected{% endif %}>Refuerzo</option>
-            </select>
-        </div>
-
-        <!-- Risk Level -->
-        <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nivel de Riesgo</label>
-            <select name="risk_level" class="select select-bordered select-sm w-full"
-                    hx-get="{% url 'courses:list' %}"
-                    hx-trigger="change"
-                    hx-target="#course-grid"
-                    hx-include="[name='search'],[name='category'],[name='type']">
-                <option value="">Todos</option>
-                <option value="low" {% if current_risk_level == 'low' %}selected{% endif %}>Bajo</option>
-                <option value="medium" {% if current_risk_level == 'medium' %}selected{% endif %}>Medio</option>
-                <option value="high" {% if current_risk_level == 'high' %}selected{% endif %}>Alto</option>
-                <option value="critical" {% if current_risk_level == 'critical' %}selected{% endif %}>Crítico</option>
             </select>
         </div>
     </div>
@@ -104,12 +98,6 @@
                 {% else %}
                 <span class="badge badge-info badge-sm">Opcional</span>
                 {% endif %}
-
-                {% if course.risk_level == 'critical' %}
-                <span class="badge badge-error badge-sm">Crítico</span>
-                {% elif course.risk_level == 'high' %}
-                <span class="badge badge-warning badge-sm">Alto riesgo</span>
-                {% endif %}
             </div>
 
             <!-- Title -->
@@ -122,7 +110,7 @@
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                {{ course.duration }} min
+                {{ course.total_duration }} min
 
                 {% if course.category %}
                 <span class="mx-2">•</span>

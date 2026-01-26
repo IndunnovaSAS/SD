@@ -10,16 +10,19 @@ from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.db import models
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 from django_otp import devices_for_user
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
+from .models import JobHistory
 from .forms import (
     LoginForm,
     PasswordChangeForm,
@@ -28,6 +31,8 @@ from .forms import (
     ProfileForm,
     TwoFactorSetupForm,
     TwoFactorVerifyForm,
+    UserCreateForm,
+    UserEditForm,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,11 +49,12 @@ def login_view(request):
 
     if request.method == "POST":
         if form.is_valid():
-            email = form.cleaned_data["email"]
+            username = form.cleaned_data["username"]
             password = form.cleaned_data["password"]
             remember_me = form.cleaned_data.get("remember_me", False)
 
-            user = authenticate(request, email=email, password=password)
+            # El backend soporta autenticación por email o número de documento
+            user = authenticate(request, username=username, password=password)
 
             if user is not None:
                 # Check if user has 2FA enabled
@@ -77,7 +83,7 @@ def login_view(request):
                 return redirect(next_url)
             else:
                 error = "Credenciales inválidas. Por favor, intente de nuevo."
-                logger.warning(f"Failed login attempt for email: {email}")
+                logger.warning(f"Failed login attempt for: {username}")
 
     context = {
         "form": form,
@@ -349,3 +355,198 @@ def user_has_2fa(user):
 def lockout_view(request):
     """View shown when user is locked out due to too many failed attempts."""
     return render(request, "accounts/lockout.html")
+
+
+# ==================== User Management Views (Admin Only) ====================
+
+
+@login_required
+@require_http_methods(["GET"])
+def user_list(request):
+    """List all users (admin/staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("accounts:dashboard")
+
+    # Get search and filter parameters
+    search = request.GET.get("search", "").strip()
+    status_filter = request.GET.get("status", "")
+    job_profile_filter = request.GET.get("job_profile", "")
+
+    users = User.objects.all().order_by("-created_at")
+
+    if search:
+        users = users.filter(
+            models.Q(first_name__icontains=search)
+            | models.Q(last_name__icontains=search)
+            | models.Q(email__icontains=search)
+            | models.Q(document_number__icontains=search)
+        )
+
+    if status_filter:
+        users = users.filter(status=status_filter)
+
+    if job_profile_filter:
+        users = users.filter(job_profile=job_profile_filter)
+
+    # Get unique job profiles for filter dropdown
+    job_profiles = User.objects.values_list("job_profile", flat=True).distinct().order_by("job_profile")
+
+    context = {
+        "users": users,
+        "search": search,
+        "status_filter": status_filter,
+        "job_profile_filter": job_profile_filter,
+        "job_profiles": job_profiles,
+        "status_choices": User.Status.choices,
+    }
+
+    if request.htmx:
+        return render(request, "accounts/partials/user_list_table.html", context)
+
+    return render(request, "accounts/user_list.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def user_create(request):
+    """Create a new user (admin/staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("accounts:dashboard")
+
+    form = UserCreateForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        messages.success(request, f"Usuario {user.get_full_name()} creado exitosamente.")
+        logger.info(f"User {user.document_number} created by {request.user.document_number}")
+
+        if request.htmx:
+            response = HttpResponse()
+            response["HX-Redirect"] = reverse("accounts:user_list")
+            return response
+
+        return redirect("accounts:user_list")
+
+    context = {"form": form}
+
+    if request.htmx:
+        return render(request, "accounts/partials/user_form.html", context)
+
+    return render(request, "accounts/user_create.html", context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def user_detail(request, user_id):
+    """View user details (admin/staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("accounts:dashboard")
+
+    user = get_object_or_404(User, pk=user_id)
+
+    context = {
+        "user_obj": user,
+        "has_2fa": user_has_2fa(user),
+    }
+
+    if request.htmx:
+        return render(request, "accounts/partials/user_detail.html", context)
+
+    return render(request, "accounts/user_detail.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def user_edit(request, user_id):
+    """Edit user details (admin/staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("accounts:dashboard")
+
+    user = get_object_or_404(User, pk=user_id)
+
+    # Store old values before update for job history tracking
+    old_position = user.job_position
+    old_profile = user.job_profile
+    old_employment_type = user.employment_type
+
+    form = UserEditForm(request.POST or None, instance=user)
+
+    if request.method == "POST" and form.is_valid():
+        updated_user = form.save()
+
+        # Check if job-related fields changed and create history record
+        position_changed = old_position != updated_user.job_position
+        profile_changed = old_profile != updated_user.job_profile
+        employment_changed = old_employment_type != updated_user.employment_type
+
+        if position_changed or profile_changed or employment_changed:
+            JobHistory.objects.create(
+                user=updated_user,
+                previous_position=old_position,
+                new_position=updated_user.job_position,
+                previous_profile=old_profile,
+                new_profile=updated_user.job_profile,
+                previous_employment_type=old_employment_type,
+                new_employment_type=updated_user.employment_type,
+                change_date=timezone.now().date(),
+                changed_by=request.user,
+                reason="Modificado desde el sistema web",
+            )
+
+        messages.success(request, f"Usuario {user.get_full_name()} actualizado exitosamente.")
+        logger.info(f"User {user.document_number} updated by {request.user.document_number}")
+
+        if request.htmx:
+            response = HttpResponse()
+            response["HX-Redirect"] = reverse("accounts:user_detail", kwargs={"user_id": user.pk})
+            return response
+
+        return redirect("accounts:user_detail", user_id=user.pk)
+
+    context = {
+        "form": form,
+        "user_obj": user,
+    }
+
+    if request.htmx:
+        return render(request, "accounts/partials/user_form.html", context)
+
+    return render(request, "accounts/user_edit.html", context)
+
+
+@login_required
+@require_POST
+def user_toggle_status(request, user_id):
+    """Toggle user active status (admin/staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para realizar esta acción.")
+        return redirect("accounts:dashboard")
+
+    user = get_object_or_404(User, pk=user_id)
+
+    # Prevent self-deactivation
+    if user.pk == request.user.pk:
+        messages.error(request, "No puede desactivar su propia cuenta.")
+        if request.htmx:
+            response = HttpResponse()
+            response["HX-Redirect"] = reverse("accounts:user_list")
+            return response
+        return redirect("accounts:user_list")
+
+    user.is_active = not user.is_active
+    user.save()
+
+    action = "activado" if user.is_active else "desactivado"
+    messages.success(request, f"Usuario {user.get_full_name()} {action} exitosamente.")
+    logger.info(f"User {user.document_number} {action} by {request.user.document_number}")
+
+    if request.htmx:
+        response = HttpResponse()
+        response["HX-Redirect"] = reverse("accounts:user_list")
+        return response
+
+    return redirect("accounts:user_list")
