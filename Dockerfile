@@ -92,8 +92,9 @@ WORKDIR /app
 # Copy application code
 COPY --chown=appuser:appuser . .
 
-# Collect static files
-RUN python manage.py collectstatic --noinput --settings=config.settings.production
+# Collect static files (using base settings to avoid external dependencies)
+ENV SECRET_KEY="build-time-secret-key"
+RUN python manage.py collectstatic --noinput --settings=config.settings.base
 
 # Switch to non-root user
 USER appuser
