@@ -19,10 +19,15 @@ ENV PYTHONUNBUFFERED=1 \
 # -----------------------------------------------------------------------------
 FROM python-base as builder
 
-# Install build dependencies
+# Install build dependencies (including WeasyPrint requirements)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libgdk-pixbuf2.0-dev \
+    libffi-dev \
+    shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 # Create virtual environment
@@ -72,11 +77,18 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 # -----------------------------------------------------------------------------
 FROM python-base as production
 
-# Install runtime dependencies only
+# Install runtime dependencies (including WeasyPrint)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     gettext \
     curl \
+    libcairo2 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf2.0-0 \
+    libffi8 \
+    shared-mime-info \
+    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder
