@@ -27,9 +27,26 @@ urlpatterns = [
         views.update_progress,
         name="update_progress",
     ),
+    # Parametrizacion hub
+    path("parametrizacion/", views.parametrizacion_hub, name="parametrizacion"),
+    # Course admin management (Parametrizacion)
+    path("admin-courses/", views.course_admin_list, name="course_admin_list"),
+    path(
+        "admin-courses/<int:course_id>/edit-params/",
+        views.course_edit_params,
+        name="course_edit_params",
+    ),
+    path(
+        "admin-courses/<int:course_id>/toggle-status/",
+        views.course_toggle_status,
+        name="course_toggle_status",
+    ),
     # Category management (Maestros)
     path("categories/", views.category_list, name="category_list"),
     path("categories/create/", views.category_create, name="category_create"),
     path("categories/<int:category_id>/edit/", views.category_edit, name="category_edit"),
     path("categories/<int:category_id>/delete/", views.category_delete, name="category_delete"),
+    path(
+        "categories/<int:category_id>/toggle/", views.category_toggle_active, name="category_toggle"
+    ),
 ]

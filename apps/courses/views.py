@@ -9,17 +9,19 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
-from .forms import CategoryForm, CourseCreateForm
-from .models import Category, Course, Enrollment, Lesson, LessonProgress, Module
+from .forms import CategoryForm, CourseCreateForm, CourseEditParamsForm
+from .models import Category, Course, Enrollment, Lesson, LessonProgress
 from .services import EnrollmentService
 
 
 @login_required
 def course_list(request):
     """List all published courses."""
-    courses = Course.objects.filter(status=Course.Status.PUBLISHED).select_related(
-        "category", "created_by"
-    ).prefetch_related("modules")
+    courses = (
+        Course.objects.filter(status=Course.Status.PUBLISHED)
+        .select_related("category", "created_by")
+        .prefetch_related("modules")
+    )
 
     # Filtering
     category_slug = request.GET.get("category")
@@ -32,9 +34,7 @@ def course_list(request):
 
     search = request.GET.get("search")
     if search:
-        courses = courses.filter(
-            Q(title__icontains=search) | Q(description__icontains=search)
-        )
+        courses = courses.filter(Q(title__icontains=search) | Q(description__icontains=search))
 
     # Get categories for filter
     categories = Category.objects.filter(is_active=True, parent__isnull=True).annotate(
@@ -141,13 +141,9 @@ def lesson_view(request, course_id, lesson_id):
     all_lessons = list(
         Lesson.objects.filter(module__course=course).order_by("module__order", "order")
     )
-    current_index = next(
-        (i for i, l in enumerate(all_lessons) if l.id == lesson.id), 0
-    )
+    current_index = next((i for i, lsn in enumerate(all_lessons) if lsn.id == lesson.id), 0)
     prev_lesson = all_lessons[current_index - 1] if current_index > 0 else None
-    next_lesson = (
-        all_lessons[current_index + 1] if current_index < len(all_lessons) - 1 else None
-    )
+    next_lesson = all_lessons[current_index + 1] if current_index < len(all_lessons) - 1 else None
 
     context = {
         "course": course,
@@ -180,6 +176,7 @@ def update_progress(request, course_id, lesson_id):
     if progress.progress_percent >= 100:
         progress.is_completed = True
         from django.utils import timezone
+
         progress.completed_at = timezone.now()
 
     progress.save()
@@ -243,6 +240,7 @@ def course_create(request):
 # Category Management Views (Maestros de Categorías)
 # =============================================================================
 
+
 @login_required
 def category_list(request):
     """List all categories (staff only)."""
@@ -251,11 +249,12 @@ def category_list(request):
         return redirect("courses:list")
 
     # Get root categories with children prefetched
-    categories = Category.objects.filter(parent__isnull=True).prefetch_related(
-        "children"
-    ).annotate(
-        course_count=Count("courses")
-    ).order_by("order", "name")
+    categories = (
+        Category.objects.filter(parent__isnull=True)
+        .prefetch_related("children")
+        .annotate(course_count=Count("courses"))
+        .order_by("order", "name")
+    )
 
     context = {"categories": categories}
     return render(request, "courses/category_list.html", context)
@@ -321,7 +320,7 @@ def category_delete(request, category_id):
     if category.courses.exists():
         messages.error(
             request,
-            f"No se puede eliminar la categoría '{category.name}' porque tiene cursos asociados."
+            f"No se puede eliminar la categoría '{category.name}' porque tiene cursos asociados.",
         )
         return redirect("courses:category_list")
 
@@ -329,7 +328,7 @@ def category_delete(request, category_id):
     if category.children.exists():
         messages.error(
             request,
-            f"No se puede eliminar la categoría '{category.name}' porque tiene subcategorías."
+            f"No se puede eliminar la categoría '{category.name}' porque tiene subcategorías.",
         )
         return redirect("courses:category_list")
 
@@ -340,3 +339,160 @@ def category_delete(request, category_id):
     if request.headers.get("HX-Request"):
         return render(request, "courses/partials/category_deleted.html", {})
     return redirect("courses:category_list")
+
+
+# =============================================================================
+# Category Toggle Active/Inactive
+# =============================================================================
+
+
+@login_required
+@require_http_methods(["POST"])
+def category_toggle_active(request, category_id):
+    """Toggle category is_active status (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("courses:list")
+
+    category = get_object_or_404(Category, id=category_id)
+    category.is_active = not category.is_active
+    category.save(update_fields=["is_active"])
+
+    action = "activada" if category.is_active else "desactivada"
+    messages.success(request, f"Categoría '{category.name}' {action} exitosamente.")
+
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "courses/partials/category_status_badge.html",
+            {"category": category},
+        )
+    return redirect("courses:category_list")
+
+
+# =============================================================================
+# Parametrización Hub & Course Admin Views
+# =============================================================================
+
+
+@login_required
+def parametrizacion_hub(request):
+    """Parametrización hub - central admin page for categories and courses."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("courses:list")
+
+    total_categories = Category.objects.count()
+    active_categories = Category.objects.filter(is_active=True).count()
+    inactive_categories = total_categories - active_categories
+    total_courses = Course.objects.count()
+    published_courses = Course.objects.filter(status=Course.Status.PUBLISHED).count()
+    draft_courses = Course.objects.filter(status=Course.Status.DRAFT).count()
+    archived_courses = Course.objects.filter(status=Course.Status.ARCHIVED).count()
+    uncategorized_courses = Course.objects.filter(category__isnull=True).count()
+
+    context = {
+        "total_categories": total_categories,
+        "active_categories": active_categories,
+        "inactive_categories": inactive_categories,
+        "total_courses": total_courses,
+        "published_courses": published_courses,
+        "draft_courses": draft_courses,
+        "archived_courses": archived_courses,
+        "uncategorized_courses": uncategorized_courses,
+    }
+    return render(request, "courses/parametrizacion_hub.html", context)
+
+
+@login_required
+def course_admin_list(request):
+    """Admin course list for parametrización (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("courses:list")
+
+    courses = Course.objects.select_related("category", "created_by").order_by("title")
+
+    # Filters
+    search = request.GET.get("search")
+    if search:
+        courses = courses.filter(Q(title__icontains=search) | Q(code__icontains=search))
+
+    category_filter = request.GET.get("category")
+    if category_filter:
+        if category_filter == "none":
+            courses = courses.filter(category__isnull=True)
+        else:
+            courses = courses.filter(category_id=category_filter)
+
+    status_filter = request.GET.get("status")
+    if status_filter:
+        courses = courses.filter(status=status_filter)
+
+    type_filter = request.GET.get("type")
+    if type_filter:
+        courses = courses.filter(course_type=type_filter)
+
+    categories = Category.objects.filter(is_active=True).order_by("name")
+
+    context = {
+        "courses": courses,
+        "categories": categories,
+        "search": search or "",
+        "category_filter": category_filter or "",
+        "status_filter": status_filter or "",
+        "type_filter": type_filter or "",
+    }
+
+    if request.headers.get("HX-Request"):
+        return render(request, "courses/partials/course_admin_table.html", context)
+
+    return render(request, "courses/course_admin_list.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def course_edit_params(request, course_id):
+    """Edit course parameters from parametrización (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("courses:list")
+
+    course = get_object_or_404(Course, id=course_id)
+    form = CourseEditParamsForm(request.POST or None, instance=course)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, f"Curso '{course.title}' actualizado exitosamente.")
+        return redirect("courses:course_admin_list")
+
+    context = {"form": form, "course": course}
+    return render(request, "courses/course_edit_params.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def course_toggle_status(request, course_id):
+    """Toggle course status (draft/published/archived) via HTMX (staff only)."""
+    if not request.user.is_staff:
+        return JsonResponse({"error": "No autorizado"}, status=403)
+
+    course = get_object_or_404(Course, id=course_id)
+    new_status = request.POST.get("status")
+
+    valid_statuses = [s.value for s in Course.Status]
+    if new_status in valid_statuses:
+        course.status = new_status
+        if new_status == Course.Status.PUBLISHED and not course.published_at:
+            from django.utils import timezone
+
+            course.published_at = timezone.now()
+        course.save(update_fields=["status", "published_at"])
+
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "courses/partials/course_status_cell.html",
+            {"course": course},
+        )
+    return redirect("courses:course_admin_list")

@@ -6,12 +6,20 @@
     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
         Administra las categorías y subcategorías de cursos
     </p>
-    <a href="{% url 'courses:category_create' %}" class="btn btn-primary btn-sm">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-        </svg>
-        Nueva Categoría
-    </a>
+    <div class="flex gap-2">
+        <a href="{% url 'courses:parametrizacion' %}" class="btn btn-ghost btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Parametrizacion
+        </a>
+        <a href="{% url 'courses:category_create' %}" class="btn btn-primary btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            Nueva Categoría
+        </a>
+    </div>
 </div>
 {% endblock %}
 
@@ -58,11 +66,7 @@
                         <span class="badge badge-neutral">{{ category.course_count }}</span>
                     </td>
                     <td>
-                        {% if category.is_active %}
-                        <span class="badge badge-success badge-sm">Activa</span>
-                        {% else %}
-                        <span class="badge badge-warning badge-sm">Inactiva</span>
-                        {% endif %}
+                        {% include "courses/partials/category_status_badge.html" with category=category %}
                     </td>
                     <td>{{ category.order }}</td>
                     <td>
@@ -106,11 +110,7 @@
                         <span class="badge badge-neutral badge-sm">{{ child.courses.count }}</span>
                     </td>
                     <td>
-                        {% if child.is_active %}
-                        <span class="badge badge-success badge-xs">Activa</span>
-                        {% else %}
-                        <span class="badge badge-warning badge-xs">Inactiva</span>
-                        {% endif %}
+                        {% include "courses/partials/category_status_badge.html" with category=child %}
                     </td>
                     <td>{{ child.order }}</td>
                     <td>
