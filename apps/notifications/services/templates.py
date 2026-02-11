@@ -32,17 +32,11 @@ class NotificationTemplateService:
         Render a notification template with given context.
         Returns rendered subject and body.
         """
-        subject = NotificationTemplateService._render_string(
-            template.subject, context
-        )
-        body = NotificationTemplateService._render_string(
-            template.body, context
-        )
+        subject = NotificationTemplateService._render_string(template.subject, context)
+        body = NotificationTemplateService._render_string(template.body, context)
         html_body = ""
         if template.html_body:
-            html_body = NotificationTemplateService._render_string(
-                template.html_body, context
-            )
+            html_body = NotificationTemplateService._render_string(template.html_body, context)
 
         return {
             "subject": subject,

@@ -7,11 +7,11 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.validators import (
-    validate_target_profiles,
-    validate_hex_color,
     validate_content_extension,
-    validate_scorm_extension,
+    validate_hex_color,
     validate_percentage,
+    validate_scorm_extension,
+    validate_target_profiles,
     validate_url,
 )
 
@@ -20,26 +20,26 @@ class CourseManager(models.Manager):
     """Custom manager for Course model."""
 
     def published(self):
-        return self.filter(status='published')
+        return self.filter(status="published")
 
     def draft(self):
-        return self.filter(status='draft')
+        return self.filter(status="draft")
 
     def for_profile(self, profile):
         return self.filter(target_profiles__contains=[profile])
 
     def with_modules(self):
-        return self.prefetch_related('modules__lessons')
+        return self.prefetch_related("modules__lessons")
 
 
 class EnrollmentManager(models.Manager):
     """Custom manager for Enrollment model."""
 
     def active(self):
-        return self.filter(status__in=['enrolled', 'in_progress'])
+        return self.filter(status__in=["enrolled", "in_progress"])
 
     def completed(self):
-        return self.filter(status='completed')
+        return self.filter(status="completed")
 
     def for_user(self, user):
         return self.filter(user=user)
@@ -116,6 +116,11 @@ class Course(models.Model):
         PUBLISHED = "published", _("Publicado")
         ARCHIVED = "archived", _("Archivado")
 
+    class Country(models.TextChoices):
+        COLOMBIA = "CO", _("Colombia")
+        PANAMA = "PA", _("Panamá")
+        PERU = "PE", _("Perú")
+
     code = models.CharField(_("Código"), max_length=50, unique=True)
     title = models.CharField(_("Título"), max_length=200)
     description = models.TextField(_("Descripción"))
@@ -159,6 +164,13 @@ class Course(models.Model):
         blank=True,
         help_text=_("Meses de validez de la certificación (null = sin vencimiento)"),
     )
+    country = models.CharField(
+        _("País"),
+        max_length=2,
+        choices=Country.choices,
+        default=Country.COLOMBIA,
+        help_text=_("País donde aplica este curso"),
+    )
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
@@ -199,10 +211,9 @@ class Course(models.Model):
     def total_duration(self):
         """Calculate total duration including all lessons."""
         from django.db.models import Sum
-        result = self.modules.aggregate(
-            total=Sum('lessons__duration')
-        )
-        return result['total'] or 0
+
+        result = self.modules.aggregate(total=Sum("lessons__duration"))
+        return result["total"] or 0
 
 
 class Module(models.Model):
@@ -249,6 +260,7 @@ class Lesson(models.Model):
         AUDIO = "audio", _("Audio")
         QUIZ = "quiz", _("Quiz")
         TEXT = "text", _("Texto")
+        PRESENTIAL = "presential", _("Presencial")
 
     module = models.ForeignKey(
         Module,
@@ -280,6 +292,11 @@ class Lesson(models.Model):
     order = models.PositiveIntegerField(_("Orden"), default=0)
     is_mandatory = models.BooleanField(_("Obligatorio"), default=True)
     is_offline_available = models.BooleanField(_("Disponible offline"), default=True)
+    is_presential = models.BooleanField(
+        _("Presencial"),
+        default=False,
+        help_text=_("Si la lección requiere asistencia presencial"),
+    )
     metadata = models.JSONField(_("Metadatos"), default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -428,15 +445,17 @@ class CourseVersion(models.Model):
                 "lessons": [],
             }
             for lesson in module.lessons.all():
-                module_data["lessons"].append({
-                    "id": lesson.id,
-                    "title": lesson.title,
-                    "description": lesson.description,
-                    "lesson_type": lesson.lesson_type,
-                    "duration": lesson.duration,
-                    "order": lesson.order,
-                    "is_mandatory": lesson.is_mandatory,
-                })
+                module_data["lessons"].append(
+                    {
+                        "id": lesson.id,
+                        "title": lesson.title,
+                        "description": lesson.description,
+                        "lesson_type": lesson.lesson_type,
+                        "duration": lesson.duration,
+                        "order": lesson.order,
+                        "is_mandatory": lesson.is_mandatory,
+                    }
+                )
             snapshot["modules"].append(module_data)
 
         return cls.objects.create(
@@ -804,3 +823,76 @@ class LessonProgress(models.Model):
 
     def __str__(self):
         return f"{self.enrollment.user} - {self.lesson}"
+
+
+class LessonEvidence(models.Model):
+    """
+    Evidence uploaded for presential lessons (CUR-07).
+
+    Used to record attendance, photos, and other evidence of
+    in-person training completion.
+    """
+
+    class EvidenceType(models.TextChoices):
+        PHOTO = "photo", _("Fotografía")
+        ATTENDANCE = "attendance", _("Lista de Asistencia")
+        CERTIFICATE = "certificate", _("Certificado")
+        OTHER = "other", _("Otro")
+
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name="evidences",
+        verbose_name=_("Lección"),
+    )
+    user = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="lesson_evidences",
+        verbose_name=_("Usuario"),
+    )
+    evidence_type = models.CharField(
+        _("Tipo de evidencia"),
+        max_length=20,
+        choices=EvidenceType.choices,
+        default=EvidenceType.PHOTO,
+    )
+    file = models.FileField(
+        _("Archivo"),
+        upload_to="lesson_evidences/%Y/%m/",
+    )
+    description = models.TextField(
+        _("Descripción"),
+        blank=True,
+    )
+    verified = models.BooleanField(
+        _("Verificado"),
+        default=False,
+        help_text=_("Si la evidencia ha sido verificada por un supervisor"),
+    )
+    verified_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="evidences_verified",
+        verbose_name=_("Verificado por"),
+    )
+    verified_at = models.DateTimeField(
+        _("Fecha de verificación"),
+        null=True,
+        blank=True,
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "lesson_evidences"
+        verbose_name = _("Evidencia de lección")
+        verbose_name_plural = _("Evidencias de lección")
+        ordering = ["-uploaded_at"]
+        indexes = [
+            models.Index(fields=["lesson", "user"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.lesson.title} ({self.get_evidence_type_display()})"

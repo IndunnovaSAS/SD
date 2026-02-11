@@ -3,6 +3,7 @@ API URL configuration for certifications.
 """
 
 from django.urls import include, path
+
 from rest_framework.routers import DefaultRouter
 
 from .views import CertificateTemplateViewSet, CertificateViewSet

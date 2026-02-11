@@ -132,9 +132,9 @@ class PointService:
         next_level = None
         points_to_next = 0
         if user_points.level:
-            next_level = Level.objects.filter(
-                number__gt=user_points.level.number
-            ).order_by("number").first()
+            next_level = (
+                Level.objects.filter(number__gt=user_points.level.number).order_by("number").first()
+            )
             if next_level:
                 points_to_next = next_level.min_points - user_points.total_points
 

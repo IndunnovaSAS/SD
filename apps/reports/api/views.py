@@ -4,6 +4,7 @@ ViewSets for reports and dashboards API.
 
 from django.db.models import Q
 from django.utils import timezone
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -64,9 +65,7 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         # Search
         search = self.request.query_params.get("search")
         if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search) | Q(description__icontains=search)
-            )
+            queryset = queryset.filter(Q(name__icontains=search) | Q(description__icontains=search))
 
         return queryset.order_by("name")
 
@@ -83,11 +82,13 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         """Get a preview of the report data."""
         template = self.get_object()
         # Return template configuration for preview
-        return Response({
-            "template": ReportTemplateSerializer(template).data,
-            "columns": template.columns,
-            "filters": template.filters,
-        })
+        return Response(
+            {
+                "template": ReportTemplateSerializer(template).data,
+                "columns": template.columns,
+                "filters": template.filters,
+            }
+        )
 
 
 class GeneratedReportViewSet(viewsets.ModelViewSet):
@@ -152,8 +153,7 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
             )
 
         report_name = serializer.validated_data.get(
-            "name",
-            f"{template.name} - {timezone.now().strftime('%Y-%m-%d %H:%M')}"
+            "name", f"{template.name} - {timezone.now().strftime('%Y-%m-%d %H:%M')}"
         )
         report_format = serializer.validated_data.get("format", template.default_format)
         filters_applied = serializer.validated_data.get("filters", {})
@@ -204,9 +204,9 @@ class GeneratedReportViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def my_reports(self, request):
         """Get current user's reports."""
-        reports = GeneratedReport.objects.filter(
-            generated_by=request.user
-        ).order_by("-created_at")[:20]
+        reports = GeneratedReport.objects.filter(generated_by=request.user).order_by("-created_at")[
+            :20
+        ]
 
         return Response(GeneratedReportListSerializer(reports, many=True).data)
 
@@ -264,10 +264,12 @@ class ScheduledReportViewSet(viewsets.ModelViewSet):
             generation_started_at=timezone.now(),
         )
 
-        return Response({
-            "message": "Reporte en proceso de generación",
-            "report_id": report.id,
-        })
+        return Response(
+            {
+                "message": "Reporte en proceso de generación",
+                "report_id": report.id,
+            }
+        )
 
 
 class DashboardViewSet(viewsets.ModelViewSet):
@@ -281,9 +283,9 @@ class DashboardViewSet(viewsets.ModelViewSet):
 
         # Non-staff users see only public dashboards or ones they have access to
         if not user.is_staff:
-            queryset = queryset.filter(
-                Q(is_public=True) | Q(created_by=user)
-            ).filter(is_active=True)
+            queryset = queryset.filter(Q(is_public=True) | Q(created_by=user)).filter(
+                is_active=True
+            )
 
         # Filter by active
         is_active = self.request.query_params.get("active")
@@ -298,9 +300,7 @@ class DashboardViewSet(viewsets.ModelViewSet):
         # Search
         search = self.request.query_params.get("search")
         if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search) | Q(description__icontains=search)
-            )
+            queryset = queryset.filter(Q(name__icontains=search) | Q(description__icontains=search))
 
         return queryset.order_by("-is_default", "name")
 
@@ -334,9 +334,7 @@ class DashboardViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def default(self, request):
         """Get the default dashboard."""
-        dashboard = Dashboard.objects.filter(
-            is_default=True, is_active=True
-        ).first()
+        dashboard = Dashboard.objects.filter(is_default=True, is_active=True).first()
 
         if not dashboard:
             return Response(

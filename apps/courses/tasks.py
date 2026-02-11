@@ -2,17 +2,16 @@
 Celery tasks for course content processing.
 """
 
-import hashlib
 import logging
 import os
 import subprocess
 import tempfile
 from pathlib import Path
 
-from celery import shared_task
-from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
+
+from celery import shared_task
 
 logger = logging.getLogger(__name__)
 
@@ -56,25 +55,24 @@ def process_media_asset(self, asset_id: int):
         asset.processing_error = f"Error de procesamiento: {e}"
         asset.save()
         # Retry con backoff exponencial
-        raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
+        raise self.retry(exc=e, countdown=60 * (2**self.request.retries))
     except OSError as e:
         logger.error(f"Error de I/O para asset {asset_id}: {e}")
         asset.status = MediaAsset.Status.ERROR
         asset.processing_error = f"Error de archivo: {e}"
         asset.save()
-        raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
+        raise self.retry(exc=e, countdown=60 * (2**self.request.retries))
     except Exception as e:
         logger.exception(f"Error inesperado procesando MediaAsset {asset_id}: {e}")
         asset.status = MediaAsset.Status.ERROR
         asset.processing_error = "Error inesperado durante el procesamiento."
         asset.save()
         # Retry con backoff exponencial
-        raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
+        raise self.retry(exc=e, countdown=60 * (2**self.request.retries))
 
 
 def _process_video(asset):
     """Process video file: extract duration, generate thumbnail, create compressed version."""
-    from PIL import Image
 
     file_path = asset.file.path
 
@@ -83,9 +81,12 @@ def _process_video(asset):
         result = subprocess.run(
             [
                 "ffprobe",
-                "-v", "error",
-                "-show_entries", "format=duration",
-                "-of", "default=noprint_wrappers=1:nokey=1",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
                 file_path,
             ],
             capture_output=True,
@@ -109,10 +110,14 @@ def _process_video(asset):
             [
                 "ffmpeg",
                 "-y",
-                "-ss", str(seek_time),
-                "-i", file_path,
-                "-vframes", "1",
-                "-vf", "scale=320:-1",
+                "-ss",
+                str(seek_time),
+                "-i",
+                file_path,
+                "-vframes",
+                "1",
+                "-vf",
+                "scale=320:-1",
                 thumb_path,
             ],
             capture_output=True,
@@ -138,13 +143,20 @@ def _process_video(asset):
             [
                 "ffmpeg",
                 "-y",
-                "-i", file_path,
-                "-c:v", "libx264",
-                "-crf", "28",  # Higher CRF = more compression
-                "-preset", "medium",
-                "-c:a", "aac",
-                "-b:a", "64k",
-                "-vf", "scale=720:-2",  # 720p max
+                "-i",
+                file_path,
+                "-c:v",
+                "libx264",
+                "-crf",
+                "28",  # Higher CRF = more compression
+                "-preset",
+                "medium",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "64k",
+                "-vf",
+                "scale=720:-2",  # 720p max
                 compressed_path,
             ],
             capture_output=True,
@@ -178,9 +190,12 @@ def _process_audio(asset):
         result = subprocess.run(
             [
                 "ffprobe",
-                "-v", "error",
-                "-show_entries", "format=duration",
-                "-of", "default=noprint_wrappers=1:nokey=1",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
                 file_path,
             ],
             capture_output=True,
@@ -201,9 +216,12 @@ def _process_audio(asset):
             [
                 "ffmpeg",
                 "-y",
-                "-i", file_path,
-                "-c:a", "libmp3lame",
-                "-b:a", "64k",
+                "-i",
+                file_path,
+                "-c:a",
+                "libmp3lame",
+                "-b:a",
+                "64k",
                 compressed_path,
             ],
             capture_output=True,
@@ -253,7 +271,7 @@ def _process_image(asset):
 
             os.unlink(thumb_path)
 
-    except (IOError, OSError) as e:
+    except OSError as e:
         logger.warning(f"Error de I/O procesando imagen {asset.id}: {e}")
     except ImportError:
         logger.warning("PIL/Pillow no esta instalado, saltando procesamiento de imagen")
@@ -290,7 +308,7 @@ def _process_document(asset):
 
         except ImportError:
             logger.warning("pdf2image no esta instalado, saltando generacion de thumbnail PDF")
-        except (IOError, OSError) as e:
+        except OSError as e:
             logger.warning(f"Error de I/O generando thumbnail PDF para asset {asset.id}: {e}")
         except Exception as e:
             logger.exception(f"Error inesperado generando thumbnail PDF para asset {asset.id}: {e}")
@@ -347,9 +365,7 @@ def generate_course_package(self, course_id: int, include_videos: bool = True):
     from apps.sync.models import OfflinePackage
 
     try:
-        course = Course.objects.prefetch_related(
-            "modules__lessons"
-        ).get(id=course_id)
+        course = Course.objects.prefetch_related("modules__lessons").get(id=course_id)
     except Course.DoesNotExist:
         logger.error(f"Course {course_id} not found")
         return
@@ -363,7 +379,7 @@ def generate_course_package(self, course_id: int, include_videos: bool = True):
             "includes_documents": True,
             "includes_assessments": True,
             "status": OfflinePackage.Status.BUILDING,
-        }
+        },
     )
 
     if not created:
@@ -407,12 +423,12 @@ def generate_course_package(self, course_id: int, include_videos: bool = True):
 
         logger.info(f"Course package for {course_id} generated successfully")
 
-    except (IOError, OSError) as e:
+    except OSError as e:
         logger.error(f"Error de I/O generando paquete para curso {course_id}: {e}")
         package.status = OfflinePackage.Status.ERROR
         package.error_message = f"Error de sistema de archivos: {e}"
         package.save()
-        raise self.retry(exc=e, countdown=120 * (2 ** self.request.retries))
+        raise self.retry(exc=e, countdown=120 * (2**self.request.retries))
     except Exception as e:
         logger.exception(f"Error inesperado generando paquete para curso {course_id}: {e}")
         package.status = OfflinePackage.Status.ERROR
@@ -420,7 +436,7 @@ def generate_course_package(self, course_id: int, include_videos: bool = True):
         package.save()
         # Solo reintentar si no hemos alcanzado el maximo
         if self.request.retries < self.max_retries:
-            raise self.retry(exc=e, countdown=120 * (2 ** self.request.retries))
+            raise self.retry(exc=e, countdown=120 * (2**self.request.retries))
 
 
 @shared_task
@@ -454,7 +470,7 @@ def cleanup_expired_assets():
 @shared_task
 def calculate_course_statistics(course_id: int):
     """Calculate and cache course statistics."""
-    from django.db.models import Avg, Count, Sum
+    from django.db.models import Avg, Sum
 
     from apps.courses.models import Course, Enrollment, LessonProgress
 
@@ -470,9 +486,10 @@ def calculate_course_statistics(course_id: int):
         "completed": enrollments.filter(status=Enrollment.Status.COMPLETED).count(),
         "in_progress": enrollments.filter(status=Enrollment.Status.IN_PROGRESS).count(),
         "average_progress": enrollments.aggregate(avg=Avg("progress"))["avg"] or 0,
-        "total_time_spent": LessonProgress.objects.filter(
-            enrollment__course=course
-        ).aggregate(total=Sum("time_spent"))["total"] or 0,
+        "total_time_spent": LessonProgress.objects.filter(enrollment__course=course).aggregate(
+            total=Sum("time_spent")
+        )["total"]
+        or 0,
     }
 
     # Calculate completion rate
@@ -483,6 +500,7 @@ def calculate_course_statistics(course_id: int):
 
     # Store in course metadata or cache
     from django.core.cache import cache
+
     cache.set(f"course_stats_{course_id}", stats, timeout=3600)
 
     return stats

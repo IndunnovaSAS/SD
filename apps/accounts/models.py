@@ -3,7 +3,6 @@ User and authentication models for SD LMS.
 """
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
-from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -44,8 +43,6 @@ class User(AbstractUser):
     class Status(models.TextChoices):
         ACTIVE = "active", _("Activo")
         INACTIVE = "inactive", _("Inactivo")
-        SUSPENDED = "suspended", _("Suspendido")
-        PROBATION = "probation", _("Período de Prueba")
 
     class DocumentType(models.TextChoices):
         CC = "CC", _("Cédula de Ciudadanía")
@@ -57,6 +54,11 @@ class User(AbstractUser):
         DIRECT = "direct", _("Directo")
         CONTRACTOR = "contractor", _("Contratista")
 
+    class Country(models.TextChoices):
+        COLOMBIA = "CO", _("Colombia")
+        PANAMA = "PA", _("Panamá")
+        PERU = "PE", _("Perú")
+
     class JobProfile(models.TextChoices):
         # Personal operativo (usa cédula para login)
         LINIERO = "LINIERO", _("Liniero")
@@ -66,6 +68,8 @@ class User(AbstractUser):
         JEFE_CUADRILLA = "JEFE_CUADRILLA", _("Jefe de Cuadrilla")
         INGENIERO_RESIDENTE = "INGENIERO_RESIDENTE", _("Ingeniero Residente")
         COORDINADOR_HSEQ = "COORDINADOR_HSEQ", _("Coordinador HSEQ")
+        # Coordinador con permisos de solo visualización (usa email para login)
+        COORDINADOR_VISUALIZACION = "COORDINADOR_VIZ", _("Coordinador (Solo Visualización)")
         # Personal administrativo (usa email para login)
         ADMINISTRADOR = "ADMINISTRADOR", _("Administrador")
 
@@ -76,7 +80,7 @@ class User(AbstractUser):
         unique=True,
         null=True,
         blank=True,
-        help_text=_("Requerido para personal profesional y administrativo")
+        help_text=_("Requerido para personal profesional y administrativo"),
     )
 
     # Personal information
@@ -114,6 +118,13 @@ class User(AbstractUser):
         default=EmploymentType.DIRECT,
     )
     hire_date = models.DateField(_("Fecha de ingreso"))
+    country = models.CharField(
+        _("País"),
+        max_length=2,
+        choices=Country.choices,
+        default=Country.COLOMBIA,
+        help_text=_("País donde trabaja el usuario"),
+    )
     status = models.CharField(
         _("Estado"),
         max_length=20,
@@ -161,7 +172,13 @@ class User(AbstractUser):
             self.JobProfile.JEFE_CUADRILLA,
             self.JobProfile.INGENIERO_RESIDENTE,
             self.JobProfile.COORDINADOR_HSEQ,
+            self.JobProfile.COORDINADOR_VISUALIZACION,
         ]
+
+    @property
+    def is_viewer_only(self):
+        """Check if user has view-only permissions (no editing capabilities)."""
+        return self.job_profile == self.JobProfile.COORDINADOR_VISUALIZACION
 
     @property
     def is_admin(self):
@@ -170,12 +187,22 @@ class User(AbstractUser):
 
     @property
     def is_supervisor(self):
-        """Check if user has supervisor role."""
+        """Check if user has supervisor role (can modify data)."""
         return self.job_profile in [
             self.JobProfile.JEFE_CUADRILLA,
             self.JobProfile.INGENIERO_RESIDENTE,
             self.JobProfile.COORDINADOR_HSEQ,
         ]
+
+    @property
+    def can_view_analytics(self):
+        """Check if user can view analytics dashboard."""
+        return self.is_supervisor or self.is_admin or self.is_viewer_only
+
+    @property
+    def can_edit_data(self):
+        """Check if user can edit data (not view-only)."""
+        return (self.is_supervisor or self.is_admin) and not self.is_viewer_only
 
     @property
     def requires_email(self):

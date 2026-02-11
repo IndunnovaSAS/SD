@@ -12,9 +12,13 @@ from .models import Certificate, CertificateVerification
 @login_required
 def my_certificates(request):
     """View user's certificates."""
-    certificates = Certificate.objects.filter(
-        user=request.user,
-    ).select_related("course", "template").order_by("-issued_at")
+    certificates = (
+        Certificate.objects.filter(
+            user=request.user,
+        )
+        .select_related("course", "template")
+        .order_by("-issued_at")
+    )
 
     # Filter by status
     status_filter = request.GET.get("status")
@@ -56,9 +60,9 @@ def verify_certificate(request, certificate_number=None):
         cert_num = certificate_number or request.POST.get("certificate_number", "")
 
         try:
-            certificate = Certificate.objects.select_related(
-                "user", "course"
-            ).get(certificate_number=cert_num)
+            certificate = Certificate.objects.select_related("user", "course").get(
+                certificate_number=cert_num
+            )
 
             # Check validity
             is_valid = certificate.status == Certificate.Status.ISSUED
@@ -107,4 +111,5 @@ def certificate_download(request, certificate_id):
 
     # Redirect to file URL (in production would serve directly)
     from django.http import HttpResponseRedirect
+
     return HttpResponseRedirect(certificate.certificate_file.url)

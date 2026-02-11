@@ -7,25 +7,22 @@ authentication and permission requirements.
 
 from datetime import timedelta
 
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.gamification.models import (
     Challenge,
-    Leaderboard,
     UserChallenge,
     UserPoints,
 )
 from apps.gamification.tests.factories import (
-    AdminUserFactory,
     AchievementFactory,
+    AdminUserFactory,
     BadgeCategoryFactory,
     BadgeFactory,
     ChallengeFactory,
     LeaderboardFactory,
-    LeaderboardEntryFactory,
-    LevelFactory,
     PointCategoryFactory,
     RewardFactory,
     UserAchievementFactory,
@@ -34,7 +31,6 @@ from apps.gamification.tests.factories import (
     UserFactory,
     UserPointsFactory,
 )
-
 
 # ============================================================================
 # Dashboard Views Tests
@@ -913,6 +909,7 @@ class TestEdgeCases(TestCase):
 
         # Create a client without CSRF cookies
         from django.test import Client
+
         csrf_client = Client(enforce_csrf_checks=True)
         csrf_client.force_login(self.user)
 
@@ -1008,12 +1005,14 @@ class TestPermissionBoundaries(TestCase):
         self.assertEqual(response.status_code, 200)
         # Badge should not be featured for user2
         from apps.gamification.models import UserBadge
+
         user2_badge = UserBadge.objects.get(user=self.user2, badge=badge)
         self.assertFalse(user2_badge.is_featured)
 
     def test_user_sees_only_own_transactions(self):
         """Test that user only sees their own transactions."""
         from apps.gamification.tests.factories import PointTransactionFactory
+
         category = PointCategoryFactory()
 
         # Create transactions for both users
@@ -1032,6 +1031,7 @@ class TestPermissionBoundaries(TestCase):
     def test_user_sees_only_own_redemptions(self):
         """Test that user only sees their own redemptions."""
         from apps.gamification.tests.factories import RewardRedemptionFactory
+
         reward = RewardFactory()
 
         RewardRedemptionFactory(user=self.user1, reward=reward)

@@ -16,6 +16,11 @@ class LearningPath(models.Model):
         ACTIVE = "active", _("Activo")
         ARCHIVED = "archived", _("Archivado")
 
+    class Country(models.TextChoices):
+        COLOMBIA = "CO", _("Colombia")
+        PANAMA = "PA", _("Panamá")
+        PERU = "PE", _("Perú")
+
     name = models.CharField(_("Nombre"), max_length=200)
     description = models.TextField(_("Descripción"))
     target_profiles = models.JSONField(
@@ -33,6 +38,13 @@ class LearningPath(models.Model):
         _("Obligatorio"),
         default=False,
         help_text=_("Si es obligatorio para los perfiles objetivo"),
+    )
+    country = models.CharField(
+        _("País"),
+        max_length=2,
+        choices=Country.choices,
+        default=Country.COLOMBIA,
+        help_text=_("País donde aplica esta ruta"),
     )
     estimated_duration = models.PositiveIntegerField(
         _("Duración estimada (días)"),
@@ -68,8 +80,8 @@ class LearningPath(models.Model):
 
     @property
     def total_duration(self):
-        """Calculate total duration from all courses."""
-        return sum(pc.course.duration for pc in self.path_courses.all())
+        """Calculate total duration from all courses (in minutes)."""
+        return sum(pc.course.total_duration for pc in self.path_courses.all())
 
 
 class PathCourse(models.Model):

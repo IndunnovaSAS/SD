@@ -24,9 +24,7 @@ class EmailOrDocumentBackend(ModelBackend):
 
         try:
             # Try to find user by email or document number
-            user = User.objects.get(
-                Q(email__iexact=username) | Q(document_number=username)
-            )
+            user = User.objects.get(Q(email__iexact=username) | Q(document_number=username))
         except User.DoesNotExist:
             # Run the default password hasher once to reduce the timing
             # difference between an existing and a nonexistent user

@@ -9,15 +9,15 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_GET, require_POST, require_http_methods
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from apps.accounts.models import User
 from apps.preop_talks.models import PreopTalk, TalkAttendee, TalkTemplate
-from apps.preop_talks.services import PreopTalkService, TalkAttendeeService, TalkTemplateService
+from apps.preop_talks.services import PreopTalkService, TalkAttendeeService
 
 
 @login_required
@@ -52,9 +52,9 @@ def talks_table(request):
     search = request.GET.get("search")
     page = request.GET.get("page", 1)
 
-    talks = PreopTalk.objects.select_related(
-        "template", "conducted_by"
-    ).prefetch_related("attendees")
+    talks = PreopTalk.objects.select_related("template", "conducted_by").prefetch_related(
+        "attendees"
+    )
 
     if date_from:
         talks = talks.filter(scheduled_at__date__gte=date_from)
@@ -64,9 +64,9 @@ def talks_table(request):
         talks = talks.filter(status=status)
     if search:
         talks = talks.filter(
-            Q(title__icontains=search) |
-            Q(project_name__icontains=search) |
-            Q(location__icontains=search)
+            Q(title__icontains=search)
+            | Q(project_name__icontains=search)
+            | Q(location__icontains=search)
         )
 
     talks = talks.order_by("-scheduled_at")
@@ -83,8 +83,7 @@ def talks_table(request):
 def talk_detail(request, talk_id):
     """Talk detail page."""
     talk = get_object_or_404(
-        PreopTalk.objects.select_related("template", "conducted_by"),
-        id=talk_id
+        PreopTalk.objects.select_related("template", "conducted_by"), id=talk_id
     )
     context = {"talk": talk}
     return render(request, "preop_talks/talk_detail.html", context)
@@ -100,7 +99,9 @@ def talk_create(request):
         template = get_object_or_404(TalkTemplate, id=template_id) if template_id else None
 
         scheduled_at_str = request.POST.get("scheduled_at")
-        scheduled_at = datetime.fromisoformat(scheduled_at_str) if scheduled_at_str else timezone.now()
+        scheduled_at = (
+            datetime.fromisoformat(scheduled_at_str) if scheduled_at_str else timezone.now()
+        )
 
         if template:
             talk = PreopTalkService.create_talk_from_template(
@@ -132,8 +133,7 @@ def talk_create(request):
 def talk_conduct(request, talk_id):
     """Conduct talk page (interactive)."""
     talk = get_object_or_404(
-        PreopTalk.objects.select_related("template", "conducted_by"),
-        id=talk_id
+        PreopTalk.objects.select_related("template", "conducted_by"), id=talk_id
     )
 
     # Only conductor can access
@@ -253,8 +253,7 @@ def sign_attendance(request, attendee_id):
         format_str, imgstr = signature_data.split(";base64,")
         ext = format_str.split("/")[-1]
         signature_file = ContentFile(
-            base64.b64decode(imgstr),
-            name=f"signature_{attendee_id}.{ext}"
+            base64.b64decode(imgstr), name=f"signature_{attendee_id}.{ext}"
         )
 
     TalkAttendeeService.sign_attendance(attendee, signature_file)
@@ -272,9 +271,9 @@ def search_users(request):
         return HttpResponse("")
 
     users = User.objects.filter(
-        Q(first_name__icontains=search) |
-        Q(last_name__icontains=search) |
-        Q(document_number__icontains=search)
+        Q(first_name__icontains=search)
+        | Q(last_name__icontains=search)
+        | Q(document_number__icontains=search)
     ).filter(is_active=True)[:10]
 
     html = ""
@@ -289,7 +288,11 @@ def search_users(request):
         </div>
         '''
 
-    return HttpResponse(html if users else '<p class="text-center py-4 text-gray-500">No se encontraron usuarios</p>')
+    return HttpResponse(
+        html
+        if users
+        else '<p class="text-center py-4 text-gray-500">No se encontraron usuarios</p>'
+    )
 
 
 @login_required
@@ -313,8 +316,7 @@ def update_notes(request, talk_id):
 def talk_report(request, talk_id):
     """Generate talk report."""
     talk = get_object_or_404(
-        PreopTalk.objects.select_related("template", "conducted_by"),
-        id=talk_id
+        PreopTalk.objects.select_related("template", "conducted_by"), id=talk_id
     )
     attendees = talk.attendees.select_related("user").order_by("user__last_name")
 

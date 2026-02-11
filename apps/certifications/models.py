@@ -7,9 +7,9 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.core.validators import (
     validate_certificate_template_extension,
+    validate_https_url,
     validate_image_extension,
     validate_percentage,
-    validate_https_url,
 )
 
 

@@ -3,17 +3,19 @@ Script to create sample courses and learning paths for SD LMS.
 """
 
 import os
+
 import django
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
 django.setup()
 
-from datetime import date, timedelta
 from django.contrib.auth import get_user_model
-from apps.courses.models import Category, Course, Module, Lesson
+
+from apps.courses.models import Category, Course, Lesson, Module
 from apps.learning_paths.models import LearningPath, PathCourse
 
 User = get_user_model()
+
 
 def create_categories():
     """Create course categories."""
@@ -57,10 +59,7 @@ def create_categories():
 
     created_categories = []
     for cat_data in categories:
-        cat, created = Category.objects.get_or_create(
-            slug=cat_data["slug"],
-            defaults=cat_data
-        )
+        cat, created = Category.objects.get_or_create(slug=cat_data["slug"], defaults=cat_data)
         if created:
             print(f"✓ Categoría creada: {cat.name}")
         else:
@@ -80,7 +79,7 @@ def create_courses(admin_user, categories):
             "objectives": "- Identificar los riesgos eléctricos más comunes\n- Conocer la normatividad vigente (RETIE)\n- Usar correctamente los EPP\n- Aplicar procedimientos seguros de trabajo",
             "duration": 240,
             "course_type": "mandatory",
-            "risk_level": "critical",
+            # risk_level removed: "critical",
             "category": categories[0],
             "target_profiles": ["LINIERO", "JEFE_CUADRILLA", "TECNICO"],
             "validity_months": 12,
@@ -92,7 +91,7 @@ def create_courses(admin_user, categories):
             "objectives": "- Aplicar técnicas de trabajo en caliente\n- Usar correctamente pértiga y herramientas aisladas\n- Implementar procedimientos de bloqueo y señalización\n- Gestionar emergencias en líneas energizadas",
             "duration": 360,
             "course_type": "mandatory",
-            "risk_level": "critical",
+            # risk_level removed: "critical",
             "category": categories[0],
             "target_profiles": ["LINIERO", "JEFE_CUADRILLA"],
             "validity_months": 12,
@@ -104,7 +103,7 @@ def create_courses(admin_user, categories):
             "objectives": "- Identificar riesgos del trabajo en alturas\n- Usar correctamente arnés y equipos anticaídas\n- Realizar inspección de equipos\n- Aplicar técnicas de rescate básicas",
             "duration": 480,
             "course_type": "mandatory",
-            "risk_level": "high",
+            # risk_level removed: "high",
             "category": categories[1],
             "target_profiles": ["LINIERO", "JEFE_CUADRILLA", "TECNICO"],
             "validity_months": 24,
@@ -116,7 +115,7 @@ def create_courses(admin_user, categories):
             "objectives": "- Realizar trabajos complejos en torres\n- Ejecutar maniobras de rescate\n- Coordinar equipos de trabajo en altura\n- Gestionar situaciones de emergencia",
             "duration": 600,
             "course_type": "mandatory",
-            "risk_level": "critical",
+            # risk_level removed: "critical",
             "category": categories[1],
             "target_profiles": ["LINIERO", "JEFE_CUADRILLA"],
             "validity_months": 24,
@@ -128,7 +127,7 @@ def create_courses(admin_user, categories):
             "objectives": "- Evaluar signos vitales\n- Realizar RCP básico\n- Atender heridas y hemorragias\n- Manejar quemaduras eléctricas",
             "duration": 240,
             "course_type": "mandatory",
-            "risk_level": "high",
+            # risk_level removed: "high",
             "category": categories[2],
             "target_profiles": ["LINIERO", "JEFE_CUADRILLA", "TECNICO", "COORDINADOR_HSEQ"],
             "validity_months": 24,
@@ -140,7 +139,7 @@ def create_courses(admin_user, categories):
             "objectives": "- Realizar análisis de riesgo ATS\n- Gestionar permisos de trabajo\n- Conducir charlas pre-operacionales\n- Implementar protocolos de comunicación",
             "duration": 180,
             "course_type": "mandatory",
-            "risk_level": "medium",
+            # risk_level removed: "medium",
             "category": categories[3],
             "target_profiles": ["JEFE_CUADRILLA", "COORDINADOR_HSEQ"],
             "validity_months": 12,
@@ -152,7 +151,7 @@ def create_courses(admin_user, categories):
             "objectives": "- Seleccionar EPP adecuado según el riesgo\n- Realizar inspección pre-uso\n- Mantener equipos en buen estado\n- Identificar criterios de descarte",
             "duration": 120,
             "course_type": "mandatory",
-            "risk_level": "high",
+            # risk_level removed: "high",
             "category": categories[4],
             "target_profiles": ["LINIERO", "JEFE_CUADRILLA", "TECNICO"],
             "validity_months": 12,
@@ -164,7 +163,7 @@ def create_courses(admin_user, categories):
             "objectives": "- Usar herramientas dieléctricas correctamente\n- Operar pértigas telescópicas\n- Realizar mediciones de tensión\n- Mantener herramientas especializadas",
             "duration": 180,
             "course_type": "mandatory",
-            "risk_level": "high",
+            # risk_level removed: "high",
             "category": categories[4],
             "target_profiles": ["LINIERO", "TECNICO"],
             "validity_months": 12,
@@ -176,7 +175,7 @@ def create_courses(admin_user, categories):
             "objectives": "- Promover cultura de seguridad\n- Ejercer liderazgo positivo\n- Tomar decisiones bajo presión\n- Gestionar equipos de alto desempeño",
             "duration": 240,
             "course_type": "optional",
-            "risk_level": "low",
+            # risk_level removed: "low",
             "category": categories[0],
             "target_profiles": ["JEFE_CUADRILLA", "INGENIERO_RESIDENTE", "COORDINADOR_HSEQ"],
             "validity_months": None,
@@ -188,7 +187,7 @@ def create_courses(admin_user, categories):
             "objectives": "- Clasificar y disponer residuos\n- Prevenir contaminación\n- Cumplir normatividad ambiental\n- Implementar buenas prácticas",
             "duration": 120,
             "course_type": "optional",
-            "risk_level": "low",
+            # risk_level removed: "low",
             "category": categories[3],
             "target_profiles": ["JEFE_CUADRILLA", "COORDINADOR_HSEQ"],
             "validity_months": None,
@@ -203,7 +202,7 @@ def create_courses(admin_user, categories):
                 **course_data,
                 "created_by": admin_user,
                 "status": "published",
-            }
+            },
         )
         if created:
             print(f"✓ Curso creado: {course.code} - {course.title}")
@@ -226,7 +225,7 @@ def create_sample_modules(course):
             "lessons": [
                 {"title": "Bienvenida al curso", "duration": 10, "lesson_type": "video"},
                 {"title": "Objetivos y alcance", "duration": 15, "lesson_type": "reading"},
-            ]
+            ],
         },
         {
             "title": "Contenido Principal",
@@ -236,7 +235,7 @@ def create_sample_modules(course):
                 {"title": "Conceptos teóricos", "duration": 45, "lesson_type": "reading"},
                 {"title": "Ejemplos prácticos", "duration": 60, "lesson_type": "video"},
                 {"title": "Casos de estudio", "duration": 30, "lesson_type": "reading"},
-            ]
+            ],
         },
         {
             "title": "Evaluación",
@@ -245,23 +244,16 @@ def create_sample_modules(course):
             "lessons": [
                 {"title": "Repaso general", "duration": 20, "lesson_type": "reading"},
                 {"title": "Examen final", "duration": 30, "lesson_type": "quiz"},
-            ]
+            ],
         },
     ]
 
     for module_data in modules_data:
         lessons = module_data.pop("lessons")
-        module = Module.objects.create(
-            course=course,
-            **module_data
-        )
+        module = Module.objects.create(course=course, **module_data)
 
         for i, lesson_data in enumerate(lessons, 1):
-            Lesson.objects.create(
-                module=module,
-                order=i,
-                **lesson_data
-            )
+            Lesson.objects.create(module=module, order=i, **lesson_data)
 
 
 def create_learning_paths(admin_user, courses):
@@ -292,7 +284,15 @@ def create_learning_paths(admin_user, courses):
             "target_profiles": ["JEFE_CUADRILLA"],
             "is_mandatory": True,
             "estimated_duration": 60,
-            "courses": ["SEG-001", "SEG-002", "ALT-001", "ALT-002", "PRI-001", "PRO-001", "SEG-003"],
+            "courses": [
+                "SEG-001",
+                "SEG-002",
+                "ALT-001",
+                "ALT-002",
+                "PRI-001",
+                "PRO-001",
+                "SEG-003",
+            ],
         },
         {
             "name": "Certificación HSEQ",
@@ -322,7 +322,7 @@ def create_learning_paths(admin_user, courses):
                 **path_data,
                 "created_by": admin_user,
                 "status": "active",
-            }
+            },
         )
 
         if created:
@@ -347,9 +347,9 @@ def create_learning_paths(admin_user, courses):
 
 def main():
     """Main function to create all sample data."""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("Creando datos de ejemplo para SD LMS")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     # Get admin user
     try:
@@ -375,12 +375,12 @@ def main():
     paths = create_learning_paths(admin_user, courses)
     print()
 
-    print("="*60)
+    print("=" * 60)
     print("Resumen:")
     print(f"  - {len(categories)} categorías")
     print(f"  - {len(courses)} cursos")
     print(f"  - {len(paths)} rutas de aprendizaje")
-    print("="*60)
+    print("=" * 60)
     print("\n✓ ¡Datos de ejemplo creados exitosamente!\n")
 
 

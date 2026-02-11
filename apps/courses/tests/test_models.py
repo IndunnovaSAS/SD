@@ -4,14 +4,12 @@ Tests for courses models.
 Comprehensive tests for all model classes in the courses module.
 """
 
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal
 
-import pytest
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError
-from django.db.utils import DataError
-from django.utils import timezone
+
+import pytest
 
 from apps.courses.models import (
     Category,
@@ -200,18 +198,6 @@ class TestCourse:
         assert draft.status == Course.Status.DRAFT
         assert published.status == Course.Status.PUBLISHED
         assert archived.status == Course.Status.ARCHIVED
-
-    def test_course_risk_levels(self):
-        """Test all risk levels."""
-        low = CourseFactory(risk_level=Course.RiskLevel.LOW)
-        medium = CourseFactory(risk_level=Course.RiskLevel.MEDIUM)
-        high = CourseFactory(risk_level=Course.RiskLevel.HIGH)
-        critical = CourseFactory(risk_level=Course.RiskLevel.CRITICAL)
-
-        assert low.risk_level == Course.RiskLevel.LOW
-        assert medium.risk_level == Course.RiskLevel.MEDIUM
-        assert high.risk_level == Course.RiskLevel.HIGH
-        assert critical.risk_level == Course.RiskLevel.CRITICAL
 
     def test_course_total_duration_no_modules(self):
         """Test total_duration when course has no modules."""
@@ -520,11 +506,7 @@ class TestEnrollment:
         worker = UserFactory()
         course = PublishedCourseFactory()
 
-        enrollment = EnrollmentFactory(
-            user=worker,
-            course=course,
-            assigned_by=supervisor
-        )
+        enrollment = EnrollmentFactory(user=worker, course=course, assigned_by=supervisor)
 
         assert enrollment.assigned_by == supervisor
 
@@ -705,10 +687,7 @@ class TestCourseVersion:
         LessonFactory(module=module)
 
         version = CourseVersion.create_snapshot(
-            course=course,
-            user=user,
-            changelog="Initial version",
-            is_major=True
+            course=course, user=user, changelog="Initial version", is_major=True
         )
 
         assert version.version_number == 1
@@ -954,9 +933,7 @@ class TestFullCourse:
 
         # Verify lesson progress counts
         completed_mandatory = LessonProgress.objects.filter(
-            enrollment=enrollment,
-            lesson__is_mandatory=True,
-            is_completed=True
+            enrollment=enrollment, lesson__is_mandatory=True, is_completed=True
         ).count()
 
         assert completed_mandatory == 2
@@ -1019,14 +996,10 @@ class TestEdgeCases:
         package = ReadyScormPackageFactory()
 
         attempt1 = ScormAttemptFactory(
-            enrollment=enrollment,
-            scorm_package=package,
-            attempt_number=1
+            enrollment=enrollment, scorm_package=package, attempt_number=1
         )
         attempt2 = ScormAttemptFactory(
-            enrollment=enrollment,
-            scorm_package=package,
-            attempt_number=2
+            enrollment=enrollment, scorm_package=package, attempt_number=2
         )
 
         assert attempt1.attempt_number == 1

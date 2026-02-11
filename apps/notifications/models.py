@@ -12,7 +12,7 @@ class NotificationManager(models.Manager):
     """Custom manager for Notification model."""
 
     def unread(self):
-        return self.filter(status='unread')
+        return self.filter(status="unread")
 
     def for_user(self, user):
         return self.filter(user=user)

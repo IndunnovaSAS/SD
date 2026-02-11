@@ -37,7 +37,9 @@ class LearningPathCreateForm(forms.ModelForm):
         ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
-            "description": forms.Textarea(attrs={"class": "textarea textarea-bordered w-full", "rows": 4}),
+            "description": forms.Textarea(
+                attrs={"class": "textarea textarea-bordered w-full", "rows": 4}
+            ),
             "estimated_duration": forms.NumberInput(attrs={"class": "input input-bordered w-full"}),
             "is_mandatory": forms.CheckboxInput(attrs={"class": "checkbox checkbox-primary"}),
             "status": forms.Select(attrs={"class": "select select-bordered w-full"}),

@@ -5,6 +5,7 @@ ViewSets for notifications API.
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -50,9 +51,7 @@ class NotificationTemplateViewSet(viewsets.ModelViewSet):
         # Search
         search = self.request.query_params.get("search")
         if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search) | Q(description__icontains=search)
-            )
+            queryset = queryset.filter(Q(name__icontains=search) | Q(description__icontains=search))
 
         return queryset.order_by("name")
 
@@ -234,9 +233,7 @@ class UserNotificationPreferenceViewSet(viewsets.ModelViewSet):
 
     def get_object(self):
         """Get or create preferences for current user."""
-        obj, created = UserNotificationPreference.objects.get_or_create(
-            user=self.request.user
-        )
+        obj, created = UserNotificationPreference.objects.get_or_create(user=self.request.user)
         return obj
 
     def list(self, request, *args, **kwargs):

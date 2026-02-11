@@ -49,8 +49,8 @@ EMAIL_HOST_PASSWORD = config("SENDGRID_API_KEY", default="")  # noqa: F405
 
 # Sentry for error tracking
 import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
 
 SENTRY_DSN = config("SENTRY_DSN", default="")  # noqa: F405

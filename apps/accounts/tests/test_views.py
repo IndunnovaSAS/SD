@@ -76,9 +76,7 @@ class DashboardViewTests(TestCase):
     def test_dashboard_requires_login(self):
         """Test dashboard requires authentication."""
         response = self.client.get(self.dashboard_url)
-        self.assertRedirects(
-            response, f"{reverse('accounts:login')}?next={self.dashboard_url}"
-        )
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.dashboard_url}")
 
     def test_dashboard_accessible_when_logged_in(self):
         """Test dashboard is accessible when logged in."""

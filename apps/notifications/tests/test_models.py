@@ -8,10 +8,12 @@ Covers:
 - PushSubscription model
 """
 
-import pytest
 from datetime import time, timedelta
+
 from django.db import IntegrityError
 from django.utils import timezone
+
+import pytest
 
 from apps.notifications.models import (
     Notification,
@@ -21,18 +23,18 @@ from apps.notifications.models import (
 )
 
 from .factories import (
+    EmailTemplateFactory,
+    FailedNotificationFactory,
+    InactiveTemplateFactory,
     NotificationFactory,
     NotificationTemplateFactory,
     PushSubscriptionFactory,
+    PushTemplateFactory,
+    ReadNotificationFactory,
+    SentNotificationFactory,
+    SMSTemplateFactory,
     UserFactory,
     UserNotificationPreferenceFactory,
-    SentNotificationFactory,
-    ReadNotificationFactory,
-    FailedNotificationFactory,
-    EmailTemplateFactory,
-    PushTemplateFactory,
-    SMSTemplateFactory,
-    InactiveTemplateFactory,
 )
 
 
@@ -223,9 +225,7 @@ class TestNotification:
 
     def test_notification_error_message(self):
         """Test notification error message."""
-        notification = FailedNotificationFactory(
-            error_message="SMTP connection failed"
-        )
+        notification = FailedNotificationFactory(error_message="SMTP connection failed")
 
         assert notification.error_message == "SMTP connection failed"
 
@@ -361,12 +361,14 @@ class TestUserNotificationPreference:
             in_app_enabled=False,
         )
 
-        assert not any([
-            preference.email_enabled,
-            preference.push_enabled,
-            preference.sms_enabled,
-            preference.in_app_enabled,
-        ])
+        assert not any(
+            [
+                preference.email_enabled,
+                preference.push_enabled,
+                preference.sms_enabled,
+                preference.in_app_enabled,
+            ]
+        )
 
 
 @pytest.mark.django_db

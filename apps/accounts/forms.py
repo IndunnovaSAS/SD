@@ -5,7 +5,6 @@ Forms for accounts app.
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import SetPasswordForm
-from django.contrib.auth.password_validation import validate_password
 from django.utils.translation import gettext_lazy as _
 
 User = get_user_model()
@@ -23,7 +22,9 @@ class LoginForm(forms.Form):
                 "autocomplete": "username",
             }
         ),
-        help_text=_("Personal operativo: ingrese su número de cédula. Personal profesional/administrativo: ingrese su correo electrónico."),
+        help_text=_(
+            "Personal operativo: ingrese su número de cédula. Personal profesional/administrativo: ingrese su correo electrónico."
+        ),
     )
     password = forms.CharField(
         label=_("Contraseña"),
@@ -240,7 +241,9 @@ class UserCreateForm(forms.ModelForm):
             "job_position": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
             "job_profile": forms.Select(attrs={"class": "select select-bordered w-full"}),
             "employment_type": forms.Select(attrs={"class": "select select-bordered w-full"}),
-            "hire_date": forms.DateInput(attrs={"class": "input input-bordered w-full", "type": "date"}),
+            "hire_date": forms.DateInput(
+                attrs={"class": "input input-bordered w-full", "type": "date"}
+            ),
             "status": forms.Select(attrs={"class": "select select-bordered w-full"}),
         }
 
@@ -273,13 +276,13 @@ class UserCreateForm(forms.ModelForm):
             User.JobProfile.JEFE_CUADRILLA,
             User.JobProfile.INGENIERO_RESIDENTE,
             User.JobProfile.COORDINADOR_HSEQ,
+            User.JobProfile.COORDINADOR_VISUALIZACION,
             User.JobProfile.ADMINISTRADOR,
         ]
 
         if job_profile in profiles_requiring_email and not email:
             self.add_error(
-                "email",
-                _("El correo electrónico es requerido para este perfil ocupacional.")
+                "email", _("El correo electrónico es requerido para este perfil ocupacional.")
             )
 
         return cleaned_data
@@ -322,7 +325,9 @@ class UserEditForm(forms.ModelForm):
             "job_position": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
             "job_profile": forms.Select(attrs={"class": "select select-bordered w-full"}),
             "employment_type": forms.Select(attrs={"class": "select select-bordered w-full"}),
-            "hire_date": forms.DateInput(attrs={"class": "input input-bordered w-full", "type": "date"}),
+            "hire_date": forms.DateInput(
+                attrs={"class": "input input-bordered w-full", "type": "date"}
+            ),
             "status": forms.Select(attrs={"class": "select select-bordered w-full"}),
             "is_active": forms.CheckboxInput(attrs={"class": "checkbox checkbox-primary"}),
             "is_staff": forms.CheckboxInput(attrs={"class": "checkbox checkbox-primary"}),
@@ -343,7 +348,11 @@ class UserEditForm(forms.ModelForm):
 
     def clean_document_number(self):
         document_number = self.cleaned_data.get("document_number")
-        if User.objects.filter(document_number=document_number).exclude(pk=self.instance.pk).exists():
+        if (
+            User.objects.filter(document_number=document_number)
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
             raise forms.ValidationError(_("Ya existe un usuario con este número de documento."))
         return document_number
 
@@ -357,13 +366,13 @@ class UserEditForm(forms.ModelForm):
             User.JobProfile.JEFE_CUADRILLA,
             User.JobProfile.INGENIERO_RESIDENTE,
             User.JobProfile.COORDINADOR_HSEQ,
+            User.JobProfile.COORDINADOR_VISUALIZACION,
             User.JobProfile.ADMINISTRADOR,
         ]
 
         if job_profile in profiles_requiring_email and not email:
             self.add_error(
-                "email",
-                _("El correo electrónico es requerido para este perfil ocupacional.")
+                "email", _("El correo electrónico es requerido para este perfil ocupacional.")
             )
 
         return cleaned_data

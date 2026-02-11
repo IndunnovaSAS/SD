@@ -5,10 +5,8 @@ Automatically award points and badges based on user actions.
 """
 
 from django.db.models.signals import post_save
-from django.dispatch import receiver
 
-from apps.gamification.services import AchievementService, BadgeService, PointService
-
+from apps.gamification.services import BadgeService, PointService
 
 # Point category slugs
 CATEGORY_TRAINING = "training"
@@ -32,9 +30,7 @@ def award_course_completion_points(sender, instance, created, **kwargs):
         # Check for first course badge
         from apps.courses.models import Enrollment
 
-        completed_count = Enrollment.objects.filter(
-            user=instance.user, status="completed"
-        ).count()
+        completed_count = Enrollment.objects.filter(user=instance.user, status="completed").count()
 
         if completed_count == 1:
             BadgeService.award_badge(

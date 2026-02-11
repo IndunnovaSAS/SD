@@ -4,18 +4,18 @@ Tests for courses services.
 Comprehensive tests for all service classes in the courses module.
 """
 
+import tempfile
+import zipfile
 from datetime import date, timedelta
 from decimal import Decimal
 from io import BytesIO
-from unittest.mock import MagicMock, Mock, patch
-import tempfile
-import zipfile
+from unittest.mock import MagicMock, patch
 
-import pytest
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.utils import timezone
+
+import pytest
 
 from apps.courses.models import (
     Course,
@@ -24,7 +24,6 @@ from apps.courses.models import (
     Lesson,
     LessonProgress,
     MediaAsset,
-    Module,
     ResourceLibrary,
     ScormPackage,
 )
@@ -48,9 +47,7 @@ from apps.courses.tests.factories import (
     LessonProgressFactory,
     ModuleFactory,
     PublishedCourseFactory,
-    ReadyScormPackageFactory,
     ScormLessonFactory,
-    ScormPackageFactory,
     UserFactory,
 )
 
@@ -66,9 +63,7 @@ class TestCourseService:
             "code": "TEST-001",
             "title": "Test Course",
             "description": "Test description",
-            "duration": 60,
             "course_type": Course.Type.MANDATORY,
-            "risk_level": Course.RiskLevel.MEDIUM,
         }
 
         course = CourseService.create_course(data, user)
@@ -86,7 +81,6 @@ class TestCourseService:
             "code": "TEST-002",
             "title": "Course with Modules",
             "description": "Description",
-            "duration": 120,
             "modules": [
                 {"title": "Module 1", "description": "First module"},
                 {"title": "Module 2", "description": "Second module"},
@@ -241,7 +235,6 @@ class TestCourseService:
         category = CategoryFactory()
         original = CourseFactory(
             course_type=Course.Type.MANDATORY,
-            risk_level=Course.RiskLevel.HIGH,
             target_profiles=["LINIERO", "JEFE_CUADRILLA"],
             validity_months=12,
             category=category,
@@ -250,7 +243,6 @@ class TestCourseService:
         duplicate = CourseService.duplicate_course(original, user)
 
         assert duplicate.course_type == original.course_type
-        assert duplicate.risk_level == original.risk_level
         assert duplicate.target_profiles == original.target_profiles
         assert duplicate.validity_months == original.validity_months
         assert duplicate.category == original.category
@@ -507,7 +499,7 @@ class TestEnrollmentService:
             enrollment=enrollment,
             lesson=lesson,
             is_completed=True,
-            progress_percent=Decimal("100.00")
+            progress_percent=Decimal("100.00"),
         )
 
         updated = EnrollmentService.update_enrollment_progress(enrollment)
@@ -555,11 +547,7 @@ class TestMediaService:
         """Test uploading a video file."""
         user = UserFactory()
         video_content = b"fake video content"
-        video_file = SimpleUploadedFile(
-            "test_video.mp4",
-            video_content,
-            content_type="video/mp4"
-        )
+        video_file = SimpleUploadedFile("test_video.mp4", video_content, content_type="video/mp4")
 
         with patch("apps.courses.tasks.process_media_asset") as mock_task:
             mock_task.delay = MagicMock()
@@ -575,9 +563,7 @@ class TestMediaService:
         """Test uploading an audio file."""
         user = UserFactory()
         audio_file = SimpleUploadedFile(
-            "test_audio.mp3",
-            b"fake audio content",
-            content_type="audio/mpeg"
+            "test_audio.mp3", b"fake audio content", content_type="audio/mpeg"
         )
 
         with patch("apps.courses.tasks.process_media_asset") as mock_task:
@@ -590,9 +576,7 @@ class TestMediaService:
         """Test uploading an image file."""
         user = UserFactory()
         image_file = SimpleUploadedFile(
-            "test_image.jpg",
-            b"fake image content",
-            content_type="image/jpeg"
+            "test_image.jpg", b"fake image content", content_type="image/jpeg"
         )
 
         with patch("apps.courses.tasks.process_media_asset") as mock_task:
@@ -605,9 +589,7 @@ class TestMediaService:
         """Test uploading a document file."""
         user = UserFactory()
         pdf_file = SimpleUploadedFile(
-            "test_document.pdf",
-            b"fake pdf content",
-            content_type="application/pdf"
+            "test_document.pdf", b"fake pdf content", content_type="application/pdf"
         )
 
         with patch("apps.courses.tasks.process_media_asset") as mock_task:
@@ -620,9 +602,7 @@ class TestMediaService:
         """Test uploading a SCORM package."""
         user = UserFactory()
         scorm_file = SimpleUploadedFile(
-            "scorm_package.zip",
-            b"fake zip content",
-            content_type="application/zip"
+            "scorm_package.zip", b"fake zip content", content_type="application/zip"
         )
 
         with patch("apps.courses.tasks.process_media_asset") as mock_task:
@@ -634,11 +614,7 @@ class TestMediaService:
     def test_upload_asset_with_explicit_type(self):
         """Test uploading with explicit file type."""
         user = UserFactory()
-        file = SimpleUploadedFile(
-            "file.bin",
-            b"content",
-            content_type="application/octet-stream"
-        )
+        file = SimpleUploadedFile("file.bin", b"content", content_type="application/octet-stream")
 
         with patch("apps.courses.tasks.process_media_asset") as mock_task:
             mock_task.delay = MagicMock()
@@ -649,11 +625,7 @@ class TestMediaService:
     def test_upload_asset_unknown_type(self):
         """Test uploading unknown file type defaults to DOCUMENT."""
         user = UserFactory()
-        file = SimpleUploadedFile(
-            "file.unknown",
-            b"content",
-            content_type="application/x-unknown"
-        )
+        file = SimpleUploadedFile("file.unknown", b"content", content_type="application/x-unknown")
 
         with patch("apps.courses.tasks.process_media_asset") as mock_task:
             mock_task.delay = MagicMock()
@@ -664,11 +636,7 @@ class TestMediaService:
     def test_upload_asset_generates_unique_filename(self):
         """Test that uploaded files get unique filenames."""
         user = UserFactory()
-        file = SimpleUploadedFile(
-            "original_name.mp4",
-            b"content",
-            content_type="video/mp4"
-        )
+        file = SimpleUploadedFile("original_name.mp4", b"content", content_type="video/mp4")
 
         with patch("apps.courses.tasks.process_media_asset") as mock_task:
             mock_task.delay = MagicMock()
@@ -843,9 +811,7 @@ class TestResourceLibraryService:
         """Test adding an image resource."""
         user = UserFactory()
         image_file = SimpleUploadedFile(
-            "test_image.jpg",
-            b"fake image content",
-            content_type="image/jpeg"
+            "test_image.jpg", b"fake image content", content_type="image/jpeg"
         )
 
         resource = ResourceLibraryService.add_resource(
@@ -864,9 +830,7 @@ class TestResourceLibraryService:
         """Test adding a video resource."""
         user = UserFactory()
         video_file = SimpleUploadedFile(
-            "test_video.mp4",
-            b"fake video content",
-            content_type="video/mp4"
+            "test_video.mp4", b"fake video content", content_type="video/mp4"
         )
 
         resource = ResourceLibraryService.add_resource(video_file, user)
@@ -877,9 +841,7 @@ class TestResourceLibraryService:
         """Test adding an audio resource."""
         user = UserFactory()
         audio_file = SimpleUploadedFile(
-            "test_audio.mp3",
-            b"fake audio content",
-            content_type="audio/mpeg"
+            "test_audio.mp3", b"fake audio content", content_type="audio/mpeg"
         )
 
         resource = ResourceLibraryService.add_resource(audio_file, user)
@@ -890,9 +852,7 @@ class TestResourceLibraryService:
         """Test adding a document resource."""
         user = UserFactory()
         pdf_file = SimpleUploadedFile(
-            "test_doc.pdf",
-            b"fake pdf content",
-            content_type="application/pdf"
+            "test_doc.pdf", b"fake pdf content", content_type="application/pdf"
         )
 
         resource = ResourceLibraryService.add_resource(pdf_file, user)
@@ -905,9 +865,7 @@ class TestResourceLibraryService:
         category = CategoryFactory()
         file = SimpleUploadedFile("test.jpg", b"content", content_type="image/jpeg")
 
-        resource = ResourceLibraryService.add_resource(
-            file, user, category=category
-        )
+        resource = ResourceLibraryService.add_resource(file, user, category=category)
 
         assert resource.category == category
 
@@ -936,18 +894,16 @@ class TestResourceLibraryService:
     def test_search_resources_by_type(self):
         """Test searching resources by type."""
         from apps.courses.tests.factories import (
+            DocumentResourceFactory,
             ResourceLibraryFactory,
             VideoResourceFactory,
-            DocumentResourceFactory,
         )
 
         ResourceLibraryFactory()  # Image
         VideoResourceFactory()
         DocumentResourceFactory()
 
-        results = ResourceLibraryService.search_resources(
-            resource_type=ResourceLibrary.Type.VIDEO
-        )
+        results = ResourceLibraryService.search_resources(resource_type=ResourceLibrary.Type.VIDEO)
 
         assert results.count() == 1
 
@@ -1068,19 +1024,15 @@ class TestServiceEdgeCases:
         enrollment = EnrollmentFactory()
         lesson = LessonFactory(module__course=enrollment.course)
 
-        assert not LessonProgress.objects.filter(
-            enrollment=enrollment, lesson=lesson
-        ).exists()
+        assert not LessonProgress.objects.filter(enrollment=enrollment, lesson=lesson).exists()
 
         EnrollmentService.update_progress(enrollment, lesson, {"progress_percent": 50})
 
-        assert LessonProgress.objects.filter(
-            enrollment=enrollment, lesson=lesson
-        ).exists()
+        assert LessonProgress.objects.filter(enrollment=enrollment, lesson=lesson).exists()
 
     @pytest.mark.skipif(
         "sqlite" in str(settings.DATABASES.get("default", {}).get("ENGINE", "")),
-        reason="SQLite does not support contains lookup on JSONField"
+        reason="SQLite does not support contains lookup on JSONField",
     )
     def test_search_resources_with_tags(self):
         """Test searching resources with specific tags."""

@@ -73,9 +73,7 @@ class AchievementService:
         if "min_courses" in criteria:
             from apps.courses.models import Enrollment
 
-            course_count = Enrollment.objects.filter(
-                user=user, status="completed"
-            ).count()
+            course_count = Enrollment.objects.filter(user=user, status="completed").count()
             if course_count < criteria["min_courses"]:
                 return False
 
@@ -150,8 +148,6 @@ class AchievementService:
             "total_unlocked": unlocked_count,
             "total_available": all_achievements,
             "progress_percentage": (
-                int((unlocked_count / all_achievements) * 100)
-                if all_achievements > 0
-                else 0
+                int((unlocked_count / all_achievements) * 100) if all_achievements > 0 else 0
             ),
         }

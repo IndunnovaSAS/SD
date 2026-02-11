@@ -9,18 +9,12 @@ embedded in the views.
 
 import hashlib
 import json
-import os
-import tempfile
-import zipfile
 from datetime import timedelta
-from io import BytesIO
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
+
+from django.utils import timezone
 
 import pytest
-from django.core.files.base import ContentFile
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import transaction
-from django.utils import timezone
 
 from apps.sync.models import (
     OfflinePackage,
@@ -30,29 +24,20 @@ from apps.sync.models import (
 )
 
 from .factories import (
-    AdminUserFactory,
     BuildingPackageFactory,
-    ClientWinsConflictFactory,
     CompletedDownloadFactory,
     CompletedSyncLogFactory,
     CourseFactory,
-    ErrorPackageFactory,
     FailedSyncLogFactory,
     InProgressSyncLogFactory,
-    MergedConflictFactory,
     OfflinePackageFactory,
-    OutdatedPackageFactory,
     PackageDownloadFactory,
-    PartialSyncLogFactory,
     PendingConflictFactory,
     ReadyPackageFactory,
     ServerWinsConflictFactory,
-    SyncConflictFactory,
-    SyncLogFactory,
     SyncLogWithConflictsFactory,
     UserFactory,
 )
-
 
 # ============================================================================
 # Sync Service Tests (Business Logic)
@@ -128,11 +113,15 @@ class TestSyncInitialization:
         new_sync = CompletedSyncLogFactory(user=user, device_id=device_id)
         other_device = CompletedSyncLogFactory(user=user, device_id="device-002")
 
-        last_sync = SyncLog.objects.filter(
-            user=user,
-            device_id=device_id,
-            status=SyncLog.Status.COMPLETED,
-        ).order_by("-completed_at").first()
+        last_sync = (
+            SyncLog.objects.filter(
+                user=user,
+                device_id=device_id,
+                status=SyncLog.Status.COMPLETED,
+            )
+            .order_by("-completed_at")
+            .first()
+        )
 
         assert last_sync == new_sync
 

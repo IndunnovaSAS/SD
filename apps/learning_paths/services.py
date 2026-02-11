@@ -6,11 +6,10 @@ import logging
 from datetime import timedelta
 
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Q
 from django.utils import timezone
 
 from apps.courses.models import Enrollment
-from apps.learning_paths.models import LearningPath, PathAssignment, PathCourse
+from apps.learning_paths.models import LearningPath, PathAssignment
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +63,7 @@ class LearningPathService:
                 defaults={
                     "assigned_by": assigned_by,
                     "due_date": due_date,
-                }
+                },
             )
 
         return assignment
@@ -85,10 +84,7 @@ class LearningPathService:
         )
 
         # Filter paths that include this profile
-        matching_paths = [
-            path for path in paths
-            if job_profile in path.target_profiles
-        ]
+        matching_paths = [path for path in paths if job_profile in path.target_profiles]
 
         # Find users with this profile
         users = User.objects.filter(
@@ -144,16 +140,20 @@ class LearningPathService:
                 ).first()
 
                 if not enrollment:
-                    result["blocked_courses"].append({
-                        "course": path_course.course.title,
-                        "requires": prereq_course.title,
-                    })
+                    result["blocked_courses"].append(
+                        {
+                            "course": path_course.course.title,
+                            "requires": prereq_course.title,
+                        }
+                    )
                 else:
                     result["unlocked_courses"].append(path_course.course.title)
             else:
                 result["unlocked_courses"].append(path_course.course.title)
 
-        result["can_start"] = len(result["blocked_courses"]) == 0 or len(result["unlocked_courses"]) > 0
+        result["can_start"] = (
+            len(result["blocked_courses"]) == 0 or len(result["unlocked_courses"]) > 0
+        )
         return result
 
     @staticmethod
@@ -161,9 +161,7 @@ class LearningPathService:
         """
         Update path assignment progress based on course completions.
         """
-        total_required = assignment.learning_path.path_courses.filter(
-            is_required=True
-        ).count()
+        total_required = assignment.learning_path.path_courses.filter(is_required=True).count()
 
         if total_required == 0:
             return assignment
@@ -233,16 +231,18 @@ class LearningPathService:
                     is_locked = True
                     locked_reason = f"Requiere completar: {path_course.unlock_after.course.title}"
 
-            courses_progress.append({
-                "course_id": path_course.course.id,
-                "course_title": path_course.course.title,
-                "order": path_course.order,
-                "is_required": path_course.is_required,
-                "is_locked": is_locked,
-                "locked_reason": locked_reason,
-                "status": enrollment.status if enrollment else "not_enrolled",
-                "progress": float(enrollment.progress) if enrollment else 0,
-            })
+            courses_progress.append(
+                {
+                    "course_id": path_course.course.id,
+                    "course_title": path_course.course.title,
+                    "order": path_course.order,
+                    "is_required": path_course.is_required,
+                    "is_locked": is_locked,
+                    "locked_reason": locked_reason,
+                    "status": enrollment.status if enrollment else "not_enrolled",
+                    "progress": float(enrollment.progress) if enrollment else 0,
+                }
+            )
 
         return {
             "assignment_id": assignment.id,
@@ -251,7 +251,9 @@ class LearningPathService:
             "status": assignment.status,
             "due_date": assignment.due_date.isoformat() if assignment.due_date else None,
             "started_at": assignment.started_at.isoformat() if assignment.started_at else None,
-            "completed_at": assignment.completed_at.isoformat() if assignment.completed_at else None,
+            "completed_at": assignment.completed_at.isoformat()
+            if assignment.completed_at
+            else None,
             "courses": courses_progress,
         }
 

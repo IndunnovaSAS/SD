@@ -67,9 +67,7 @@ class NotificationService:
         """
         Create and send a notification from a template.
         """
-        template = NotificationTemplateService.get_template(
-            template_name, channel
-        )
+        template = NotificationTemplateService.get_template(template_name, channel)
 
         if not template:
             raise ValueError(f"Template '{template_name}' not found")
@@ -202,8 +200,8 @@ class NotificationService:
         """
         Send notification via email.
         """
-        from django.core.mail import send_mail
         from django.conf import settings
+        from django.core.mail import send_mail
 
         html_message = None
         if notification.template and notification.template.html_body:

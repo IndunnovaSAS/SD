@@ -148,9 +148,7 @@ class CourseSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "objectives",
-            "duration",
             "course_type",
-            "risk_level",
             "thumbnail",
             "status",
             "version",
@@ -185,6 +183,7 @@ class CourseSerializer(serializers.ModelSerializer):
 class CourseListSerializer(serializers.ModelSerializer):
     """Simplified serializer for course lists."""
 
+    total_duration = serializers.ReadOnlyField()
     module_count = serializers.SerializerMethodField()
     enrollment_count = serializers.SerializerMethodField()
     category_name = serializers.SerializerMethodField()
@@ -196,9 +195,8 @@ class CourseListSerializer(serializers.ModelSerializer):
             "code",
             "title",
             "course_type",
-            "risk_level",
             "status",
-            "duration",
+            "total_duration",
             "thumbnail",
             "category",
             "category_name",
@@ -226,9 +224,7 @@ class CourseCreateSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "objectives",
-            "duration",
             "course_type",
-            "risk_level",
             "thumbnail",
             "target_profiles",
             "prerequisites",
@@ -372,9 +368,7 @@ class LessonProgressUpdateSerializer(serializers.ModelSerializer):
 class CourseVersionSerializer(serializers.ModelSerializer):
     """Serializer for CourseVersion model."""
 
-    created_by_name = serializers.CharField(
-        source="created_by.get_full_name", read_only=True
-    )
+    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True)
 
     class Meta:
         model = CourseVersion
@@ -390,7 +384,14 @@ class CourseVersionSerializer(serializers.ModelSerializer):
             "created_by_name",
             "created_at",
         ]
-        read_only_fields = ["id", "course", "version_number", "snapshot", "created_by", "created_at"]
+        read_only_fields = [
+            "id",
+            "course",
+            "version_number",
+            "snapshot",
+            "created_by",
+            "created_at",
+        ]
 
 
 class CourseVersionCreateSerializer(serializers.Serializer):
@@ -441,12 +442,8 @@ class ScormPackageSerializer(serializers.ModelSerializer):
 class ScormAttemptSerializer(serializers.ModelSerializer):
     """Serializer for ScormAttempt model."""
 
-    lesson_title = serializers.CharField(
-        source="scorm_package.lesson.title", read_only=True
-    )
-    user_name = serializers.CharField(
-        source="enrollment.user.get_full_name", read_only=True
-    )
+    lesson_title = serializers.CharField(source="scorm_package.lesson.title", read_only=True)
+    user_name = serializers.CharField(source="enrollment.user.get_full_name", read_only=True)
 
     class Meta:
         model = ScormAttempt
@@ -483,9 +480,7 @@ class ScormDataUpdateSerializer(serializers.Serializer):
 class ResourceLibrarySerializer(serializers.ModelSerializer):
     """Serializer for ResourceLibrary model."""
 
-    uploaded_by_name = serializers.CharField(
-        source="uploaded_by.get_full_name", read_only=True
-    )
+    uploaded_by_name = serializers.CharField(source="uploaded_by.get_full_name", read_only=True)
     category_name = serializers.CharField(source="category.name", read_only=True)
 
     class Meta:
@@ -533,6 +528,7 @@ class ResourceLibraryCreateSerializer(serializers.ModelSerializer):
         validated_data["file_size"] = file.size if file else 0
 
         import mimetypes
+
         mime_type, _ = mimetypes.guess_type(file.name) if file else (None, None)
         validated_data["mime_type"] = mime_type or "application/octet-stream"
 

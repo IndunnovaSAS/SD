@@ -3,13 +3,55 @@ Signals for accounts app.
 """
 
 import logging
+from datetime import date
 
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
-from .models import User
+from .models import JobHistory, User
 
 logger = logging.getLogger(__name__)
+
+
+@receiver(pre_save, sender=User)
+def track_job_profile_changes(sender, instance, **kwargs):
+    """
+    Track changes to job_profile and job_position for history (USR-08).
+
+    When a user's job profile changes:
+    - Record the change in JobHistory
+    - Note: Learning path re-assignment is handled separately
+    """
+    if not instance.pk:
+        # New user, no previous data
+        return
+
+    try:
+        old_user = User.objects.get(pk=instance.pk)
+    except User.DoesNotExist:
+        return
+
+    # Check if job profile, position, or employment type changed
+    profile_changed = old_user.job_profile != instance.job_profile
+    position_changed = old_user.job_position != instance.job_position
+    employment_changed = old_user.employment_type != instance.employment_type
+
+    if profile_changed or position_changed or employment_changed:
+        JobHistory.objects.create(
+            user=instance,
+            previous_position=old_user.job_position,
+            new_position=instance.job_position,
+            previous_profile=old_user.job_profile,
+            new_profile=instance.job_profile,
+            previous_employment_type=old_user.employment_type,
+            new_employment_type=instance.employment_type,
+            change_date=date.today(),
+            reason="Cambio de perfil ocupacional registrado automáticamente",
+        )
+        logger.info(
+            f"Job profile change recorded for {instance.document_number}: "
+            f"{old_user.job_profile} → {instance.job_profile}"
+        )
 
 
 @receiver(post_save, sender=User)
@@ -30,6 +72,7 @@ def user_post_save(sender, instance, created, **kwargs):
         # Create gamification points record
         try:
             from apps.gamification.models import UserPoints
+
             UserPoints.objects.get_or_create(user=instance)
             logger.debug(f"Created UserPoints for user: {instance.email}")
         except ImportError:
@@ -40,6 +83,7 @@ def user_post_save(sender, instance, created, **kwargs):
         # Create notification preferences with defaults
         try:
             from apps.notifications.models import UserNotificationPreference
+
             UserNotificationPreference.objects.get_or_create(user=instance)
             logger.debug(f"Created NotificationPreference for user: {instance.email}")
         except ImportError:
@@ -49,7 +93,7 @@ def user_post_save(sender, instance, created, **kwargs):
 
         # Assign default role based on job_profile if available
         try:
-            if hasattr(instance, 'job_profile') and instance.job_profile:
+            if hasattr(instance, "job_profile") and instance.job_profile:
                 # Role assignment logic can be extended here
                 logger.debug(f"User {instance.email} has job_profile: {instance.job_profile}")
         except Exception as e:
@@ -59,10 +103,10 @@ def user_post_save(sender, instance, created, **kwargs):
         logger.info(f"New user created: {instance.email} (ID: {instance.id})")
     else:
         # Log significant updates
-        update_fields = kwargs.get('update_fields')
+        update_fields = kwargs.get("update_fields")
 
         if update_fields:
-            significant_fields = {'email', 'is_active', 'is_staff', 'is_superuser'}
+            significant_fields = {"email", "is_active", "is_staff", "is_superuser"}
             changed_significant = significant_fields.intersection(set(update_fields))
 
             if changed_significant:

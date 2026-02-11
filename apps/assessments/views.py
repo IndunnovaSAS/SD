@@ -4,7 +4,6 @@ Web views for assessments app.
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Max
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -17,9 +16,9 @@ from .services import AssessmentService
 @login_required
 def assessment_list(request):
     """List available assessments."""
-    assessments = Assessment.objects.filter(
-        status=Assessment.Status.PUBLISHED
-    ).select_related("course", "created_by")
+    assessments = Assessment.objects.filter(status=Assessment.Status.PUBLISHED).select_related(
+        "course", "created_by"
+    )
 
     # Filter by course
     course_id = request.GET.get("course")
@@ -60,18 +59,16 @@ def assessment_detail(request, assessment_id):
             can_start = False
 
     # Check for in-progress attempt
-    in_progress = user_attempts.filter(
-        status=AssessmentAttempt.Status.IN_PROGRESS
-    ).first()
+    in_progress = user_attempts.filter(status=AssessmentAttempt.Status.IN_PROGRESS).first()
 
     context = {
         "assessment": assessment,
         "user_attempts": user_attempts,
         "can_start": can_start,
         "in_progress": in_progress,
-        "best_attempt": user_attempts.filter(
-            status=AssessmentAttempt.Status.GRADED
-        ).order_by("-score").first(),
+        "best_attempt": user_attempts.filter(status=AssessmentAttempt.Status.GRADED)
+        .order_by("-score")
+        .first(),
     }
     return render(request, "assessments/assessment_detail.html", context)
 
@@ -108,10 +105,13 @@ def start_attempt(request, assessment_id):
         return redirect("assessments:take", attempt_id=in_progress.id)
 
     # Calculate attempt number
-    attempt_number = AssessmentAttempt.objects.filter(
-        user=request.user,
-        assessment=assessment,
-    ).count() + 1
+    attempt_number = (
+        AssessmentAttempt.objects.filter(
+            user=request.user,
+            assessment=assessment,
+        ).count()
+        + 1
+    )
 
     # Create new attempt
     attempt = AssessmentAttempt.objects.create(
@@ -270,8 +270,7 @@ def attempt_result(request, attempt_id):
 
     # Get user's answers
     user_answers = {
-        aa.question_id: aa
-        for aa in attempt.attempt_answers.prefetch_related("selected_answers")
+        aa.question_id: aa for aa in attempt.attempt_answers.prefetch_related("selected_answers")
     }
 
     context = {
@@ -287,9 +286,11 @@ def attempt_result(request, attempt_id):
 @login_required
 def my_attempts(request):
     """View user's assessment attempts."""
-    attempts = AssessmentAttempt.objects.filter(
-        user=request.user
-    ).select_related("assessment").order_by("-started_at")
+    attempts = (
+        AssessmentAttempt.objects.filter(user=request.user)
+        .select_related("assessment")
+        .order_by("-started_at")
+    )
 
     # Filter by status
     status_filter = request.GET.get("status")

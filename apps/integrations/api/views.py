@@ -4,6 +4,7 @@ ViewSets for integrations API.
 
 from django.db.models import Q
 from django.utils import timezone
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -84,11 +85,13 @@ class ExternalSystemViewSet(viewsets.ModelViewSet):
 
         # In a real implementation, attempt to connect to the system
         # For now, return a simulated result
-        return Response({
-            "success": True,
-            "message": "Conexión exitosa",
-            "response_time_ms": 150,
-        })
+        return Response(
+            {
+                "success": True,
+                "message": "Conexión exitosa",
+                "response_time_ms": 150,
+            }
+        )
 
     @action(detail=True, methods=["post"])
     def sync(self, request, pk=None):
@@ -119,10 +122,12 @@ class ExternalSystemViewSet(viewsets.ModelViewSet):
         system.last_sync_at = timezone.now()
         system.save()
 
-        return Response({
-            "message": "Sincronización iniciada",
-            "log_id": log.id,
-        })
+        return Response(
+            {
+                "message": "Sincronización iniciada",
+                "log_id": log.id,
+            }
+        )
 
     @action(detail=True, methods=["post"])
     def toggle_active(self, request, pk=None):
@@ -205,10 +210,12 @@ class IntegrationLogViewSet(viewsets.ReadOnlyModelViewSet):
             avg_duration=Avg("duration_ms"),
         )
 
-        return Response({
-            "period": "24h",
-            **stats,
-        })
+        return Response(
+            {
+                "period": "24h",
+                **stats,
+            }
+        )
 
 
 class DataMappingViewSet(viewsets.ModelViewSet):
@@ -240,9 +247,11 @@ class DataMappingViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def entity_types(self, request):
         """Get list of available entity types."""
-        types = DataMapping.objects.values_list(
-            "entity_type", flat=True
-        ).distinct().order_by("entity_type")
+        types = (
+            DataMapping.objects.values_list("entity_type", flat=True)
+            .distinct()
+            .order_by("entity_type")
+        )
 
         return Response(list(types))
 
@@ -266,16 +275,20 @@ class DataMappingViewSet(viewsets.ModelViewSet):
                 serializer.save()
                 created.append(serializer.data)
             else:
-                errors.append({
-                    "data": mapping_data,
-                    "errors": serializer.errors,
-                })
+                errors.append(
+                    {
+                        "data": mapping_data,
+                        "errors": serializer.errors,
+                    }
+                )
 
-        return Response({
-            "created": len(created),
-            "errors": len(errors),
-            "error_details": errors,
-        })
+        return Response(
+            {
+                "created": len(created),
+                "errors": len(errors),
+                "error_details": errors,
+            }
+        )
 
 
 class WebhookViewSet(viewsets.ModelViewSet):
@@ -294,9 +307,7 @@ class WebhookViewSet(viewsets.ModelViewSet):
         # Search
         search = self.request.query_params.get("search")
         if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search) | Q(url__icontains=search)
-            )
+            queryset = queryset.filter(Q(name__icontains=search) | Q(url__icontains=search))
 
         return queryset.order_by("name")
 
@@ -349,10 +360,12 @@ class WebhookViewSet(viewsets.ModelViewSet):
         webhook.last_triggered_at = timezone.now()
         webhook.save()
 
-        return Response({
-            "success": True,
-            "delivery_id": delivery.id,
-        })
+        return Response(
+            {
+                "success": True,
+                "delivery_id": delivery.id,
+            }
+        )
 
     @action(detail=True, methods=["get"])
     def deliveries(self, request, pk=None):
@@ -413,10 +426,12 @@ class WebhookDeliveryViewSet(viewsets.ReadOnlyModelViewSet):
         delivery.attempt_count += 1
         delivery.save()
 
-        return Response({
-            "message": "Reintento en proceso",
-            "attempt": delivery.attempt_count,
-        })
+        return Response(
+            {
+                "message": "Reintento en proceso",
+                "attempt": delivery.attempt_count,
+            }
+        )
 
     @action(detail=False, methods=["get"])
     def pending(self, request):

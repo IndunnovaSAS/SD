@@ -28,9 +28,7 @@ class LeaderboardService:
         user=None,
     ) -> dict:
         """Get leaderboard entries with optional user position."""
-        leaderboard = Leaderboard.objects.filter(
-            slug=leaderboard_slug, is_active=True
-        ).first()
+        leaderboard = Leaderboard.objects.filter(slug=leaderboard_slug, is_active=True).first()
 
         if not leaderboard:
             return {"entries": [], "user_rank": None, "leaderboard": None}
@@ -43,9 +41,7 @@ class LeaderboardService:
 
         user_rank = None
         if user:
-            user_entry = LeaderboardEntry.objects.filter(
-                leaderboard=leaderboard, user=user
-            ).first()
+            user_entry = LeaderboardEntry.objects.filter(leaderboard=leaderboard, user=user).first()
             if user_entry:
                 user_rank = {
                     "rank": user_entry.rank,
@@ -66,9 +62,7 @@ class LeaderboardService:
 
         Returns number of entries updated.
         """
-        leaderboard = Leaderboard.objects.filter(
-            slug=leaderboard_slug, is_active=True
-        ).first()
+        leaderboard = Leaderboard.objects.filter(slug=leaderboard_slug, is_active=True).first()
 
         if not leaderboard:
             return 0

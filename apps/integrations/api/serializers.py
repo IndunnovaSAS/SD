@@ -16,9 +16,7 @@ from apps.integrations.models import (
 class ExternalSystemListSerializer(serializers.ModelSerializer):
     """List serializer for external systems."""
 
-    type_display = serializers.CharField(
-        source="get_system_type_display", read_only=True
-    )
+    type_display = serializers.CharField(source="get_system_type_display", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
 
     class Meta:
@@ -89,12 +87,8 @@ class ExternalSystemCreateSerializer(serializers.ModelSerializer):
 class IntegrationLogSerializer(serializers.ModelSerializer):
     """Serializer for integration logs."""
 
-    system_name = serializers.CharField(
-        source="external_system.name", read_only=True
-    )
-    direction_display = serializers.CharField(
-        source="get_direction_display", read_only=True
-    )
+    system_name = serializers.CharField(source="external_system.name", read_only=True)
+    direction_display = serializers.CharField(source="get_direction_display", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
 
     class Meta:
@@ -123,9 +117,7 @@ class IntegrationLogSerializer(serializers.ModelSerializer):
 class DataMappingSerializer(serializers.ModelSerializer):
     """Serializer for data mappings."""
 
-    system_name = serializers.CharField(
-        source="external_system.name", read_only=True
-    )
+    system_name = serializers.CharField(source="external_system.name", read_only=True)
 
     class Meta:
         model = DataMapping
@@ -147,9 +139,7 @@ class WebhookListSerializer(serializers.ModelSerializer):
     """List serializer for webhooks."""
 
     event_count = serializers.SerializerMethodField()
-    created_by_name = serializers.CharField(
-        source="created_by.get_full_name", read_only=True
-    )
+    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True)
 
     class Meta:
         model = Webhook
@@ -172,9 +162,7 @@ class WebhookListSerializer(serializers.ModelSerializer):
 class WebhookSerializer(serializers.ModelSerializer):
     """Full serializer for webhooks."""
 
-    created_by_name = serializers.CharField(
-        source="created_by.get_full_name", read_only=True
-    )
+    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True)
 
     class Meta:
         model = Webhook

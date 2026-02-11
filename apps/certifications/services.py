@@ -2,12 +2,10 @@
 Business logic services for certifications.
 """
 
-import hashlib
 import logging
 import uuid
 from datetime import timedelta
 from io import BytesIO
-from typing import Optional
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -40,7 +38,7 @@ class CertificateService:
         return f"SD-{date_part}-{unique_part}"
 
     @staticmethod
-    def calculate_expiry_date(course: Course) -> Optional[timezone.datetime]:
+    def calculate_expiry_date(course: Course) -> timezone.datetime | None:
         """
         Calculate certificate expiry date based on course validity.
         """
@@ -168,7 +166,7 @@ class CertificateService:
             certificate.metadata["generation_error"] = f"Dependencia faltante: {e}"
             certificate.save()
             raise
-        except (IOError, OSError) as e:
+        except OSError as e:
             logger.error(f"Error de I/O generando certificado {certificate.id}: {e}")
             certificate.metadata["generation_error"] = f"Error de archivo: {e}"
             certificate.save()
@@ -188,7 +186,6 @@ class CertificateService:
         """
         try:
             import qrcode
-            from qrcode.image.pil import PilImage
 
             qr = qrcode.QRCode(
                 version=1,
@@ -212,10 +209,12 @@ class CertificateService:
 
         except ImportError:
             logger.warning("Biblioteca qrcode no instalada, saltando generacion de QR")
-        except (IOError, OSError) as e:
+        except OSError as e:
             logger.error(f"Error de I/O generando codigo QR para certificado {certificate.id}: {e}")
         except Exception as e:
-            logger.exception(f"Error inesperado generando codigo QR para certificado {certificate.id}: {e}")
+            logger.exception(
+                f"Error inesperado generando codigo QR para certificado {certificate.id}: {e}"
+            )
 
     @staticmethod
     def _generate_pdf(certificate: Certificate) -> None:
@@ -242,7 +241,8 @@ class CertificateService:
                 # Use custom template
                 with certificate.template.template_file.open("r") as f:
                     template_content = f.read()
-                from django.template import Template, Context
+                from django.template import Context, Template
+
                 html_content = Template(template_content).render(Context(context))
             else:
                 # Use default template
@@ -263,14 +263,14 @@ class CertificateService:
             # Create a simple placeholder
             placeholder = CertificateService._generate_placeholder_pdf(certificate)
             filename = f"cert_{certificate.certificate_number}.pdf"
-            certificate.certificate_file.save(
-                filename, ContentFile(placeholder), save=False
-            )
-        except (IOError, OSError) as e:
+            certificate.certificate_file.save(filename, ContentFile(placeholder), save=False)
+        except OSError as e:
             logger.error(f"Error de I/O generando PDF para certificado {certificate.id}: {e}")
             raise
         except Exception as e:
-            logger.exception(f"Error inesperado generando PDF para certificado {certificate.id}: {e}")
+            logger.exception(
+                f"Error inesperado generando PDF para certificado {certificate.id}: {e}"
+            )
             raise
 
     @staticmethod
@@ -279,9 +279,9 @@ class CertificateService:
         Generate a simple placeholder PDF when weasyprint is not available.
         """
         try:
-            from reportlab.lib.pagesizes import letter, landscape
-            from reportlab.pdfgen import canvas
+            from reportlab.lib.pagesizes import landscape, letter
             from reportlab.lib.units import inch
+            from reportlab.pdfgen import canvas
 
             buffer = BytesIO()
             c = canvas.Canvas(buffer, pagesize=landscape(letter))
@@ -293,9 +293,7 @@ class CertificateService:
 
             # Course
             c.setFont("Helvetica", 18)
-            c.drawCentredString(
-                width / 2, height - 3 * inch, f"Curso: {certificate.course.title}"
-            )
+            c.drawCentredString(width / 2, height - 3 * inch, f"Curso: {certificate.course.title}")
 
             # User
             c.setFont("Helvetica", 18)
@@ -332,9 +330,7 @@ class CertificateService:
         """
         Verify a certificate by its number.
         """
-        certificate = Certificate.objects.filter(
-            certificate_number=certificate_number
-        ).first()
+        certificate = Certificate.objects.filter(certificate_number=certificate_number).first()
 
         if not certificate:
             return {
@@ -356,7 +352,9 @@ class CertificateService:
             return {
                 "valid": False,
                 "reason": "Este certificado ha sido revocado",
-                "revoked_at": certificate.revoked_at.isoformat() if certificate.revoked_at else None,
+                "revoked_at": certificate.revoked_at.isoformat()
+                if certificate.revoked_at
+                else None,
                 "revoked_reason": certificate.revoked_reason,
                 "certificate": None,
             }
@@ -365,7 +363,9 @@ class CertificateService:
             return {
                 "valid": False,
                 "reason": "Este certificado ha expirado",
-                "expired_at": certificate.expires_at.isoformat() if certificate.expires_at else None,
+                "expired_at": certificate.expires_at.isoformat()
+                if certificate.expires_at
+                else None,
                 "certificate": None,
             }
 
@@ -394,7 +394,9 @@ class CertificateService:
                 "user_name": certificate.user.get_full_name(),
                 "course_title": certificate.course.title,
                 "issued_at": certificate.issued_at.isoformat() if certificate.issued_at else None,
-                "expires_at": certificate.expires_at.isoformat() if certificate.expires_at else None,
+                "expires_at": certificate.expires_at.isoformat()
+                if certificate.expires_at
+                else None,
                 "score": float(certificate.score) if certificate.score else None,
             },
         }
@@ -547,9 +549,7 @@ class CertificateTemplateService:
             "user_name": "Juan Ejemplo",
             "course_title": "Curso de Ejemplo",
             "issued_date": timezone.now().strftime("%d de %B de %Y"),
-            "expires_date": (timezone.now() + timedelta(days=365)).strftime(
-                "%d de %B de %Y"
-            ),
+            "expires_date": (timezone.now() + timedelta(days=365)).strftime("%d de %B de %Y"),
             "score": 95.0,
             "verification_url": "https://lms.sd.com.co/certificates/verify/SD-PREVIEW-00000000/",
         }
@@ -560,7 +560,8 @@ class CertificateTemplateService:
         # Render template
         if template.template_file:
             with template.template_file.open("r") as f:
-                from django.template import Template, Context
+                from django.template import Context, Template
+
                 html = Template(f.read()).render(Context(default_data))
         else:
             html = render_to_string(

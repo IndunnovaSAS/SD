@@ -5,6 +5,7 @@ API views for accounts app.
 import logging
 
 from django.contrib.auth import get_user_model
+
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser

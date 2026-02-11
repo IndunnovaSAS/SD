@@ -3,7 +3,6 @@ Tests for learning paths services.
 """
 
 from datetime import date, timedelta
-from decimal import Decimal
 
 from django.test import TestCase
 from django.utils import timezone
@@ -254,9 +253,7 @@ class LearningPathServiceTest(TestCase):
         self.assertEqual(len(progress["courses"]), 3)
 
         # Check course 2 is locked
-        course2_progress = next(
-            c for c in progress["courses"] if c["course_id"] == self.course2.id
-        )
+        course2_progress = next(c for c in progress["courses"] if c["course_id"] == self.course2.id)
         self.assertTrue(course2_progress["is_locked"])
 
     def test_get_user_path_progress_not_assigned(self):

@@ -110,9 +110,9 @@ class BadgeService:
     @staticmethod
     def get_featured_badges(user, limit: int = 3) -> list:
         """Get user's featured badges or most recent."""
-        featured = UserBadge.objects.filter(
-            user=user, is_featured=True
-        ).select_related("badge")[:limit]
+        featured = UserBadge.objects.filter(user=user, is_featured=True).select_related("badge")[
+            :limit
+        ]
 
         if featured.count() < limit:
             # Fill with recent badges
@@ -132,6 +132,6 @@ class BadgeService:
         UserBadge.objects.filter(user=user).update(is_featured=False)
 
         # Feature selected (max 3)
-        return UserBadge.objects.filter(
-            user=user, badge_id__in=badge_ids[:3]
-        ).update(is_featured=True)
+        return UserBadge.objects.filter(user=user, badge_id__in=badge_ids[:3]).update(
+            is_featured=True
+        )

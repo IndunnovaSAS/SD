@@ -5,7 +5,6 @@ Business logic services for assessments.
 import logging
 import random
 from decimal import Decimal
-from typing import Optional
 
 from django.db import transaction
 from django.utils import timezone
@@ -211,12 +210,8 @@ class AssessmentService:
         Grade an objective (auto-gradable) answer.
         """
         question = attempt_answer.question
-        correct_answers = set(
-            question.answers.filter(is_correct=True).values_list("id", flat=True)
-        )
-        selected_answers = set(
-            attempt_answer.selected_answers.values_list("id", flat=True)
-        )
+        correct_answers = set(question.answers.filter(is_correct=True).values_list("id", flat=True))
+        selected_answers = set(attempt_answer.selected_answers.values_list("id", flat=True))
 
         if question.question_type == Question.Type.SINGLE_CHOICE:
             # Single choice: must match exactly
@@ -354,12 +349,14 @@ class AssessmentService:
         questions_results = []
 
         # Prefetch attempt answers with selected_answers to avoid N+1 queries
-        attempt_answers = attempt.attempt_answers.select_related('question').prefetch_related('selected_answers')
+        attempt_answers = attempt.attempt_answers.select_related("question").prefetch_related(
+            "selected_answers"
+        )
         # Create dictionary for O(1) lookup by question_id
         answers_by_question = {aa.question_id: aa for aa in attempt_answers}
 
         # Prefetch questions with their answers to avoid N+1 queries
-        questions = assessment.questions.prefetch_related('answers').all()
+        questions = assessment.questions.prefetch_related("answers").all()
 
         for question in questions:
             attempt_answer = answers_by_question.get(question.id)
@@ -369,7 +366,9 @@ class AssessmentService:
                 "question_text": question.text,
                 "question_type": question.question_type,
                 "points_possible": question.points,
-                "points_awarded": float(attempt_answer.points_awarded) if attempt_answer and attempt_answer.points_awarded else 0,
+                "points_awarded": float(attempt_answer.points_awarded)
+                if attempt_answer and attempt_answer.points_awarded
+                else 0,
                 "is_correct": attempt_answer.is_correct if attempt_answer else None,
             }
 
@@ -381,7 +380,9 @@ class AssessmentService:
                     Question.Type.TRUE_FALSE,
                 ]:
                     # Use prefetched selected_answers
-                    result["selected_answers"] = [sa.id for sa in attempt_answer.selected_answers.all()]
+                    result["selected_answers"] = [
+                        sa.id for sa in attempt_answer.selected_answers.all()
+                    ]
                 else:
                     result["text_answer"] = attempt_answer.text_answer
 
@@ -527,9 +528,7 @@ class AssessmentService:
                 correct_answers = set(
                     question.answers.filter(is_correct=True).values_list("id", flat=True)
                 )
-                selected_answers = set(
-                    attempt_answer.selected_answers.values_list("id", flat=True)
-                )
+                selected_answers = set(attempt_answer.selected_answers.values_list("id", flat=True))
 
                 is_correct = correct_answers == selected_answers
                 points_awarded = question.points if is_correct else 0
@@ -595,10 +594,7 @@ class AssessmentService:
             The updated AssessmentAttempt instance.
         """
         total_points = attempt.assessment.total_points
-        earned_points = sum(
-            (aa.points_awarded or 0)
-            for aa in attempt.attempt_answers.all()
-        )
+        earned_points = sum((aa.points_awarded or 0) for aa in attempt.attempt_answers.all())
 
         attempt.points_earned = earned_points
 
@@ -667,9 +663,7 @@ class QuestionBankService:
 
         imported = []
         for question in questions:
-            new_question = QuestionBankService.duplicate_question(
-                question, target_assessment
-            )
+            new_question = QuestionBankService.duplicate_question(question, target_assessment)
             imported.append(new_question)
 
         return imported
@@ -709,7 +703,9 @@ class QuestionBankService:
                 if answers.count() != 2:
                     errors.append("Pregunta verdadero/falso debe tener exactamente 2 respuestas")
                 if correct_count != 1:
-                    errors.append("Pregunta verdadero/falso debe tener exactamente 1 respuesta correcta")
+                    errors.append(
+                        "Pregunta verdadero/falso debe tener exactamente 1 respuesta correcta"
+                    )
 
         # Check points
         if question.points <= 0:
@@ -742,12 +738,14 @@ class QuestionBankService:
             for question in questions:
                 validation = QuestionBankService.validate_question(question)
                 if not validation["is_valid"] or validation["warnings"]:
-                    question_issues.append({
-                        "question_id": question.id,
-                        "question_order": question.order,
-                        "errors": validation["errors"],
-                        "warnings": validation["warnings"],
-                    })
+                    question_issues.append(
+                        {
+                            "question_id": question.id,
+                            "question_order": question.order,
+                            "errors": validation["errors"],
+                            "warnings": validation["warnings"],
+                        }
+                    )
 
         # Check passing score
         if assessment.passing_score > 100:
@@ -760,9 +758,7 @@ class QuestionBankService:
             warnings.append("El tiempo límite es muy corto")
 
         return {
-            "is_valid": len(errors) == 0 and all(
-                len(q["errors"]) == 0 for q in question_issues
-            ),
+            "is_valid": len(errors) == 0 and all(len(q["errors"]) == 0 for q in question_issues),
             "errors": errors,
             "warnings": warnings,
             "question_issues": question_issues,

@@ -2,17 +2,16 @@
 API views for learning paths app.
 """
 
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.courses.models import Course, Enrollment
+from apps.courses.models import Enrollment
 from apps.learning_paths.models import LearningPath, PathAssignment, PathCourse
-from apps.learning_paths.services import LearningPathService
 
 from .serializers import (
     BulkPathAssignmentSerializer,
@@ -70,9 +69,7 @@ class LearningPathViewSet(viewsets.ModelViewSet):
         # Search by name
         search = self.request.query_params.get("search")
         if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search) | Q(description__icontains=search)
-            )
+            queryset = queryset.filter(Q(name__icontains=search) | Q(description__icontains=search))
 
         return queryset
 
@@ -166,20 +163,24 @@ class LearningPathViewSet(viewsets.ModelViewSet):
                 course=path_course.course,
             ).first()
 
-            courses_progress.append({
-                "course_id": path_course.course.id,
-                "course_title": path_course.course.title,
-                "order": path_course.order,
-                "is_required": path_course.is_required,
-                "enrollment_status": enrollment.status if enrollment else None,
-                "progress": float(enrollment.progress) if enrollment else 0,
-                "is_completed": enrollment and enrollment.status == Enrollment.Status.COMPLETED,
-            })
+            courses_progress.append(
+                {
+                    "course_id": path_course.course.id,
+                    "course_title": path_course.course.title,
+                    "order": path_course.order,
+                    "is_required": path_course.is_required,
+                    "enrollment_status": enrollment.status if enrollment else None,
+                    "progress": float(enrollment.progress) if enrollment else 0,
+                    "is_completed": enrollment and enrollment.status == Enrollment.Status.COMPLETED,
+                }
+            )
 
-        return Response({
-            "assignment": PathAssignmentSerializer(assignment).data,
-            "courses_progress": courses_progress,
-        })
+        return Response(
+            {
+                "assignment": PathAssignmentSerializer(assignment).data,
+                "courses_progress": courses_progress,
+            }
+        )
 
 
 class PathAssignmentViewSet(viewsets.ModelViewSet):
@@ -194,9 +195,7 @@ class PathAssignmentViewSet(viewsets.ModelViewSet):
         return PathAssignmentSerializer
 
     def get_queryset(self):
-        queryset = PathAssignment.objects.select_related(
-            "user", "learning_path", "assigned_by"
-        )
+        queryset = PathAssignment.objects.select_related("user", "learning_path", "assigned_by")
 
         # Filter by user
         user_id = self.request.query_params.get("user")
@@ -270,9 +269,9 @@ class MyLearningPathsView(APIView):
 
     def get(self, request):
         """Get current user's learning path assignments."""
-        assignments = PathAssignment.objects.filter(
-            user=request.user
-        ).select_related("learning_path")
+        assignments = PathAssignment.objects.filter(user=request.user).select_related(
+            "learning_path"
+        )
 
         status_filter = request.query_params.get("status")
         if status_filter:

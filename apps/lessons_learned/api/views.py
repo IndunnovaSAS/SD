@@ -4,14 +4,14 @@ ViewSets for lessons learned API.
 
 from django.conf import settings
 from django.db.models import Q
+from django.utils import timezone
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from django.utils import timezone
 from apps.lessons_learned.models import (
     Category,
-    LessonAttachment,
     LessonComment,
     LessonLearned,
 )
@@ -111,8 +111,7 @@ class LessonLearnedViewSet(viewsets.ModelViewSet):
         # Non-staff users see only approved lessons or their own
         if not self.request.user.is_staff:
             queryset = queryset.filter(
-                Q(status=LessonLearned.Status.APPROVED)
-                | Q(created_by=self.request.user)
+                Q(status=LessonLearned.Status.APPROVED) | Q(created_by=self.request.user)
             )
 
         return queryset.order_by("-created_at")
@@ -263,9 +262,11 @@ class LessonLearnedViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def my_lessons(self, request):
         """Get current user's lessons."""
-        lessons = LessonLearned.objects.filter(
-            created_by=request.user
-        ).select_related("category").order_by("-created_at")
+        lessons = (
+            LessonLearned.objects.filter(created_by=request.user)
+            .select_related("category")
+            .order_by("-created_at")
+        )
 
         serializer = LessonLearnedListSerializer(lessons, many=True)
         return Response(serializer.data)
@@ -279,9 +280,11 @@ class LessonLearnedViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        lessons = LessonLearned.objects.filter(
-            status=LessonLearned.Status.PENDING_REVIEW
-        ).select_related("category", "created_by").order_by("created_at")
+        lessons = (
+            LessonLearned.objects.filter(status=LessonLearned.Status.PENDING_REVIEW)
+            .select_related("category", "created_by")
+            .order_by("created_at")
+        )
 
         serializer = LessonLearnedListSerializer(lessons, many=True)
         return Response(serializer.data)

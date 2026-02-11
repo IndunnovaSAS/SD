@@ -4,8 +4,6 @@ Business logic services for pre-operational talks.
 
 import logging
 from datetime import date, timedelta
-from io import BytesIO
-from typing import Optional
 
 from django.db import transaction
 from django.db.models import Count, Q
@@ -69,7 +67,9 @@ class TalkTemplateService:
             safety_topics=template.safety_topics.copy() if template.safety_topics else [],
             estimated_duration=template.estimated_duration,
             requires_signature=template.requires_signature,
-            target_activities=template.target_activities.copy() if template.target_activities else [],
+            target_activities=template.target_activities.copy()
+            if template.target_activities
+            else [],
             is_active=True,
             created_by=user or template.created_by,
         )
@@ -279,9 +279,9 @@ class PreopTalkService:
         """
         Get talks for a specific project.
         """
-        queryset = PreopTalk.objects.filter(
-            project_name__icontains=project_name
-        ).select_related("template", "conducted_by")
+        queryset = PreopTalk.objects.filter(project_name__icontains=project_name).select_related(
+            "template", "conducted_by"
+        )
 
         if status:
             queryset = queryset.filter(status=status)
@@ -315,9 +315,7 @@ class PreopTalkService:
             avg_duration=Avg("duration"),
         )
 
-        total_attendees = TalkAttendee.objects.filter(
-            talk__in=queryset
-        ).count()
+        total_attendees = TalkAttendee.objects.filter(talk__in=queryset).count()
 
         return {
             "total_talks": stats["total_talks"] or 0,
@@ -418,11 +416,13 @@ class TalkAttendeeService:
         """
         Get a user's talk attendance history.
         """
-        return TalkAttendee.objects.filter(
-            user=user,
-        ).select_related(
-            "talk", "talk__conducted_by"
-        ).order_by("-talk__scheduled_at")[:limit]
+        return (
+            TalkAttendee.objects.filter(
+                user=user,
+            )
+            .select_related("talk", "talk__conducted_by")
+            .order_by("-talk__scheduled_at")[:limit]
+        )
 
     @staticmethod
     def verify_attendance(
@@ -447,8 +447,7 @@ class TalkAttendeeService:
         total_days = (end_date - start_date).days + 1
         # Exclude weekends for work days calculation
         work_days = sum(
-            1 for i in range(total_days)
-            if (start_date + timedelta(days=i)).weekday() < 5
+            1 for i in range(total_days) if (start_date + timedelta(days=i)).weekday() < 5
         )
 
         return {
@@ -510,9 +509,7 @@ class TalkReportService:
         """
         Generate an attendance report for a talk.
         """
-        attendees = TalkAttendee.objects.filter(
-            talk=talk
-        ).select_related("user")
+        attendees = TalkAttendee.objects.filter(talk=talk).select_related("user")
 
         return {
             "talk_id": talk.id,
@@ -560,15 +557,17 @@ class TalkReportService:
             timezone.datetime.combine(target_date, timezone.datetime.max.time())
         )
 
-        talks = PreopTalk.objects.filter(
-            scheduled_at__gte=day_start,
-            scheduled_at__lte=day_end,
-        ).select_related("conducted_by").prefetch_related("attendees")
+        talks = (
+            PreopTalk.objects.filter(
+                scheduled_at__gte=day_start,
+                scheduled_at__lte=day_end,
+            )
+            .select_related("conducted_by")
+            .prefetch_related("attendees")
+        )
 
         completed = talks.filter(status=PreopTalk.Status.COMPLETED)
-        total_attendees = TalkAttendee.objects.filter(
-            talk__in=completed
-        ).count()
+        total_attendees = TalkAttendee.objects.filter(talk__in=completed).count()
 
         return {
             "date": target_date.isoformat(),
@@ -584,7 +583,9 @@ class TalkReportService:
                     "project": talk.project_name,
                     "status": talk.status,
                     "attendees": talk.attendees.count(),
-                    "conducted_by": talk.conducted_by.get_full_name() if talk.conducted_by else None,
+                    "conducted_by": talk.conducted_by.get_full_name()
+                    if talk.conducted_by
+                    else None,
                 }
                 for talk in talks
             ],

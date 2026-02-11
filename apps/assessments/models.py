@@ -12,13 +12,13 @@ class AssessmentManager(models.Manager):
     """Custom manager for Assessment model."""
 
     def published(self):
-        return self.filter(status='published')
+        return self.filter(status="published")
 
     def for_course(self, course):
         return self.filter(course=course)
 
     def with_questions(self):
-        return self.prefetch_related('questions__answers')
+        return self.prefetch_related("questions__answers")
 
 
 class Assessment(models.Model):

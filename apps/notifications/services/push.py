@@ -58,9 +58,7 @@ class PushService:
         """
         Unregister a push subscription by endpoint.
         """
-        deleted, _ = PushSubscription.objects.filter(
-            endpoint=endpoint
-        ).delete()
+        deleted, _ = PushSubscription.objects.filter(endpoint=endpoint).delete()
 
         return deleted > 0
 
@@ -136,7 +134,9 @@ class PushService:
                 subscription.is_active = False
                 subscription.save()
             else:
-                logger.exception(f"Error inesperado enviando push a suscripcion {subscription.id}: {e}")
+                logger.exception(
+                    f"Error inesperado enviando push a suscripcion {subscription.id}: {e}"
+                )
             return False
 
     @staticmethod

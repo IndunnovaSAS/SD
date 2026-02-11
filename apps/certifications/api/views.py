@@ -8,6 +8,7 @@ from datetime import timedelta
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -49,9 +50,7 @@ class CertificateTemplateViewSet(viewsets.ModelViewSet):
         # Search
         search = self.request.query_params.get("search")
         if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search) | Q(description__icontains=search)
-            )
+            queryset = queryset.filter(Q(name__icontains=search) | Q(description__icontains=search))
 
         return queryset.order_by("name")
 
@@ -67,9 +66,7 @@ class CertificateViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Certificate.objects.select_related(
-            "user", "course", "template"
-        )
+        queryset = Certificate.objects.select_related("user", "course", "template")
 
         # Filter by user
         user_id = self.request.query_params.get("user")
@@ -204,9 +201,9 @@ class CertificateViewSet(viewsets.ModelViewSet):
         certificate_number = serializer.validated_data["certificate_number"]
 
         try:
-            certificate = Certificate.objects.select_related(
-                "user", "course"
-            ).get(certificate_number=certificate_number)
+            certificate = Certificate.objects.select_related("user", "course").get(
+                certificate_number=certificate_number
+            )
         except Certificate.DoesNotExist:
             return Response(
                 {"valid": False, "error": "Certificado no encontrado"},
@@ -228,23 +225,29 @@ class CertificateViewSet(viewsets.ModelViewSet):
             is_valid=is_valid,
         )
 
-        return Response({
-            "valid": is_valid,
-            "certificate_number": certificate.certificate_number,
-            "user_name": certificate.user.get_full_name(),
-            "course_title": certificate.course.title,
-            "issued_at": certificate.issued_at,
-            "expires_at": certificate.expires_at,
-            "status": certificate.status,
-        })
+        return Response(
+            {
+                "valid": is_valid,
+                "certificate_number": certificate.certificate_number,
+                "user_name": certificate.user.get_full_name(),
+                "course_title": certificate.course.title,
+                "issued_at": certificate.issued_at,
+                "expires_at": certificate.expires_at,
+                "status": certificate.status,
+            }
+        )
 
     @action(detail=False, methods=["get"])
     def my_certificates(self, request):
         """Get current user's certificates."""
-        certificates = Certificate.objects.filter(
-            user=request.user,
-            status=Certificate.Status.ISSUED,
-        ).select_related("course").order_by("-issued_at")
+        certificates = (
+            Certificate.objects.filter(
+                user=request.user,
+                status=Certificate.Status.ISSUED,
+            )
+            .select_related("course")
+            .order_by("-issued_at")
+        )
 
         serializer = MyCertificateSerializer(certificates, many=True)
         return Response(serializer.data)
@@ -266,9 +269,9 @@ class CertificateViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        return Response({
-            "download_url": request.build_absolute_uri(certificate.certificate_file.url)
-        })
+        return Response(
+            {"download_url": request.build_absolute_uri(certificate.certificate_file.url)}
+        )
 
     @action(detail=True, methods=["get"])
     def verifications(self, request, pk=None):

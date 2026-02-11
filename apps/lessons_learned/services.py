@@ -3,7 +3,6 @@ Business logic services for lessons learned.
 """
 
 import logging
-from typing import Optional
 
 from django.db import transaction
 from django.db.models import F, Q
@@ -156,9 +155,7 @@ class LessonLearnedService:
         Increment the view count of a lesson.
         Uses F() expression to avoid race conditions.
         """
-        LessonLearned.objects.filter(id=lesson_learned.id).update(
-            view_count=F("view_count") + 1
-        )
+        LessonLearned.objects.filter(id=lesson_learned.id).update(view_count=F("view_count") + 1)
 
     @staticmethod
     def get_approved_lessons(
@@ -207,18 +204,18 @@ class LessonLearnedService:
         """
         Get all lessons pending review.
         """
-        return LessonLearned.objects.filter(
-            status=LessonLearned.Status.PENDING_REVIEW
-        ).select_related("category", "created_by").order_by("created_at")
+        return (
+            LessonLearned.objects.filter(status=LessonLearned.Status.PENDING_REVIEW)
+            .select_related("category", "created_by")
+            .order_by("created_at")
+        )
 
     @staticmethod
     def get_lessons_by_user(user, include_drafts: bool = True):
         """
         Get lessons created by a specific user.
         """
-        queryset = LessonLearned.objects.filter(
-            created_by=user
-        ).select_related("category")
+        queryset = LessonLearned.objects.filter(created_by=user).select_related("category")
 
         if not include_drafts:
             queryset = queryset.exclude(status=LessonLearned.Status.DRAFT)
@@ -234,10 +231,7 @@ class LessonLearnedService:
             LessonLearned.objects.filter(
                 status=LessonLearned.Status.APPROVED,
             )
-            .filter(
-                Q(category=lesson_learned.category)
-                | Q(lesson_type=lesson_learned.lesson_type)
-            )
+            .filter(Q(category=lesson_learned.category) | Q(lesson_type=lesson_learned.lesson_type))
             .exclude(id=lesson_learned.id)
             .order_by("-view_count", "-created_at")[:limit]
         )
@@ -341,10 +335,14 @@ class LessonCommentService:
         """
         Get comments for a lesson learned.
         """
-        queryset = LessonComment.objects.filter(
-            lesson_learned=lesson_learned,
-            parent__isnull=True,  # Only top-level comments
-        ).select_related("user").prefetch_related("replies__user")
+        queryset = (
+            LessonComment.objects.filter(
+                lesson_learned=lesson_learned,
+                parent__isnull=True,  # Only top-level comments
+            )
+            .select_related("user")
+            .prefetch_related("replies__user")
+        )
 
         if approved_only:
             queryset = queryset.filter(is_approved=True)
@@ -380,10 +378,14 @@ class CategoryService:
         """
         Get all active categories with hierarchy.
         """
-        return Category.objects.filter(
-            is_active=True,
-            parent__isnull=True,
-        ).prefetch_related("children").order_by("order", "name")
+        return (
+            Category.objects.filter(
+                is_active=True,
+                parent__isnull=True,
+            )
+            .prefetch_related("children")
+            .order_by("order", "name")
+        )
 
     @staticmethod
     def get_category_tree():
@@ -418,9 +420,13 @@ class CategoryService:
         """
         from django.db.models import Count
 
-        return Category.objects.filter(is_active=True).annotate(
-            lesson_count=Count(
-                "lessons_learned",
-                filter=Q(lessons_learned__status=LessonLearned.Status.APPROVED),
+        return (
+            Category.objects.filter(is_active=True)
+            .annotate(
+                lesson_count=Count(
+                    "lessons_learned",
+                    filter=Q(lessons_learned__status=LessonLearned.Status.APPROVED),
+                )
             )
-        ).values("id", "name", "lesson_count")
+            .values("id", "name", "lesson_count")
+        )

@@ -6,9 +6,9 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
-from django.views.decorators.http import require_GET, require_POST, require_http_methods
+from django.views.decorators.http import require_GET, require_POST
 
-from apps.notifications.models import Notification, UserNotificationPreference
+from apps.notifications.models import Notification
 from apps.notifications.services import NotificationService, UserPreferenceService
 
 
@@ -58,9 +58,7 @@ def notification_items(request):
 @require_POST
 def mark_read(request, notification_id):
     """Mark a notification as read."""
-    notification = get_object_or_404(
-        Notification, id=notification_id, user=request.user
-    )
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
     NotificationService.mark_as_read(notification)
 
     # Return updated notification item
@@ -115,12 +113,14 @@ def preferences(request):
 
         if quiet_start:
             from datetime import datetime
+
             updates["quiet_hours_start"] = datetime.strptime(quiet_start, "%H:%M").time()
         else:
             updates["quiet_hours_start"] = None
 
         if quiet_end:
             from datetime import datetime
+
             updates["quiet_hours_end"] = datetime.strptime(quiet_end, "%H:%M").time()
         else:
             updates["quiet_hours_end"] = None
@@ -131,8 +131,8 @@ def preferences(request):
             # Return success message via HTMX
             return HttpResponse(
                 '<div class="alert alert-success">'
-                '<span>Preferencias guardadas correctamente</span>'
-                '</div>'
+                "<span>Preferencias guardadas correctamente</span>"
+                "</div>"
             )
 
     context = {"preferences": prefs}

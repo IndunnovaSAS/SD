@@ -6,6 +6,7 @@ from datetime import date
 
 from django.test import TestCase, override_settings
 from django.urls import reverse
+
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -158,9 +159,7 @@ class CourseAPITests(TestCase):
             code="SEC-001",
             title="Curso de Seguridad",
             description="Descripción del curso",
-            duration=60,
             course_type=Course.Type.MANDATORY,
-            risk_level=Course.RiskLevel.HIGH,
             category=self.category,
             status=Course.Status.PUBLISHED,
             created_by=self.user,
@@ -212,15 +211,6 @@ class CourseAPITests(TestCase):
         results = response.data["results"] if isinstance(response.data, dict) else response.data
         self.assertEqual(len(results), 1)
 
-    def test_filter_courses_by_risk_level(self):
-        """Test filtering courses by risk level."""
-        url = reverse("courses_api:course-list")
-        response = self.client.get(url, {"risk_level": "high"})
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data["results"] if isinstance(response.data, dict) else response.data
-        self.assertEqual(len(results), 1)
-
     def test_search_courses(self):
         """Test searching courses."""
         url = reverse("courses_api:course-list")
@@ -247,9 +237,7 @@ class CourseAPITests(TestCase):
             "code": "SEC-002",
             "title": "Nuevo Curso",
             "description": "Descripción del nuevo curso",
-            "duration": 120,
             "course_type": "mandatory",
-            "risk_level": "medium",
             "category": self.category.id,
             "contracts": [self.contract.id],
         }
@@ -267,7 +255,6 @@ class CourseAPITests(TestCase):
             code="SEC-003",
             title="Curso Borrador",
             description="Descripción",
-            duration=60,
             status=Course.Status.DRAFT,
             created_by=self.user,
         )
@@ -484,39 +471,28 @@ class EnrollmentAPITests(TestCase):
 # Additional comprehensive tests using pytest and factories
 # =============================================================================
 
-import pytest
-from decimal import Decimal
-from datetime import timedelta
-from django.utils import timezone
 
-from apps.courses.tests.factories import (
-    UserFactory,
-    AdminUserFactory,
-    SupervisorUserFactory,
-    CategoryFactory,
-    SubCategoryFactory,
-    ContractFactory,
-    CourseFactory,
-    PublishedCourseFactory,
-    ArchivedCourseFactory,
-    ModuleFactory,
-    LessonFactory,
-    VideoLessonFactory,
-    PDFLessonFactory,
-    QuizLessonFactory,
-    EnrollmentFactory,
-    InProgressEnrollmentFactory,
-    CompletedEnrollmentFactory,
-    ExpiredEnrollmentFactory,
-    LessonProgressFactory,
-    CompletedLessonProgressFactory,
-    FullCourseFactory,
-)
+import pytest
+
 from apps.courses.models import (
-    Course,
-    Enrollment,
     LessonProgress,
-    CourseVersion,
+)
+from apps.courses.tests.factories import (
+    AdminUserFactory,
+    ArchivedCourseFactory,
+    CategoryFactory,
+    CompletedEnrollmentFactory,
+    CompletedLessonProgressFactory,
+    CourseFactory,
+    EnrollmentFactory,
+    ExpiredEnrollmentFactory,
+    InProgressEnrollmentFactory,
+    LessonFactory,
+    ModuleFactory,
+    PDFLessonFactory,
+    PublishedCourseFactory,
+    UserFactory,
+    VideoLessonFactory,
 )
 
 
@@ -694,14 +670,8 @@ class TestCourseAPIAdditional:
         client, user = authenticated_client
 
         Course.objects.all().delete()
-        CourseFactory(
-            title="Electrical Safety Training",
-            created_by=user
-        )
-        CourseFactory(
-            title="Fire Prevention Course",
-            created_by=user
-        )
+        CourseFactory(title="Electrical Safety Training", created_by=user)
+        CourseFactory(title="Fire Prevention Course", created_by=user)
 
         url = reverse("courses_api:course-list")
         # API search filters by title and code, not description
@@ -787,34 +757,22 @@ class TestCourseAPIAdditional:
             "code": "DUPLICATE-001",
             "title": "New Course",
             "description": "Description",
-            "duration": 60,
         }
         response = client.post(url, data)
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_filter_by_multiple_risk_levels(self, authenticated_client):
+    def test_filter_by_multiple_criteria(self, authenticated_client):
         """Test filtering by multiple criteria."""
         client, user = authenticated_client
 
         Course.objects.all().delete()
         category = CategoryFactory()
-        CourseFactory(
-            risk_level=Course.RiskLevel.HIGH,
-            category=category,
-            created_by=user
-        )
-        CourseFactory(
-            risk_level=Course.RiskLevel.LOW,
-            category=category,
-            created_by=user
-        )
+        CourseFactory(course_type=Course.Type.MANDATORY, category=category, created_by=user)
+        CourseFactory(course_type=Course.Type.OPTIONAL, category=category, created_by=user)
 
         url = reverse("courses_api:course-list")
-        response = client.get(url, {
-            "risk_level": "high",
-            "category": category.id
-        })
+        response = client.get(url, {"type": "mandatory", "category": category.id})
 
         results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
@@ -831,8 +789,7 @@ class TestModuleAPIAdditional:
         module = ModuleFactory(course=course)
 
         url = reverse(
-            "courses_api:course-module-detail",
-            kwargs={"course_pk": course.id, "pk": module.id}
+            "courses_api:course-module-detail", kwargs={"course_pk": course.id, "pk": module.id}
         )
         data = {"title": "Updated Module Title"}
         response = client.patch(url, data)
@@ -848,8 +805,7 @@ class TestModuleAPIAdditional:
         module = ModuleFactory(course=course)
 
         url = reverse(
-            "courses_api:course-module-detail",
-            kwargs={"course_pk": course.id, "pk": module.id}
+            "courses_api:course-module-detail", kwargs={"course_pk": course.id, "pk": module.id}
         )
         response = client.delete(url)
 
@@ -860,10 +816,7 @@ class TestModuleAPIAdditional:
         """Test listing modules for a non-existent course returns empty list."""
         client, user = authenticated_client
 
-        url = reverse(
-            "courses_api:course-module-list",
-            kwargs={"course_pk": 99999}
-        )
+        url = reverse("courses_api:course-module-list", kwargs={"course_pk": 99999})
         response = client.get(url)
 
         # API returns empty list for non-existent course (not 404)
@@ -880,10 +833,7 @@ class TestModuleAPIAdditional:
         ModuleFactory(course=course, order=0, title="First")
         ModuleFactory(course=course, order=1, title="Middle")
 
-        url = reverse(
-            "courses_api:course-module-list",
-            kwargs={"course_pk": course.id}
-        )
+        url = reverse("courses_api:course-module-list", kwargs={"course_pk": course.id})
         response = client.get(url)
 
         results = response.data["results"] if isinstance(response.data, dict) else response.data
@@ -904,7 +854,7 @@ class TestLessonAPIAdditional:
 
         url = reverse(
             "courses_api:module-lesson-list",
-            kwargs={"course_pk": course.id, "module_pk": module.id}
+            kwargs={"course_pk": course.id, "module_pk": module.id},
         )
         data = {
             "title": "New Lesson",
@@ -927,7 +877,7 @@ class TestLessonAPIAdditional:
 
         url = reverse(
             "courses_api:module-lesson-list",
-            kwargs={"course_pk": course.id, "module_pk": module.id}
+            kwargs={"course_pk": course.id, "module_pk": module.id},
         )
         response = client.get(url)
 
@@ -944,11 +894,7 @@ class TestLessonAPIAdditional:
 
         url = reverse(
             "courses_api:module-lesson-detail",
-            kwargs={
-                "course_pk": course.id,
-                "module_pk": module.id,
-                "pk": lesson.id
-            }
+            kwargs={"course_pk": course.id, "module_pk": module.id, "pk": lesson.id},
         )
         data = {"title": "Updated Lesson Title"}
         response = client.patch(url, data)
@@ -966,11 +912,7 @@ class TestLessonAPIAdditional:
 
         url = reverse(
             "courses_api:module-lesson-detail",
-            kwargs={
-                "course_pk": course.id,
-                "module_pk": module.id,
-                "pk": lesson.id
-            }
+            kwargs={"course_pk": course.id, "module_pk": module.id, "pk": lesson.id},
         )
         response = client.delete(url)
 
@@ -1054,10 +996,7 @@ class TestEnrollmentAPIAdditional:
         response = client.post(url, data, format="json")
 
         # Should handle gracefully - either skip or return error
-        assert response.status_code in [
-            status.HTTP_201_CREATED,
-            status.HTTP_400_BAD_REQUEST
-        ]
+        assert response.status_code in [status.HTTP_201_CREATED, status.HTTP_400_BAD_REQUEST]
 
     def test_bulk_enrollment_invalid_course(self, authenticated_client):
         """Test bulk enrollment with invalid course ID returns 404."""
@@ -1087,10 +1026,7 @@ class TestEnrollmentAPIAdditional:
         response = client.patch(url, data)
 
         # Progress might be read-only (calculated field)
-        assert response.status_code in [
-            status.HTTP_200_OK,
-            status.HTTP_400_BAD_REQUEST
-        ]
+        assert response.status_code in [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST]
 
     def test_my_enrollments_only_returns_own(self, authenticated_client):
         """Test that my-enrollments only returns current user's enrollments."""
@@ -1136,16 +1072,11 @@ class TestLessonProgressAPI:
         enrollment = EnrollmentFactory(user=user, course=course)
 
         # Create lesson progress
-        progress = CompletedLessonProgressFactory(
-            enrollment=enrollment,
-            lesson=lesson
-        )
+        progress = CompletedLessonProgressFactory(enrollment=enrollment, lesson=lesson)
 
         # Verify progress exists
         assert LessonProgress.objects.filter(
-            enrollment=enrollment,
-            lesson=lesson,
-            is_completed=True
+            enrollment=enrollment, lesson=lesson, is_completed=True
         ).exists()
 
 
@@ -1263,10 +1194,7 @@ class TestAPIEdgeCases:
         response = client.get(url, {"status": "invalid_status"})
 
         # Should either return empty or handle gracefully
-        assert response.status_code in [
-            status.HTTP_200_OK,
-            status.HTTP_400_BAD_REQUEST
-        ]
+        assert response.status_code in [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST]
 
     def test_concurrent_enrollment(self, authenticated_client):
         """Test enrolling same user twice."""
@@ -1289,7 +1217,7 @@ class TestAPIEdgeCases:
         assert response2.status_code in [
             status.HTTP_200_OK,
             status.HTTP_400_BAD_REQUEST,
-            status.HTTP_201_CREATED
+            status.HTTP_201_CREATED,
         ]
 
     def test_course_ordering(self, authenticated_client):
@@ -1339,7 +1267,7 @@ class TestAPIPermissions:
         assert response.status_code in [
             status.HTTP_403_FORBIDDEN,
             status.HTTP_404_NOT_FOUND,
-            status.HTTP_204_NO_CONTENT  # If no restrictions
+            status.HTTP_204_NO_CONTENT,  # If no restrictions
         ]
 
     def test_admin_can_access_all_resources(self, admin_client):

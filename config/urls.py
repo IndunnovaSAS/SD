@@ -7,6 +7,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import include, path
+
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -53,6 +54,7 @@ urlpatterns = [
     path("api/v1/sync/", include("apps.sync.api.urls")),
     path("api/v1/reports/", include("apps.reports.api.urls")),
     path("api/v1/integrations/", include("apps.integrations.api.urls")),
+    path("api/v1/occupational-profiles/", include("apps.occupational_profiles.api.urls")),
     # Web views (HTMX)
     path("accounts/", include("apps.accounts.urls")),
     path("courses/", include("apps.courses.urls")),

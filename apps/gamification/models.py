@@ -5,10 +5,8 @@ Includes points, badges, levels, streaks, leaderboards, and challenges.
 """
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import BaseModel
 from apps.core.validators import validate_date_range
@@ -174,9 +172,9 @@ class UserPoints(BaseModel):
 
     def _check_level_up(self):
         """Check and update user level based on points."""
-        new_level = Level.objects.filter(
-            min_points__lte=self.total_points
-        ).order_by("-number").first()
+        new_level = (
+            Level.objects.filter(min_points__lte=self.total_points).order_by("-number").first()
+        )
 
         if new_level and (not self.level or new_level.number > self.level.number):
             self.level = new_level
@@ -377,9 +375,7 @@ class LeaderboardEntry(BaseModel):
         """Validate that period_end is after period_start."""
         super().clean()
         validate_date_range(
-            self.period_start,
-            self.period_end,
-            field_names=("period_start", "period_end")
+            self.period_start, self.period_end, field_names=("period_start", "period_end")
         )
 
     @property
@@ -454,10 +450,7 @@ class Challenge(BaseModel):
     def is_active(self):
         """Check if challenge is currently active."""
         now = timezone.now()
-        return (
-            self.status == self.Status.ACTIVE
-            and self.start_date <= now <= self.end_date
-        )
+        return self.status == self.Status.ACTIVE and self.start_date <= now <= self.end_date
 
     @property
     def progress_percentage(self):
@@ -651,9 +644,7 @@ class Reward(BaseModel):
         """Validate that valid_until is after valid_from."""
         super().clean()
         validate_date_range(
-            self.valid_from,
-            self.valid_until,
-            field_names=("valid_from", "valid_until")
+            self.valid_from, self.valid_until, field_names=("valid_from", "valid_until")
         )
 
     @property

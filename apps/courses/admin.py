@@ -6,7 +6,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import Course, Enrollment, Lesson, LessonProgress, MediaAsset, Module
+from .models import Course, Enrollment, Lesson, LessonEvidence, LessonProgress, MediaAsset, Module
 
 
 class ModuleInline(admin.TabularInline):
@@ -131,9 +131,16 @@ class LessonAdmin(admin.ModelAdmin):
         "duration",
         "order",
         "is_mandatory",
+        "is_presential",
         "is_offline_available",
     ]
-    list_filter = ["lesson_type", "is_mandatory", "is_offline_available", "created_at"]
+    list_filter = [
+        "lesson_type",
+        "is_mandatory",
+        "is_presential",
+        "is_offline_available",
+        "created_at",
+    ]
     search_fields = ["title", "description", "module__title"]
     ordering = ["module", "order"]
 
@@ -157,6 +164,7 @@ class LessonAdmin(admin.ModelAdmin):
                     "duration",
                     "order",
                     "is_mandatory",
+                    "is_presential",
                     "is_offline_available",
                 ],
             },
@@ -258,3 +266,37 @@ class LessonProgressAdmin(admin.ModelAdmin):
         return f"{minutes}m {seconds}s"
 
     time_spent_display.short_description = _("Tiempo")
+
+
+@admin.register(LessonEvidence)
+class LessonEvidenceAdmin(admin.ModelAdmin):
+    """Admin configuration for LessonEvidence model."""
+
+    list_display = [
+        "lesson",
+        "user",
+        "evidence_type",
+        "verified",
+        "verified_by",
+        "uploaded_at",
+    ]
+    list_filter = ["evidence_type", "verified", "uploaded_at"]
+    search_fields = ["lesson__title", "user__first_name", "user__last_name", "description"]
+    readonly_fields = ["uploaded_at"]
+    raw_id_fields = ["lesson", "user", "verified_by"]
+    date_hierarchy = "uploaded_at"
+
+    fieldsets = [
+        (
+            None,
+            {
+                "fields": ["lesson", "user", "evidence_type", "file", "description"],
+            },
+        ),
+        (
+            _("Verificación"),
+            {
+                "fields": ["verified", "verified_by", "verified_at"],
+            },
+        ),
+    ]

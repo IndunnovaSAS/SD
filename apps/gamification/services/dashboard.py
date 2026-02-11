@@ -46,17 +46,24 @@ class GamificationDashboardService:
         month_start = today.replace(day=1)
 
         # Point statistics
-        total_points = PointTransaction.objects.filter(points__gt=0).aggregate(
-            total=Sum("points")
-        )["total"] or 0
+        total_points = (
+            PointTransaction.objects.filter(points__gt=0).aggregate(total=Sum("points"))["total"]
+            or 0
+        )
 
-        points_today = PointTransaction.objects.filter(
-            created_at__date=today, points__gt=0
-        ).aggregate(total=Sum("points"))["total"] or 0
+        points_today = (
+            PointTransaction.objects.filter(created_at__date=today, points__gt=0).aggregate(
+                total=Sum("points")
+            )["total"]
+            or 0
+        )
 
-        points_this_week = PointTransaction.objects.filter(
-            created_at__date__gte=week_start, points__gt=0
-        ).aggregate(total=Sum("points"))["total"] or 0
+        points_this_week = (
+            PointTransaction.objects.filter(
+                created_at__date__gte=week_start, points__gt=0
+            ).aggregate(total=Sum("points"))["total"]
+            or 0
+        )
 
         # Badge statistics
         total_badges_awarded = UserBadge.objects.count()
@@ -71,9 +78,7 @@ class GamificationDashboardService:
 
         # Top earners this week
         top_earners = (
-            PointTransaction.objects.filter(
-                created_at__date__gte=week_start, points__gt=0
-            )
+            PointTransaction.objects.filter(created_at__date__gte=week_start, points__gt=0)
             .values("user", "user__email", "user__first_name", "user__last_name")
             .annotate(total=Sum("points"))
             .order_by("-total")[:10]

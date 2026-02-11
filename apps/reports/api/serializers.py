@@ -16,12 +16,8 @@ from apps.reports.models import (
 class ReportTemplateListSerializer(serializers.ModelSerializer):
     """List serializer for report templates."""
 
-    created_by_name = serializers.CharField(
-        source="created_by.get_full_name", read_only=True
-    )
-    report_type_display = serializers.CharField(
-        source="get_report_type_display", read_only=True
-    )
+    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True)
+    report_type_display = serializers.CharField(source="get_report_type_display", read_only=True)
 
     class Meta:
         model = ReportTemplate
@@ -42,9 +38,7 @@ class ReportTemplateListSerializer(serializers.ModelSerializer):
 class ReportTemplateSerializer(serializers.ModelSerializer):
     """Full serializer for report templates."""
 
-    created_by_name = serializers.CharField(
-        source="created_by.get_full_name", read_only=True
-    )
+    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True)
 
     class Meta:
         model = ReportTemplate
@@ -72,9 +66,7 @@ class GeneratedReportListSerializer(serializers.ModelSerializer):
     """List serializer for generated reports."""
 
     template_name = serializers.CharField(source="template.name", read_only=True)
-    generated_by_name = serializers.CharField(
-        source="generated_by.get_full_name", read_only=True
-    )
+    generated_by_name = serializers.CharField(source="generated_by.get_full_name", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
 
     class Meta:
@@ -99,9 +91,7 @@ class GeneratedReportSerializer(serializers.ModelSerializer):
     """Full serializer for generated reports."""
 
     template_name = serializers.CharField(source="template.name", read_only=True)
-    generated_by_name = serializers.CharField(
-        source="generated_by.get_full_name", read_only=True
-    )
+    generated_by_name = serializers.CharField(source="generated_by.get_full_name", read_only=True)
 
     class Meta:
         model = GeneratedReport
@@ -153,12 +143,8 @@ class ScheduledReportSerializer(serializers.ModelSerializer):
     """Serializer for scheduled reports."""
 
     template_name = serializers.CharField(source="template.name", read_only=True)
-    created_by_name = serializers.CharField(
-        source="created_by.get_full_name", read_only=True
-    )
-    frequency_display = serializers.CharField(
-        source="get_frequency_display", read_only=True
-    )
+    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True)
+    frequency_display = serializers.CharField(source="get_frequency_display", read_only=True)
 
     class Meta:
         model = ScheduledReport
@@ -195,9 +181,7 @@ class ScheduledReportSerializer(serializers.ModelSerializer):
 class DashboardListSerializer(serializers.ModelSerializer):
     """List serializer for dashboards."""
 
-    created_by_name = serializers.CharField(
-        source="created_by.get_full_name", read_only=True
-    )
+    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True)
     widget_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -221,9 +205,7 @@ class DashboardListSerializer(serializers.ModelSerializer):
 class DashboardSerializer(serializers.ModelSerializer):
     """Full serializer for dashboards."""
 
-    created_by_name = serializers.CharField(
-        source="created_by.get_full_name", read_only=True
-    )
+    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True)
 
     class Meta:
         model = Dashboard

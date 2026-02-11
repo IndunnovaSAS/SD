@@ -8,10 +8,8 @@ import os
 import uuid
 import zipfile
 from pathlib import Path
-from typing import Any
 
 from django.conf import settings
-from django.core.files.base import ContentFile
 from django.db import models, transaction
 from django.utils import timezone
 
@@ -115,9 +113,7 @@ class CourseService:
             title=f"{course.title} (Copia)",
             description=course.description,
             objectives=course.objectives,
-            duration=course.duration,
             course_type=course.course_type,
-            risk_level=course.risk_level,
             target_profiles=course.target_profiles,
             validity_months=course.validity_months,
             category=course.category,
@@ -126,7 +122,7 @@ class CourseService:
         )
 
         # Clone modules and lessons - use prefetch_related to avoid N+1 queries
-        for module in course.modules.prefetch_related('lessons').all():
+        for module in course.modules.prefetch_related("lessons").all():
             new_module = Module.objects.create(
                 course=new_course,
                 title=module.title,
@@ -162,7 +158,7 @@ class CourseService:
     @staticmethod
     def get_course_statistics(course: Course) -> dict:
         """Get course statistics."""
-        from django.db.models import Avg, Count, Q
+        from django.db.models import Avg
 
         enrollments = Enrollment.objects.filter(course=course)
 
@@ -212,7 +208,7 @@ class EnrollmentService:
                 "assigned_by": assigned_by,
                 "due_date": due_date,
                 "status": Enrollment.Status.ENROLLED,
-            }
+            },
         )
 
         if not created and enrollment.status == Enrollment.Status.EXPIRED:
@@ -229,7 +225,9 @@ class EnrollmentService:
 
     @staticmethod
     @transaction.atomic
-    def update_progress(enrollment: Enrollment, lesson: Lesson, progress_data: dict) -> LessonProgress:
+    def update_progress(
+        enrollment: Enrollment, lesson: Lesson, progress_data: dict
+    ) -> LessonProgress:
         """Update user progress for a lesson."""
         lesson_progress, _ = LessonProgress.objects.get_or_create(
             enrollment=enrollment,
@@ -442,9 +440,7 @@ class ScormService:
                             scorm_package.entry_point = href
                             break
 
-                scorm_package.extracted_path = os.path.relpath(
-                    extract_dir, settings.MEDIA_ROOT
-                )
+                scorm_package.extracted_path = os.path.relpath(extract_dir, settings.MEDIA_ROOT)
                 scorm_package.manifest_data = {
                     "title": root.find(".//title", namespaces) or "SCORM Package",
                     "version": scorm_package.scorm_version,
@@ -478,7 +474,9 @@ class ResourceLibraryService:
     """Service for resource library management."""
 
     @staticmethod
-    def add_resource(file, user, name: str = None, tags: list = None, category=None) -> ResourceLibrary:
+    def add_resource(
+        file, user, name: str = None, tags: list = None, category=None
+    ) -> ResourceLibrary:
         """Add a resource to the library."""
         mime_type, _ = mimetypes.guess_type(file.name)
         mime_type = mime_type or "application/octet-stream"
@@ -519,9 +517,7 @@ class ResourceLibraryService:
         queryset = ResourceLibrary.objects.filter(is_public=True)
 
         if query:
-            queryset = queryset.filter(
-                Q(name__icontains=query) | Q(description__icontains=query)
-            )
+            queryset = queryset.filter(Q(name__icontains=query) | Q(description__icontains=query))
 
         if resource_type:
             queryset = queryset.filter(resource_type=resource_type)

@@ -4,9 +4,10 @@ Serializers for accounts API.
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+
 from rest_framework import serializers
 
-from ..models import Contract, Role, UserContract, UserRole
+from ..models import Contract, Role
 
 User = get_user_model()
 

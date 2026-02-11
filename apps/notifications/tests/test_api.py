@@ -8,11 +8,9 @@ Covers:
 - PushSubscriptionViewSet
 """
 
-import pytest
-from datetime import timedelta
-
 from django.urls import reverse
-from django.utils import timezone
+
+import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -24,20 +22,20 @@ from apps.notifications.models import (
 )
 
 from .factories import (
+    AdminUserFactory,
+    EmailNotificationFactory,
+    EmailTemplateFactory,
+    HighPriorityNotificationFactory,
     NotificationFactory,
     NotificationTemplateFactory,
+    PushNotificationFactory,
     PushSubscriptionFactory,
+    PushTemplateFactory,
+    ReadNotificationFactory,
+    SentNotificationFactory,
+    StaffUserFactory,
     UserFactory,
     UserNotificationPreferenceFactory,
-    StaffUserFactory,
-    AdminUserFactory,
-    SentNotificationFactory,
-    ReadNotificationFactory,
-    EmailTemplateFactory,
-    PushTemplateFactory,
-    EmailNotificationFactory,
-    PushNotificationFactory,
-    HighPriorityNotificationFactory,
 )
 
 
@@ -310,9 +308,7 @@ class TestNotificationMarkAllRead:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["updated"] == 3
 
-        unread_count = Notification.objects.filter(
-            user=user, read_at__isnull=True
-        ).count()
+        unread_count = Notification.objects.filter(user=user, read_at__isnull=True).count()
         assert unread_count == 0
 
     def test_mark_all_read_only_unread(self, authenticated_client, user):
@@ -335,9 +331,7 @@ class TestNotificationMarkAllRead:
         url = reverse("notifications_api:notification-mark-all-read")
         authenticated_client.post(url)
 
-        other_unread = Notification.objects.filter(
-            user=other_user, read_at__isnull=True
-        ).count()
+        other_unread = Notification.objects.filter(user=other_user, read_at__isnull=True).count()
         assert other_unread == 1
 
 
@@ -1028,8 +1022,14 @@ class TestNotificationSerializer:
         notification = results[0]
 
         expected_fields = [
-            "id", "channel", "subject", "status",
-            "priority", "action_url", "read_at", "created_at",
+            "id",
+            "channel",
+            "subject",
+            "status",
+            "priority",
+            "action_url",
+            "read_at",
+            "created_at",
         ]
         for field in expected_fields:
             assert field in notification
@@ -1045,9 +1045,21 @@ class TestNotificationSerializer:
         response = authenticated_client.get(url)
 
         expected_fields = [
-            "id", "user", "template", "channel", "subject", "body",
-            "status", "priority", "action_url", "action_text",
-            "metadata", "sent_at", "delivered_at", "read_at", "created_at",
+            "id",
+            "user",
+            "template",
+            "channel",
+            "subject",
+            "body",
+            "status",
+            "priority",
+            "action_url",
+            "action_text",
+            "metadata",
+            "sent_at",
+            "delivered_at",
+            "read_at",
+            "created_at",
         ]
         for field in expected_fields:
             assert field in response.data
@@ -1068,8 +1080,16 @@ class TestTemplateSerializer:
         template = results[0]
 
         expected_fields = [
-            "id", "name", "description", "subject", "body",
-            "html_body", "channel", "is_active", "created_at", "updated_at",
+            "id",
+            "name",
+            "description",
+            "subject",
+            "body",
+            "html_body",
+            "channel",
+            "is_active",
+            "created_at",
+            "updated_at",
         ]
         for field in expected_fields:
             assert field in template
@@ -1087,10 +1107,19 @@ class TestPreferenceSerializer:
         response = authenticated_client.get(url)
 
         expected_fields = [
-            "id", "email_enabled", "push_enabled", "sms_enabled",
-            "in_app_enabled", "course_reminders", "assessment_results",
-            "certificate_issued", "new_assignments", "deadline_reminders",
-            "lesson_learned_updates", "quiet_hours_start", "quiet_hours_end",
+            "id",
+            "email_enabled",
+            "push_enabled",
+            "sms_enabled",
+            "in_app_enabled",
+            "course_reminders",
+            "assessment_results",
+            "certificate_issued",
+            "new_assignments",
+            "deadline_reminders",
+            "lesson_learned_updates",
+            "quiet_hours_start",
+            "quiet_hours_end",
             "updated_at",
         ]
         for field in expected_fields:
@@ -1112,9 +1141,15 @@ class TestPushSubscriptionSerializer:
         subscription = results[0]
 
         expected_fields = [
-            "id", "endpoint", "p256dh_key", "auth_key",
-            "device_name", "device_type", "is_active",
-            "created_at", "last_used_at",
+            "id",
+            "endpoint",
+            "p256dh_key",
+            "auth_key",
+            "device_name",
+            "device_type",
+            "is_active",
+            "created_at",
+            "last_used_at",
         ]
         for field in expected_fields:
             assert field in subscription

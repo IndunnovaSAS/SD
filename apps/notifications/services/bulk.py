@@ -59,9 +59,7 @@ class BulkNotificationService:
         Send notification from template to multiple users.
         user_context_fn can provide per-user context.
         """
-        template = NotificationTemplateService.get_template(
-            template_name, channel
-        )
+        template = NotificationTemplateService.get_template(template_name, channel)
 
         if not template:
             raise ValueError(f"Template '{template_name}' not found")
@@ -78,9 +76,7 @@ class BulkNotificationService:
             user_context.setdefault("user_name", user.get_full_name())
             user_context.setdefault("first_name", user.first_name)
 
-            rendered = NotificationTemplateService.render_template(
-                template, user_context
-            )
+            rendered = NotificationTemplateService.render_template(template, user_context)
 
             notification = NotificationService.create_notification(
                 user=user,

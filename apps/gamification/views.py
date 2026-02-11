@@ -26,7 +26,6 @@ from apps.gamification.services import (
     RewardService,
 )
 
-
 # ============================================================================
 # User Dashboard
 # ============================================================================
@@ -235,9 +234,7 @@ def challenges_user(request):
 def challenge_detail(request, challenge_id):
     """Challenge detail page."""
     challenge = get_object_or_404(Challenge, id=challenge_id)
-    participation = UserChallenge.objects.filter(
-        user=request.user, challenge=challenge
-    ).first()
+    participation = UserChallenge.objects.filter(user=request.user, challenge=challenge).first()
 
     return render(
         request,
@@ -330,9 +327,7 @@ def reward_detail(request, reward_id):
     can_afford = user_points.available_points >= reward.points_cost
     level_ok = True
     if reward.min_level:
-        level_ok = (
-            user_points.level and user_points.level.number >= reward.min_level.number
-        )
+        level_ok = user_points.level and user_points.level.number >= reward.min_level.number
 
     return render(
         request,

@@ -3,17 +3,14 @@ Tests for assessment services.
 """
 
 from datetime import date
-from decimal import Decimal
 
 from django.test import TestCase
-from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.assessments.models import (
     Answer,
     Assessment,
     AssessmentAttempt,
-    AttemptAnswer,
     Question,
 )
 from apps.assessments.services import AssessmentService, QuestionBankService
@@ -96,8 +93,12 @@ class AssessmentServiceTest(TestCase):
             points=5,
             order=3,
         )
-        self.q3_true = Answer.objects.create(question=self.q3, text="True", is_correct=True, order=1)
-        self.q3_false = Answer.objects.create(question=self.q3, text="False", is_correct=False, order=2)
+        self.q3_true = Answer.objects.create(
+            question=self.q3, text="True", is_correct=True, order=1
+        )
+        self.q3_false = Answer.objects.create(
+            question=self.q3, text="False", is_correct=False, order=2
+        )
 
     def test_can_start_attempt(self):
         """Test checking if user can start an attempt."""
@@ -340,9 +341,7 @@ class QuestionBankServiceTest(TestCase):
             created_by=self.admin,
         )
 
-        new_question = QuestionBankService.duplicate_question(
-            self.question, other_assessment
-        )
+        new_question = QuestionBankService.duplicate_question(self.question, other_assessment)
 
         self.assertEqual(new_question.assessment, other_assessment)
 

@@ -10,19 +10,17 @@ Covers:
 - Email, Push, SMS sending with mocking
 """
 
-import pytest
 from datetime import time, timedelta
-from decimal import Decimal
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
-from django.core import mail
 from django.utils import timezone
+
+import pytest
 
 from apps.notifications.models import (
     Notification,
     NotificationTemplate,
     PushSubscription,
-    UserNotificationPreference,
 )
 from apps.notifications.services import (
     BulkNotificationService,
@@ -33,17 +31,15 @@ from apps.notifications.services import (
 )
 
 from .factories import (
+    EmailTemplateFactory,
+    FailedNotificationFactory,
     NotificationFactory,
     NotificationTemplateFactory,
     PushSubscriptionFactory,
+    PushTemplateFactory,
+    SentNotificationFactory,
     UserFactory,
     UserNotificationPreferenceFactory,
-    SentNotificationFactory,
-    FailedNotificationFactory,
-    EmailTemplateFactory,
-    PushTemplateFactory,
-    AllChannelsDisabledPreferenceFactory,
-    QuietHoursPreferenceFactory,
 )
 
 
@@ -455,10 +451,13 @@ class TestNotificationService:
         count = NotificationService.mark_all_as_read(user)
 
         assert count == 3
-        assert Notification.objects.filter(
-            user=user,
-            read_at__isnull=True,
-        ).count() == 0
+        assert (
+            Notification.objects.filter(
+                user=user,
+                read_at__isnull=True,
+            ).count()
+            == 0
+        )
 
     def test_mark_all_as_read_only_unread(self):
         """Test that mark_all_as_read only affects unread notifications."""
@@ -488,9 +487,7 @@ class TestNotificationService:
         NotificationFactory(user=user)
         NotificationFactory(user=user, read_at=timezone.now())
 
-        notifications = NotificationService.get_user_notifications(
-            user, unread_only=True
-        )
+        notifications = NotificationService.get_user_notifications(user, unread_only=True)
 
         assert len(notifications) == 1
 
@@ -789,22 +786,16 @@ class TestPushService:
 
     def test_unregister_subscription(self):
         """Test unregistering a push subscription."""
-        subscription = PushSubscriptionFactory(
-            endpoint="https://push.example.com/to-delete"
-        )
+        subscription = PushSubscriptionFactory(endpoint="https://push.example.com/to-delete")
 
-        result = PushService.unregister_subscription(
-            "https://push.example.com/to-delete"
-        )
+        result = PushService.unregister_subscription("https://push.example.com/to-delete")
 
         assert result is True
         assert not PushSubscription.objects.filter(pk=subscription.pk).exists()
 
     def test_unregister_subscription_nonexistent(self):
         """Test unregistering nonexistent subscription returns False."""
-        result = PushService.unregister_subscription(
-            "https://push.example.com/nonexistent"
-        )
+        result = PushService.unregister_subscription("https://push.example.com/nonexistent")
 
         assert result is False
 
@@ -817,9 +808,7 @@ class TestPushService:
         count = PushService.deactivate_user_subscriptions(user)
 
         assert count == 2
-        assert PushSubscription.objects.filter(
-            user=user, is_active=True
-        ).count() == 0
+        assert PushSubscription.objects.filter(user=user, is_active=True).count() == 0
 
     def test_get_user_subscriptions(self):
         """Test getting active subscriptions for a user."""

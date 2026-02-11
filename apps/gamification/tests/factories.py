@@ -7,9 +7,10 @@ Uses factory_boy to create test data for all gamification models.
 from datetime import date, timedelta
 from decimal import Decimal
 
-import factory
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+
+import factory
 from factory.django import DjangoModelFactory
 
 from apps.gamification.models import (

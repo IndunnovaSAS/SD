@@ -3,6 +3,7 @@ API URL configuration for assessments.
 """
 
 from django.urls import include, path
+
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers
 
@@ -24,9 +25,7 @@ assessments_router = routers.NestedDefaultRouter(router, r"assessments", lookup=
 assessments_router.register(r"questions", QuestionViewSet, basename="assessment-questions")
 
 # Nested router for answers under questions
-questions_router = routers.NestedDefaultRouter(
-    assessments_router, r"questions", lookup="question"
-)
+questions_router = routers.NestedDefaultRouter(assessments_router, r"questions", lookup="question")
 questions_router.register(r"answers", AnswerViewSet, basename="question-answers")
 
 urlpatterns = [

@@ -3,15 +3,14 @@ Lessons Learned views for SD LMS.
 """
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_GET, require_POST, require_http_methods
+from django.views.decorators.http import require_GET, require_POST
 
-from apps.lessons_learned.models import Category, LessonLearned, LessonComment
+from apps.lessons_learned.models import Category, LessonLearned
 from apps.lessons_learned.services import (
-    CategoryService,
     LessonCommentService,
     LessonLearnedService,
 )
@@ -64,8 +63,7 @@ def lesson_grid(request):
 def lesson_detail(request, lesson_id):
     """Lesson detail page."""
     lesson = get_object_or_404(
-        LessonLearned.objects.select_related("created_by", "category"),
-        id=lesson_id
+        LessonLearned.objects.select_related("created_by", "category"), id=lesson_id
     )
 
     # Increment view count
@@ -146,9 +144,7 @@ def submit_for_review(request, lesson_id):
     LessonLearnedService.submit_for_review(lesson)
 
     if request.headers.get("HX-Request"):
-        return HttpResponse(
-            '<span class="badge badge-warning">Pendiente revisión</span>'
-        )
+        return HttpResponse('<span class="badge badge-warning">Pendiente revisión</span>')
 
     messages.success(request, "Lección enviada para revisión")
     return redirect("lessons_learned:detail", lesson_id=lesson.id)
@@ -216,9 +212,7 @@ def add_comment(request, lesson_id):
 @require_GET
 def my_lessons(request):
     """Get user's lessons."""
-    lessons = LessonLearned.objects.filter(
-        created_by=request.user
-    ).order_by("-created_at")
+    lessons = LessonLearned.objects.filter(created_by=request.user).order_by("-created_at")
 
     context = {"lessons": lessons}
     return render(request, "lessons_learned/my_lessons.html", context)

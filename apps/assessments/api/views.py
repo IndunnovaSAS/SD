@@ -7,6 +7,7 @@ from decimal import Decimal
 from django.db.models import Max, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -70,8 +71,7 @@ class AssessmentViewSet(viewsets.ModelViewSet):
         # By default, non-staff see only published assessments
         if not self.request.user.is_staff:
             queryset = queryset.filter(
-                Q(status=Assessment.Status.PUBLISHED)
-                | Q(created_by=self.request.user)
+                Q(status=Assessment.Status.PUBLISHED) | Q(created_by=self.request.user)
             )
 
         return queryset.order_by("-created_at")
@@ -137,9 +137,11 @@ class QuestionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         assessment_id = self.kwargs.get("assessment_pk")
-        return Question.objects.filter(
-            assessment_id=assessment_id
-        ).prefetch_related("answers").order_by("order")
+        return (
+            Question.objects.filter(assessment_id=assessment_id)
+            .prefetch_related("answers")
+            .order_by("order")
+        )
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -196,9 +198,9 @@ class AssessmentAttemptViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        queryset = AssessmentAttempt.objects.select_related(
-            "user", "assessment"
-        ).prefetch_related("attempt_answers")
+        queryset = AssessmentAttempt.objects.select_related("user", "assessment").prefetch_related(
+            "attempt_answers"
+        )
 
         # Filter by assessment
         assessment_id = self.request.query_params.get("assessment")
@@ -259,10 +261,13 @@ class AssessmentAttemptViewSet(viewsets.ModelViewSet):
             )
 
         # Calculate attempt number
-        attempt_number = AssessmentAttempt.objects.filter(
-            user=request.user,
-            assessment=assessment,
-        ).count() + 1
+        attempt_number = (
+            AssessmentAttempt.objects.filter(
+                user=request.user,
+                assessment=assessment,
+            ).count()
+            + 1
+        )
 
         # Get client info
         ip_address = request.META.get("REMOTE_ADDR", "")
@@ -342,9 +347,7 @@ class AssessmentAttemptViewSet(viewsets.ModelViewSet):
         # Auto-grade if possible using the service
         AssessmentService.auto_grade_attempt(attempt)
 
-        return Response(
-            AssessmentAttemptSerializer(attempt, context={"request": request}).data
-        )
+        return Response(AssessmentAttemptSerializer(attempt, context={"request": request}).data)
 
     @action(detail=True, methods=["post"])
     def save_answer(self, request, pk=None):
@@ -435,16 +438,16 @@ class AssessmentAttemptViewSet(viewsets.ModelViewSet):
         attempt.status = AssessmentAttempt.Status.GRADED
         attempt.save()
 
-        return Response(
-            AssessmentAttemptSerializer(attempt, context={"request": request}).data
-        )
+        return Response(AssessmentAttemptSerializer(attempt, context={"request": request}).data)
 
     @action(detail=False, methods=["get"])
     def my_attempts(self, request):
         """Get current user's attempts."""
-        attempts = AssessmentAttempt.objects.filter(
-            user=request.user
-        ).select_related("assessment").order_by("-started_at")
+        attempts = (
+            AssessmentAttempt.objects.filter(user=request.user)
+            .select_related("assessment")
+            .order_by("-started_at")
+        )
 
         serializer = AssessmentAttemptListSerializer(attempts, many=True)
         return Response(serializer.data)

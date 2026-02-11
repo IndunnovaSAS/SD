@@ -5,14 +5,10 @@ Tests for SyncLog, OfflinePackage, SyncConflict, and PackageDownload models.
 """
 
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
+
+from django.utils import timezone
 
 import pytest
-from django.core.exceptions import ValidationError
-from django.core.files.base import ContentFile
-from django.db import IntegrityError
-from django.db.models import ProtectedError
-from django.utils import timezone
 
 from apps.sync.models import (
     OfflinePackage,
@@ -22,7 +18,6 @@ from apps.sync.models import (
 )
 
 from .factories import (
-    AdminUserFactory,
     BuildingPackageFactory,
     ClientWinsConflictFactory,
     CompletedDownloadFactory,
@@ -693,9 +688,7 @@ class TestModelRelationships:
 
         # Verify
         assert sync_log.conflicts.count() == 2
-        assert sync_log.conflicts.filter(
-            resolution=SyncConflict.Resolution.PENDING
-        ).count() == 0
+        assert sync_log.conflicts.filter(resolution=SyncConflict.Resolution.PENDING).count() == 0
         assert sync_log.status == SyncLog.Status.COMPLETED
 
     def test_package_download_workflow(self):

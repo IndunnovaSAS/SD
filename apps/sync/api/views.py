@@ -4,6 +4,7 @@ ViewSets for offline sync API.
 
 from django.db.models import Q
 from django.utils import timezone
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -126,10 +127,12 @@ class SyncLogViewSet(viewsets.ModelViewSet):
         sync_log.records_uploaded += records_count
         sync_log.save()
 
-        return Response({
-            "received": records_count,
-            "sync_id": sync_log.id,
-        })
+        return Response(
+            {
+                "received": records_count,
+                "sync_id": sync_log.id,
+            }
+        )
 
     @action(detail=True, methods=["get"])
     def download(self, request, pk=None):
@@ -144,11 +147,13 @@ class SyncLogViewSet(viewsets.ModelViewSet):
 
         # In a real implementation, gather data to send to client
         # For now, return empty data structure
-        return Response({
-            "sync_id": sync_log.id,
-            "records": [],
-            "server_timestamp": timezone.now().isoformat(),
-        })
+        return Response(
+            {
+                "sync_id": sync_log.id,
+                "records": [],
+                "server_timestamp": timezone.now().isoformat(),
+            }
+        )
 
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):
@@ -193,18 +198,24 @@ class SyncLogViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        sync_log = SyncLog.objects.filter(
-            user=request.user,
-            device_id=device_id,
-            status=SyncLog.Status.COMPLETED,
-        ).order_by("-completed_at").first()
+        sync_log = (
+            SyncLog.objects.filter(
+                user=request.user,
+                device_id=device_id,
+                status=SyncLog.Status.COMPLETED,
+            )
+            .order_by("-completed_at")
+            .first()
+        )
 
         if not sync_log:
             return Response({"last_sync": None})
 
-        return Response({
-            "last_sync": SyncLogSerializer(sync_log).data,
-        })
+        return Response(
+            {
+                "last_sync": SyncLogSerializer(sync_log).data,
+            }
+        )
 
 
 class SyncConflictViewSet(viewsets.ModelViewSet):
@@ -215,9 +226,7 @@ class SyncConflictViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post"]
 
     def get_queryset(self):
-        queryset = SyncConflict.objects.select_related(
-            "sync_log", "sync_log__user", "resolved_by"
-        )
+        queryset = SyncConflict.objects.select_related("sync_log", "sync_log__user", "resolved_by")
 
         # Regular users see only their conflicts
         if not self.request.user.is_staff:
@@ -363,11 +372,13 @@ class OfflinePackageViewSet(viewsets.ModelViewSet):
         package.save()
 
         # In a real implementation, queue a background task
-        return Response({
-            "message": "Construcción del paquete iniciada",
-            "package_id": package.id,
-            "version": package.version,
-        })
+        return Response(
+            {
+                "message": "Construcción del paquete iniciada",
+                "package_id": package.id,
+                "version": package.version,
+            }
+        )
 
     @action(detail=True, methods=["get"])
     def download_url(self, request, pk=None):
@@ -386,18 +397,22 @@ class OfflinePackageViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        return Response({
-            "url": package.package_file.url,
-            "checksum": package.checksum,
-            "file_size": package.file_size,
-        })
+        return Response(
+            {
+                "url": package.package_file.url,
+                "checksum": package.checksum,
+                "file_size": package.file_size,
+            }
+        )
 
     @action(detail=False, methods=["get"])
     def available(self, request):
         """Get available packages for download."""
-        packages = OfflinePackage.objects.filter(
-            status=OfflinePackage.Status.READY
-        ).select_related("course").order_by("course__title")
+        packages = (
+            OfflinePackage.objects.filter(status=OfflinePackage.Status.READY)
+            .select_related("course")
+            .order_by("course__title")
+        )
 
         return Response(OfflinePackageListSerializer(packages, many=True).data)
 
@@ -465,12 +480,14 @@ class PackageDownloadViewSet(viewsets.ModelViewSet):
             download.downloaded_at = timezone.now()
             download.save()
 
-        return Response({
-            "download_id": download.id,
-            "url": package.package_file.url if package.package_file else None,
-            "checksum": package.checksum,
-            "file_size": package.file_size,
-        })
+        return Response(
+            {
+                "download_id": download.id,
+                "url": package.package_file.url if package.package_file else None,
+                "checksum": package.checksum,
+                "file_size": package.file_size,
+            }
+        )
 
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):
@@ -492,10 +509,14 @@ class PackageDownloadViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def my_downloads(self, request):
         """Get current user's downloads."""
-        downloads = PackageDownload.objects.filter(
-            user=request.user,
-            download_completed=True,
-        ).select_related("package").order_by("-last_accessed_at")
+        downloads = (
+            PackageDownload.objects.filter(
+                user=request.user,
+                download_completed=True,
+            )
+            .select_related("package")
+            .order_by("-last_accessed_at")
+        )
 
         return Response(PackageDownloadSerializer(downloads, many=True).data)
 

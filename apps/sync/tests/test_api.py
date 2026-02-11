@@ -6,18 +6,17 @@ Uses pytest and factory_boy for test data generation.
 """
 
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
 
-import pytest
 from django.urls import reverse
 from django.utils import timezone
+
+import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.sync.models import (
     OfflinePackage,
     PackageDownload,
-    SyncConflict,
     SyncLog,
 )
 
@@ -30,20 +29,14 @@ from .factories import (
     ErrorPackageFactory,
     FailedSyncLogFactory,
     InProgressSyncLogFactory,
-    OfflinePackageFactory,
-    OutdatedPackageFactory,
     PackageDownloadFactory,
-    PartialSyncLogFactory,
     PendingConflictFactory,
-    PendingSyncLogFactory,
     ReadyPackageFactory,
     ServerWinsConflictFactory,
     SyncConflictFactory,
     SyncLogFactory,
-    SyncLogWithConflictsFactory,
     UserFactory,
 )
-
 
 # ============================================================================
 # Fixtures

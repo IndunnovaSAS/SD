@@ -5,7 +5,15 @@ Admin configuration for preop_talks app.
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
-from .models import PreopTalk, TalkAttachment, TalkAttendee, TalkTemplate
+from .models import (
+    Alert,
+    AlertAccess,
+    AlertVerificationQuestion,
+    PreopTalk,
+    TalkAttachment,
+    TalkAttendee,
+    TalkTemplate,
+)
 
 
 class TalkAttendeeInline(admin.TabularInline):
@@ -59,6 +67,7 @@ class TalkTemplateAdmin(admin.ModelAdmin):
                     "estimated_duration",
                     "requires_signature",
                     "target_activities",
+                    "recurrence_months",
                     "is_active",
                 ],
             },
@@ -149,3 +158,114 @@ class PreopTalkAdmin(admin.ModelAdmin):
             },
         ),
     ]
+
+
+class AlertVerificationQuestionInline(admin.TabularInline):
+    """Inline for verification questions in alert admin."""
+
+    model = AlertVerificationQuestion
+    extra = 1
+    max_num = 2
+
+
+class AlertAccessInline(admin.TabularInline):
+    """Inline for alert accesses (read-only)."""
+
+    model = AlertAccess
+    extra = 0
+    readonly_fields = ["user", "accessed_at", "verified", "verified_at", "ip_address"]
+    can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Alert)
+class AlertAdmin(admin.ModelAdmin):
+    """Admin configuration for Alert model."""
+
+    list_display = [
+        "title",
+        "status",
+        "priority",
+        "requires_verification",
+        "access_count",
+        "verified_count",
+        "published_at",
+        "expires_at",
+    ]
+    list_filter = ["status", "priority", "requires_verification", "created_at"]
+    search_fields = ["title", "content"]
+    readonly_fields = ["unique_link", "created_at", "updated_at", "access_count", "verified_count"]
+    date_hierarchy = "created_at"
+    inlines = [AlertVerificationQuestionInline, AlertAccessInline]
+
+    fieldsets = [
+        (
+            None,
+            {
+                "fields": ["title", "content", "attachment"],
+            },
+        ),
+        (
+            _("Configuración"),
+            {
+                "fields": [
+                    "status",
+                    "priority",
+                    "requires_verification",
+                    "target_profiles",
+                ],
+            },
+        ),
+        (
+            _("Fechas"),
+            {
+                "fields": ["published_at", "expires_at"],
+            },
+        ),
+        (
+            _("Enlace único"),
+            {
+                "fields": ["unique_link"],
+                "classes": ["collapse"],
+            },
+        ),
+        (
+            _("Estadísticas"),
+            {
+                "fields": ["access_count", "verified_count"],
+                "classes": ["collapse"],
+            },
+        ),
+        (
+            _("Auditoría"),
+            {
+                "fields": ["created_by", "created_at", "updated_at"],
+                "classes": ["collapse"],
+            },
+        ),
+    ]
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(AlertAccess)
+class AlertAccessAdmin(admin.ModelAdmin):
+    """Admin configuration for AlertAccess model."""
+
+    list_display = [
+        "alert",
+        "user",
+        "accessed_at",
+        "verified",
+        "verified_at",
+    ]
+    list_filter = ["verified", "accessed_at"]
+    search_fields = ["alert__title", "user__first_name", "user__last_name"]
+    readonly_fields = ["accessed_at"]
+    raw_id_fields = ["alert", "user"]
+    date_hierarchy = "accessed_at"

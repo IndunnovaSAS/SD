@@ -138,7 +138,7 @@ class UserAdmin(BaseUserAdmin):
                         new_employment_type=obj.employment_type,
                         change_date=timezone.now().date(),
                         changed_by=request.user,
-                        reason=f"Modificado desde el panel de administración",
+                        reason="Modificado desde el panel de administración",
                     )
             except User.DoesNotExist:
                 pass

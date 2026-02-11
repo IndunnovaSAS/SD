@@ -6,9 +6,10 @@ Uses factory_boy to create test data for all notification models.
 
 from datetime import date, time, timedelta
 
-import factory
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+
+import factory
 from factory.django import DjangoModelFactory
 
 from apps.notifications.models import (
@@ -282,9 +283,7 @@ class PushSubscriptionFactory(DjangoModelFactory):
         model = PushSubscription
 
     user = factory.SubFactory(UserFactory)
-    endpoint = factory.Sequence(
-        lambda n: f"https://push.example.com/endpoint/{n}"
-    )
+    endpoint = factory.Sequence(lambda n: f"https://push.example.com/endpoint/{n}")
     p256dh_key = factory.Sequence(
         lambda n: f"BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM{n}"
     )

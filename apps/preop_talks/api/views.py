@@ -3,8 +3,8 @@ ViewSets for pre-operational talks API.
 """
 
 from django.db.models import Q
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -12,7 +12,6 @@ from rest_framework.response import Response
 from apps.accounts.models import User
 from apps.preop_talks.models import (
     PreopTalk,
-    TalkAttachment,
     TalkAttendee,
     TalkTemplate,
 )
@@ -257,9 +256,7 @@ class PreopTalkViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         attendee.signature = serializer.validated_data.get("signature")
-        attendee.understood_content = serializer.validated_data.get(
-            "understood_content", True
-        )
+        attendee.understood_content = serializer.validated_data.get("understood_content", True)
         attendee.comments = serializer.validated_data.get("comments", "")
         attendee.signed_at = timezone.now()
         attendee.save()
@@ -286,9 +283,7 @@ class PreopTalkViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def my_talks(self, request):
         """Get talks conducted by current user."""
-        talks = PreopTalk.objects.filter(
-            conducted_by=request.user
-        ).order_by("-scheduled_at")
+        talks = PreopTalk.objects.filter(conducted_by=request.user).order_by("-scheduled_at")
 
         serializer = PreopTalkListSerializer(talks, many=True)
         return Response(serializer.data)
@@ -296,13 +291,9 @@ class PreopTalkViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def my_attendances(self, request):
         """Get talks where current user is an attendee."""
-        talk_ids = TalkAttendee.objects.filter(
-            user=request.user
-        ).values_list("talk_id", flat=True)
+        talk_ids = TalkAttendee.objects.filter(user=request.user).values_list("talk_id", flat=True)
 
-        talks = PreopTalk.objects.filter(
-            id__in=talk_ids
-        ).order_by("-scheduled_at")
+        talks = PreopTalk.objects.filter(id__in=talk_ids).order_by("-scheduled_at")
 
         serializer = PreopTalkListSerializer(talks, many=True)
         return Response(serializer.data)
@@ -334,12 +325,14 @@ class PreopTalkViewSet(viewsets.ModelViewSet):
         signed_count = attendees.filter(signed_at__isnull=False).count()
         total_count = attendees.count()
 
-        return Response({
-            "talk": PreopTalkSerializer(talk).data,
-            "statistics": {
-                "total_attendees": total_count,
-                "signed": signed_count,
-                "unsigned": total_count - signed_count,
-                "sign_rate": (signed_count / total_count * 100) if total_count > 0 else 0,
-            },
-        })
+        return Response(
+            {
+                "talk": PreopTalkSerializer(talk).data,
+                "statistics": {
+                    "total_attendees": total_count,
+                    "signed": signed_count,
+                    "unsigned": total_count - signed_count,
+                    "sign_rate": (signed_count / total_count * 100) if total_count > 0 else 0,
+                },
+            }
+        )

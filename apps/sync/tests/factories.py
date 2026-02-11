@@ -6,10 +6,11 @@ Uses factory_boy to create test data for all sync models.
 
 from datetime import date, timedelta
 
-import factory
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.utils import timezone
+
+import factory
 from factory.django import DjangoModelFactory
 
 from apps.courses.models import Course

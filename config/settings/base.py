@@ -5,7 +5,6 @@ This file contains settings common to all environments.
 For environment-specific settings, see local.py, staging.py, production.py
 """
 
-import os
 from pathlib import Path
 
 from decouple import Csv, config
@@ -66,6 +65,7 @@ LOCAL_APPS = [
     "apps.reports",
     "apps.integrations",
     "apps.gamification",
+    "apps.occupational_profiles",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

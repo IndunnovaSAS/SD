@@ -6,6 +6,7 @@ from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -83,9 +84,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     def courses(self, request, pk=None):
         """Get all courses in this category."""
         category = self.get_object()
-        courses = Course.objects.filter(
-            category=category, status=Course.Status.PUBLISHED
-        )
+        courses = Course.objects.filter(category=category, status=Course.Status.PUBLISHED)
         serializer = CourseListSerializer(courses, many=True)
         return Response(serializer.data)
 
@@ -118,11 +117,6 @@ class CourseViewSet(viewsets.ModelViewSet):
         if course_type:
             queryset = queryset.filter(course_type=course_type)
 
-        # Filter by risk level
-        risk_level = self.request.query_params.get("risk_level")
-        if risk_level:
-            queryset = queryset.filter(risk_level=risk_level)
-
         # Filter by target profile
         profile = self.request.query_params.get("profile")
         if profile:
@@ -146,9 +140,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         # Search by title or code
         search = self.request.query_params.get("search")
         if search:
-            queryset = queryset.filter(
-                Q(title__icontains=search) | Q(code__icontains=search)
-            )
+            queryset = queryset.filter(Q(title__icontains=search) | Q(code__icontains=search))
 
         return queryset.distinct()
 
@@ -188,9 +180,7 @@ class CourseViewSet(viewsets.ModelViewSet):
                 title=f"{original.title} (copia)",
                 description=original.description,
                 objectives=original.objectives,
-                duration=original.duration,
                 course_type=original.course_type,
-                risk_level=original.risk_level,
                 target_profiles=original.target_profiles,
                 validity_months=original.validity_months,
                 created_by=request.user,
@@ -353,9 +343,7 @@ class MyEnrollmentsView(APIView):
 
     def get(self, request):
         """Get current user's enrollments."""
-        enrollments = Enrollment.objects.filter(user=request.user).select_related(
-            "course"
-        )
+        enrollments = Enrollment.objects.filter(user=request.user).select_related("course")
 
         status_filter = request.query_params.get("status")
         if status_filter:
@@ -372,20 +360,14 @@ class LessonProgressView(APIView):
 
     def get(self, request, enrollment_id):
         """Get lesson progress for an enrollment."""
-        enrollment = get_object_or_404(
-            Enrollment, pk=enrollment_id, user=request.user
-        )
-        progress = LessonProgress.objects.filter(enrollment=enrollment).select_related(
-            "lesson"
-        )
+        enrollment = get_object_or_404(Enrollment, pk=enrollment_id, user=request.user)
+        progress = LessonProgress.objects.filter(enrollment=enrollment).select_related("lesson")
         serializer = LessonProgressSerializer(progress, many=True)
         return Response(serializer.data)
 
     def post(self, request, enrollment_id, lesson_id):
         """Update or create lesson progress."""
-        enrollment = get_object_or_404(
-            Enrollment, pk=enrollment_id, user=request.user
-        )
+        enrollment = get_object_or_404(Enrollment, pk=enrollment_id, user=request.user)
         lesson = get_object_or_404(Lesson, pk=lesson_id)
 
         progress, created = LessonProgress.objects.get_or_create(
@@ -393,9 +375,7 @@ class LessonProgressView(APIView):
             lesson=lesson,
         )
 
-        serializer = LessonProgressUpdateSerializer(
-            progress, data=request.data, partial=True
-        )
+        serializer = LessonProgressUpdateSerializer(progress, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -419,9 +399,7 @@ class CourseVersionViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         course_id = self.kwargs.get("course_pk")
-        return CourseVersion.objects.filter(course_id=course_id).select_related(
-            "created_by"
-        )
+        return CourseVersion.objects.filter(course_id=course_id).select_related("created_by")
 
 
 class CreateCourseVersionView(APIView):
@@ -473,6 +451,7 @@ class ScormPackageViewSet(viewsets.ModelViewSet):
         instance = serializer.save()
         # Queue for processing
         from apps.courses.services import ScormService
+
         ScormService.process_package(instance)
 
     @action(detail=True, methods=["post"])
@@ -481,6 +460,7 @@ class ScormPackageViewSet(viewsets.ModelViewSet):
         scorm_package = self.get_object()
 
         from apps.courses.services import ScormService
+
         ScormService.process_package(scorm_package)
 
         return Response(ScormPackageSerializer(scorm_package).data)
@@ -575,9 +555,7 @@ class ResourceLibraryViewSet(viewsets.ModelViewSet):
 
         search = self.request.query_params.get("search")
         if search:
-            queryset = queryset.filter(
-                Q(name__icontains=search) | Q(description__icontains=search)
-            )
+            queryset = queryset.filter(Q(name__icontains=search) | Q(description__icontains=search))
 
         return queryset.order_by("-usage_count", "-created_at")
 
@@ -602,17 +580,13 @@ class ResourceLibraryViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def popular(self, request):
         """Get most popular resources."""
-        resources = ResourceLibrary.objects.filter(is_public=True).order_by(
-            "-usage_count"
-        )[:20]
+        resources = ResourceLibrary.objects.filter(is_public=True).order_by("-usage_count")[:20]
         serializer = ResourceLibraryListSerializer(resources, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def my_resources(self, request):
         """Get resources uploaded by current user."""
-        resources = ResourceLibrary.objects.filter(
-            uploaded_by=request.user
-        ).order_by("-created_at")
+        resources = ResourceLibrary.objects.filter(uploaded_by=request.user).order_by("-created_at")
         serializer = ResourceLibraryListSerializer(resources, many=True)
         return Response(serializer.data)

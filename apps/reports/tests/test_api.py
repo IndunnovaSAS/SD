@@ -6,11 +6,12 @@ from datetime import date
 
 from django.test import TestCase
 from django.urls import reverse
+
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.reports.models import Dashboard, GeneratedReport, ReportTemplate, ScheduledReport
+from apps.reports.models import Dashboard, GeneratedReport, ReportTemplate
 
 
 class ReportTemplateAPITests(TestCase):

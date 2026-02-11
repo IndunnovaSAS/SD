@@ -2,8 +2,9 @@
 Django settings for Google Cloud Run environment.
 """
 
-from .base import *  # noqa: F403, F401
 from decouple import config
+
+from .base import *  # noqa: F403, F401
 
 DEBUG = False
 
@@ -40,7 +41,9 @@ DATABASES = {
         "NAME": config("DB_NAME", default="sd_lms"),
         "USER": config("DB_USER", default="postgres"),
         "PASSWORD": config("DB_PASSWORD"),
-        "HOST": config("DB_HOST", default="/cloudsql/appsindunnova:us-central1:postgres-consolidated"),
+        "HOST": config(
+            "DB_HOST", default="/cloudsql/appsindunnova:us-central1:postgres-consolidated"
+        ),
         "PORT": config("DB_PORT", default="5432"),
     }
 }

@@ -6,19 +6,20 @@ This module provides custom validators for model fields across the application.
 
 import os
 import re
+
 from django.core.exceptions import ValidationError
 from django.core.validators import (
-    MinValueValidator,
     MaxValueValidator,
+    MinValueValidator,
     URLValidator,
 )
 from django.utils.deconstruct import deconstructible
 from django.utils.translation import gettext_lazy as _
 
-
 # =============================================================================
 # Percentage Validators
 # =============================================================================
+
 
 def validate_percentage(value):
     """
@@ -36,9 +37,7 @@ def validate_percentage(value):
 
 
 # Validators for percentage fields (reusable instances)
-percentage_min_validator = MinValueValidator(
-    0, message=_("El valor debe ser mayor o igual a 0.")
-)
+percentage_min_validator = MinValueValidator(0, message=_("El valor debe ser mayor o igual a 0."))
 percentage_max_validator = MaxValueValidator(
     100, message=_("El valor debe ser menor o igual a 100.")
 )
@@ -71,6 +70,7 @@ def validate_positive_duration(value):
 # Date Range Validators
 # =============================================================================
 
+
 def validate_date_range(start_date, end_date, field_names=("start_date", "end_date")):
     """
     Validate that start_date is before end_date.
@@ -84,11 +84,7 @@ def validate_date_range(start_date, end_date, field_names=("start_date", "end_da
     """
     if start_date and end_date and end_date < start_date:
         raise ValidationError(
-            {
-                field_names[1]: _(
-                    "La fecha de fin debe ser posterior a la fecha de inicio."
-                )
-            }
+            {field_names[1]: _("La fecha de fin debe ser posterior a la fecha de inicio.")}
         )
 
 
@@ -117,17 +113,14 @@ class DateRangeValidator:
 
         if start and end and end < start:
             raise ValidationError(
-                {
-                    self.end_date_field: _(
-                        "La fecha de fin debe ser posterior a la fecha de inicio."
-                    )
-                }
+                {self.end_date_field: _("La fecha de fin debe ser posterior a la fecha de inicio.")}
             )
 
 
 # =============================================================================
 # JSON Schema Validators
 # =============================================================================
+
 
 @deconstructible
 class JSONSchemaValidator:
@@ -243,10 +236,7 @@ class JSONSchemaValidator:
 # Predefined JSON schemas for common use cases
 
 # Schema for target_profiles field (list of strings)
-TARGET_PROFILES_SCHEMA = {
-    "type": "list",
-    "items": {"type": "string"}
-}
+TARGET_PROFILES_SCHEMA = {"type": "list", "items": {"type": "string"}}
 
 # Schema for assessment settings
 ASSESSMENT_SETTINGS_SCHEMA = {
@@ -258,7 +248,7 @@ ASSESSMENT_SETTINGS_SCHEMA = {
         "randomize_answers": {"type": "boolean"},
         "show_feedback": {"type": "boolean"},
         "pass_percentage": {"type": "number"},
-    }
+    },
 }
 
 # Schema for notification metadata
@@ -269,29 +259,28 @@ NOTIFICATION_METADATA_SCHEMA = {
         "lesson_id": {"type": "number"},
         "assessment_id": {"type": "number"},
         "certificate_id": {"type": "number"},
-    }
+    },
 }
 
 # Validator instances for direct use
 validate_target_profiles = JSONSchemaValidator(
-    TARGET_PROFILES_SCHEMA,
-    message=_("target_profiles debe ser una lista de strings.")
+    TARGET_PROFILES_SCHEMA, message=_("target_profiles debe ser una lista de strings.")
 )
 
 validate_assessment_settings = JSONSchemaValidator(
-    ASSESSMENT_SETTINGS_SCHEMA,
-    message=_("settings debe ser un objeto con la estructura correcta.")
+    ASSESSMENT_SETTINGS_SCHEMA, message=_("settings debe ser un objeto con la estructura correcta.")
 )
 
 validate_notification_metadata = JSONSchemaValidator(
     NOTIFICATION_METADATA_SCHEMA,
-    message=_("metadata debe ser un objeto con la estructura correcta.")
+    message=_("metadata debe ser un objeto con la estructura correcta."),
 )
 
 
 # =============================================================================
 # File Extension Validators
 # =============================================================================
+
 
 @deconstructible
 class FileExtensionValidator:
@@ -304,90 +293,81 @@ class FileExtensionValidator:
     """
 
     def __init__(self, allowed_extensions, message=None):
-        self.allowed_extensions = [ext.lower().lstrip('.') for ext in allowed_extensions]
+        self.allowed_extensions = [ext.lower().lstrip(".") for ext in allowed_extensions]
         self.message = message
 
     def __call__(self, value):
         if not value:
             return
 
-        ext = os.path.splitext(value.name)[1].lower().lstrip('.')
+        ext = os.path.splitext(value.name)[1].lower().lstrip(".")
 
         if ext not in self.allowed_extensions:
             raise ValidationError(
-                self.message or _(
-                    "Extensión de archivo no permitida. "
-                    "Extensiones válidas: %(allowed)s"
-                ),
+                self.message
+                or _("Extensión de archivo no permitida. Extensiones válidas: %(allowed)s"),
                 params={"allowed": ", ".join(self.allowed_extensions)},
                 code="invalid_extension",
             )
 
     def __eq__(self, other):
-        return (
-            isinstance(other, FileExtensionValidator)
-            and set(self.allowed_extensions) == set(other.allowed_extensions)
+        return isinstance(other, FileExtensionValidator) and set(self.allowed_extensions) == set(
+            other.allowed_extensions
         )
 
 
 # Predefined file extension validators
 
 # Document extensions
-DOCUMENT_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt']
+DOCUMENT_EXTENSIONS = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt"]
 validate_document_extension = FileExtensionValidator(
-    DOCUMENT_EXTENSIONS,
-    message=_("Solo se permiten documentos: %(allowed)s")
+    DOCUMENT_EXTENSIONS, message=_("Solo se permiten documentos: %(allowed)s")
 )
 
 # Image extensions
-IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "svg"]
 validate_image_extension = FileExtensionValidator(
-    IMAGE_EXTENSIONS,
-    message=_("Solo se permiten imágenes: %(allowed)s")
+    IMAGE_EXTENSIONS, message=_("Solo se permiten imágenes: %(allowed)s")
 )
 
 # Video extensions
-VIDEO_EXTENSIONS = ['mp4', 'webm', 'mov', 'avi', 'mkv']
+VIDEO_EXTENSIONS = ["mp4", "webm", "mov", "avi", "mkv"]
 validate_video_extension = FileExtensionValidator(
-    VIDEO_EXTENSIONS,
-    message=_("Solo se permiten videos: %(allowed)s")
+    VIDEO_EXTENSIONS, message=_("Solo se permiten videos: %(allowed)s")
 )
 
 # Audio extensions
-AUDIO_EXTENSIONS = ['mp3', 'wav', 'ogg', 'm4a', 'aac']
+AUDIO_EXTENSIONS = ["mp3", "wav", "ogg", "m4a", "aac"]
 validate_audio_extension = FileExtensionValidator(
-    AUDIO_EXTENSIONS,
-    message=_("Solo se permiten archivos de audio: %(allowed)s")
+    AUDIO_EXTENSIONS, message=_("Solo se permiten archivos de audio: %(allowed)s")
 )
 
 # SCORM package extensions
-SCORM_EXTENSIONS = ['zip']
+SCORM_EXTENSIONS = ["zip"]
 validate_scorm_extension = FileExtensionValidator(
-    SCORM_EXTENSIONS,
-    message=_("Los paquetes SCORM deben ser archivos ZIP.")
+    SCORM_EXTENSIONS, message=_("Los paquetes SCORM deben ser archivos ZIP.")
 )
 
 # Certificate template extensions
-CERTIFICATE_TEMPLATE_EXTENSIONS = ['html', 'htm', 'pdf']
+CERTIFICATE_TEMPLATE_EXTENSIONS = ["html", "htm", "pdf"]
 validate_certificate_template_extension = FileExtensionValidator(
     CERTIFICATE_TEMPLATE_EXTENSIONS,
-    message=_("Las plantillas de certificado deben ser HTML o PDF.")
+    message=_("Las plantillas de certificado deben ser HTML o PDF."),
 )
 
 # Course content extensions (all media types)
 CONTENT_EXTENSIONS = (
-    DOCUMENT_EXTENSIONS + IMAGE_EXTENSIONS + VIDEO_EXTENSIONS +
-    AUDIO_EXTENSIONS + SCORM_EXTENSIONS
+    DOCUMENT_EXTENSIONS + IMAGE_EXTENSIONS + VIDEO_EXTENSIONS + AUDIO_EXTENSIONS + SCORM_EXTENSIONS
 )
 validate_content_extension = FileExtensionValidator(
-    CONTENT_EXTENSIONS,
-    message=_("Tipo de archivo no permitido.")
+    CONTENT_EXTENSIONS, message=_("Tipo de archivo no permitido.")
 )
 
 
 # =============================================================================
 # URL Validators
 # =============================================================================
+
 
 @deconstructible
 class SafeURLValidator(URLValidator):
@@ -402,34 +382,26 @@ class SafeURLValidator(URLValidator):
 
     def __init__(self, schemes=None, allow_http=False, **kwargs):
         if schemes is None:
-            schemes = ['https']
+            schemes = ["https"]
             if allow_http:
-                schemes.append('http')
+                schemes.append("http")
         super().__init__(schemes=schemes, **kwargs)
         self.allow_http = allow_http
 
     def __eq__(self, other):
-        return (
-            isinstance(other, SafeURLValidator)
-            and self.schemes == other.schemes
-        )
+        return isinstance(other, SafeURLValidator) and self.schemes == other.schemes
 
 
 # Validator instances
-validate_https_url = SafeURLValidator(
-    schemes=['https'],
-    message=_("La URL debe usar HTTPS.")
-)
+validate_https_url = SafeURLValidator(schemes=["https"], message=_("La URL debe usar HTTPS."))
 
-validate_url = SafeURLValidator(
-    allow_http=True,
-    message=_("Ingrese una URL válida.")
-)
+validate_url = SafeURLValidator(allow_http=True, message=_("Ingrese una URL válida."))
 
 
 # =============================================================================
 # Hex Color Validator
 # =============================================================================
+
 
 @deconstructible
 class HexColorValidator:
@@ -440,7 +412,7 @@ class HexColorValidator:
         color = models.CharField(validators=[HexColorValidator()])
     """
 
-    regex = re.compile(r'^#(?:[0-9a-fA-F]{3}){1,2}$')
+    regex = re.compile(r"^#(?:[0-9a-fA-F]{3}){1,2}$")
     message = _("Ingrese un color hexadecimal válido (ej: #3B82F6).")
     code = "invalid_hex_color"
 
@@ -459,6 +431,7 @@ validate_hex_color = HexColorValidator()
 # Slug Validator (enhanced)
 # =============================================================================
 
+
 @deconstructible
 class EnhancedSlugValidator:
     """
@@ -468,7 +441,7 @@ class EnhancedSlugValidator:
         slug = models.SlugField(validators=[EnhancedSlugValidator(min_length=3)])
     """
 
-    regex = re.compile(r'^[-a-zA-Z0-9_]+$')
+    regex = re.compile(r"^[-a-zA-Z0-9_]+$")
 
     def __init__(self, min_length=1, max_length=None, message=None):
         self.min_length = min_length
@@ -478,27 +451,22 @@ class EnhancedSlugValidator:
     def __call__(self, value):
         if len(value) < self.min_length:
             raise ValidationError(
-                self.message or _(
-                    "El slug debe tener al menos %(min_length)s caracteres."
-                ),
+                self.message or _("El slug debe tener al menos %(min_length)s caracteres."),
                 params={"min_length": self.min_length},
                 code="slug_too_short",
             )
 
         if self.max_length and len(value) > self.max_length:
             raise ValidationError(
-                self.message or _(
-                    "El slug no puede tener más de %(max_length)s caracteres."
-                ),
+                self.message or _("El slug no puede tener más de %(max_length)s caracteres."),
                 params={"max_length": self.max_length},
                 code="slug_too_long",
             )
 
         if not self.regex.match(value):
             raise ValidationError(
-                self.message or _(
-                    "El slug solo puede contener letras, números, guiones y guiones bajos."
-                ),
+                self.message
+                or _("El slug solo puede contener letras, números, guiones y guiones bajos."),
                 code="invalid_slug",
             )
 
@@ -514,6 +482,7 @@ class EnhancedSlugValidator:
 # Certificate Number Validator
 # =============================================================================
 
+
 @deconstructible
 class CertificateNumberValidator:
     """
@@ -525,7 +494,7 @@ class CertificateNumberValidator:
         certificate_number = models.CharField(validators=[CertificateNumberValidator()])
     """
 
-    regex = re.compile(r'^CERT-\d{8}-\d{5}$')
+    regex = re.compile(r"^CERT-\d{8}-\d{5}$")
     message = _("El número de certificado debe tener el formato CERT-YYYYMMDD-XXXXX")
     code = "invalid_certificate_number"
 

@@ -42,6 +42,16 @@ ignore = [
     "B008",   # do not perform function calls in argument defaults
     "B905",   # zip without strict
     "ARG001", # unused function argument
+    "ARG002", # unused method argument
+    "ARG004", # unused static method argument
+    "ARG005", # unused lambda argument
+    "F841",   # local variable assigned but never used
+    "SIM102", # collapsible if statements
+    "SIM105", # use contextlib.suppress
+    "SIM103", # return condition directly
+    "B904",   # raise from within except
+    "B007",   # unused loop variable
+    "E402",   # module level import not at top of file
 ]
 
 [tool.ruff.lint.isort]

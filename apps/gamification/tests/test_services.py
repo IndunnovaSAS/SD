@@ -9,23 +9,15 @@ from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
-import pytest
 from django.test import TestCase
 from django.utils import timezone
 
 from apps.gamification.models import (
-    Achievement,
-    Badge,
-    Challenge,
     Leaderboard,
     LeaderboardEntry,
-    Level,
-    PointCategory,
     PointTransaction,
-    Reward,
     RewardRedemption,
     UserAchievement,
-    UserBadge,
     UserChallenge,
     UserPoints,
 )
@@ -46,10 +38,9 @@ from apps.gamification.tests.factories import (
     ChallengeFactory,
     ExpiredChallengeFactory,
     ExpiredRewardFactory,
-    FutureChallengeFactory,
     FutureRewardFactory,
-    LeaderboardFactory,
     LeaderboardEntryFactory,
+    LeaderboardFactory,
     LevelFactory,
     LimitedRewardFactory,
     PointCategoryFactory,
@@ -61,7 +52,6 @@ from apps.gamification.tests.factories import (
     UserFactory,
     UserPointsFactory,
 )
-
 
 # ============================================================================
 # PointService Tests

@@ -30,9 +30,7 @@ class ChallengeService:
             data = {"challenge": challenge, "user_participation": None}
 
             if user:
-                participation = UserChallenge.objects.filter(
-                    user=user, challenge=challenge
-                ).first()
+                participation = UserChallenge.objects.filter(user=user, challenge=challenge).first()
                 data["user_participation"] = participation
 
             result.append(data)
@@ -70,11 +68,15 @@ class ChallengeService:
         value: int,
     ) -> UserChallenge | None:
         """Update user's progress in a challenge."""
-        user_challenge = UserChallenge.objects.filter(
-            user=user,
-            challenge_id=challenge_id,
-            status__in=[UserChallenge.Status.ENROLLED, UserChallenge.Status.IN_PROGRESS],
-        ).select_related("challenge").first()
+        user_challenge = (
+            UserChallenge.objects.filter(
+                user=user,
+                challenge_id=challenge_id,
+                status__in=[UserChallenge.Status.ENROLLED, UserChallenge.Status.IN_PROGRESS],
+            )
+            .select_related("challenge")
+            .first()
+        )
 
         if not user_challenge:
             return None
@@ -130,7 +132,8 @@ class ChallengeService:
 
         # Active = Challenge is active AND UserChallenge is not completed/failed
         active = [
-            c for c in challenges
+            c
+            for c in challenges
             if c.challenge.is_active
             and c.status not in [UserChallenge.Status.COMPLETED, UserChallenge.Status.FAILED]
         ]

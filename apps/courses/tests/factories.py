@@ -7,10 +7,10 @@ Uses factory_boy to create test data for all course-related models.
 from datetime import date, timedelta
 from decimal import Decimal
 
-import factory
 from django.contrib.auth import get_user_model
-from django.core.files.base import ContentFile
 from django.utils import timezone
+
+import factory
 from factory.django import DjangoModelFactory
 
 from apps.accounts.models import Contract
@@ -117,9 +117,7 @@ class CourseFactory(DjangoModelFactory):
     title = factory.Sequence(lambda n: f"Curso de Prueba {n}")
     description = factory.Faker("paragraph", nb_sentences=5, locale="es_ES")
     objectives = factory.Faker("paragraph", nb_sentences=3, locale="es_ES")
-    duration = factory.Faker("random_int", min=30, max=480)
     course_type = Course.Type.MANDATORY
-    risk_level = Course.RiskLevel.MEDIUM
     status = Course.Status.DRAFT
     version = 1
     target_profiles = factory.LazyFunction(lambda: ["LINIERO", "JEFE_CUADRILLA"])
@@ -145,21 +143,18 @@ class MandatoryCourseFactory(CourseFactory):
     """Factory for mandatory courses."""
 
     course_type = Course.Type.MANDATORY
-    risk_level = Course.RiskLevel.HIGH
 
 
 class OptionalCourseFactory(CourseFactory):
     """Factory for optional courses."""
 
     course_type = Course.Type.OPTIONAL
-    risk_level = Course.RiskLevel.LOW
 
 
 class RefresherCourseFactory(CourseFactory):
     """Factory for refresher courses."""
 
     course_type = Course.Type.REFRESHER
-    risk_level = Course.RiskLevel.MEDIUM
 
 
 class ModuleFactory(DjangoModelFactory):
@@ -220,11 +215,13 @@ class QuizLessonFactory(LessonFactory):
 
     lesson_type = Lesson.Type.QUIZ
     duration = factory.Faker("random_int", min=10, max=20)
-    metadata = factory.LazyFunction(lambda: {
-        "passing_score": 70,
-        "max_attempts": 3,
-        "time_limit": 30,
-    })
+    metadata = factory.LazyFunction(
+        lambda: {
+            "passing_score": 70,
+            "max_attempts": 3,
+            "time_limit": 30,
+        }
+    )
 
 
 class TextLessonFactory(LessonFactory):
@@ -400,17 +397,18 @@ class CourseVersionFactory(DjangoModelFactory):
 
     course = factory.SubFactory(CourseFactory)
     version_number = factory.Sequence(lambda n: n + 1)
-    snapshot = factory.LazyAttribute(lambda obj: {
-        "title": obj.course.title,
-        "description": obj.course.description,
-        "objectives": obj.course.objectives,
-        "duration": obj.course.duration,
-        "course_type": obj.course.course_type,
-        "risk_level": obj.course.risk_level,
-        "target_profiles": obj.course.target_profiles,
-        "validity_months": obj.course.validity_months,
-        "modules": [],
-    })
+    snapshot = factory.LazyAttribute(
+        lambda obj: {
+            "title": obj.course.title,
+            "description": obj.course.description,
+            "objectives": obj.course.objectives,
+            "duration": obj.course.total_duration,
+            "course_type": obj.course.course_type,
+            "target_profiles": obj.course.target_profiles,
+            "validity_months": obj.course.validity_months,
+            "modules": [],
+        }
+    )
     changelog = factory.Faker("sentence", locale="es_ES")
     is_major_version = False
     published_at = None
@@ -449,11 +447,13 @@ class ReadyScormPackageFactory(ScormPackageFactory):
     )
     entry_point = "index.html"
     status = ScormPackage.Status.READY
-    manifest_data = factory.LazyFunction(lambda: {
-        "title": "SCORM Package",
-        "version": "1.2",
-        "file_count": 50,
-    })
+    manifest_data = factory.LazyFunction(
+        lambda: {
+            "title": "SCORM Package",
+            "version": "1.2",
+            "file_count": 50,
+        }
+    )
 
 
 class ErrorScormPackageFactory(ScormPackageFactory):
@@ -626,7 +626,12 @@ class FullCourseFactory(CourseFactory):
         for i in range(3):
             module = ModuleFactory(course=self, order=i, title=f"Module {i + 1}")
             for j in range(4):
-                lesson_types = [Lesson.Type.VIDEO, Lesson.Type.PDF, Lesson.Type.TEXT, Lesson.Type.QUIZ]
+                lesson_types = [
+                    Lesson.Type.VIDEO,
+                    Lesson.Type.PDF,
+                    Lesson.Type.TEXT,
+                    Lesson.Type.QUIZ,
+                ]
                 LessonFactory(
                     module=module,
                     order=j,
@@ -645,7 +650,9 @@ class EnrollmentWithProgressFactory(EnrollmentFactory):
 
         # Create progress for all lessons in the course
         completed_count = extracted if extracted else 0
-        lessons = Lesson.objects.filter(module__course=self.course).order_by("module__order", "order")
+        lessons = Lesson.objects.filter(module__course=self.course).order_by(
+            "module__order", "order"
+        )
 
         for i, lesson in enumerate(lessons):
             if i < completed_count:

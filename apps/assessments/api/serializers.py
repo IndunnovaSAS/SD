@@ -173,9 +173,11 @@ class AssessmentListSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return None
-        best_attempt = obj.attempts.filter(
-            user=request.user, status=AssessmentAttempt.Status.GRADED
-        ).order_by("-score").first()
+        best_attempt = (
+            obj.attempts.filter(user=request.user, status=AssessmentAttempt.Status.GRADED)
+            .order_by("-score")
+            .first()
+        )
         return float(best_attempt.score) if best_attempt else None
 
     def get_user_passed(self, obj):

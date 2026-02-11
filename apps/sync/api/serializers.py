@@ -17,9 +17,7 @@ class SyncLogListSerializer(serializers.ModelSerializer):
 
     user_name = serializers.CharField(source="user.get_full_name", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
-    direction_display = serializers.CharField(
-        source="get_direction_display", read_only=True
-    )
+    direction_display = serializers.CharField(source="get_direction_display", read_only=True)
 
     class Meta:
         model = SyncLog
@@ -105,12 +103,8 @@ class SyncUploadSerializer(serializers.Serializer):
 class SyncConflictSerializer(serializers.ModelSerializer):
     """Serializer for sync conflicts."""
 
-    resolution_display = serializers.CharField(
-        source="get_resolution_display", read_only=True
-    )
-    resolved_by_name = serializers.CharField(
-        source="resolved_by.get_full_name", read_only=True
-    )
+    resolution_display = serializers.CharField(source="get_resolution_display", read_only=True)
+    resolved_by_name = serializers.CharField(source="resolved_by.get_full_name", read_only=True)
 
     class Meta:
         model = SyncConflict
