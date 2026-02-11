@@ -1,0 +1,75 @@
+{% if assessments %}
+<div id="assessment-perf-render" style="width:100%;height:100%;min-height:320px;"></div>
+<script>
+(function() {
+    function init() {
+        var el = document.getElementById('assessment-perf-render');
+        if (!el || typeof echarts === 'undefined') return;
+        var chart = echarts.init(el);
+
+        var names = [{% for a in assessments %}'{{ a.title|truncatechars:20 }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+        var passRates = [{% for a in assessments %}{% if a.total_attempts > 0 %}{{ a.passed|floatformat:0 }}{% else %}0{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}];
+        var failRates = [{% for a in assessments %}{% if a.total_attempts > 0 %}{{ a.total_attempts }}{% else %}0{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}];
+        var avgScores = [{% for a in assessments %}{% if a.avg_score %}{{ a.avg_score|floatformat:1 }}{% else %}0{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+        chart.setOption({
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'cross' },
+                formatter: function(params) {
+                    var result = params[0].name + '<br/>';
+                    params.forEach(function(p) {
+                        result += p.marker + ' ' + p.seriesName + ': ' + p.value;
+                        if (p.seriesName === 'Promedio') result += ' pts';
+                        result += '<br/>';
+                    });
+                    return result;
+                }
+            },
+            legend: { bottom: 0, textStyle: { fontSize: 11 } },
+            grid: { left: '3%', right: '8%', bottom: '12%', top: '3%', containLabel: true },
+            xAxis: { type: 'category', data: names, axisLabel: { rotate: 45, fontSize: 9 } },
+            yAxis: [
+                { type: 'value', name: 'Cantidad', minInterval: 1, position: 'left' },
+                { type: 'value', name: 'Puntaje', min: 0, max: 100, position: 'right' }
+            ],
+            series: [
+                {
+                    name: 'Aprobados',
+                    type: 'bar',
+                    data: passRates,
+                    itemStyle: { color: '#22c55e', borderRadius: [4, 4, 0, 0] }
+                },
+                {
+                    name: 'Total Intentos',
+                    type: 'bar',
+                    data: failRates,
+                    itemStyle: { color: '#94a3b8', borderRadius: [4, 4, 0, 0] }
+                },
+                {
+                    name: 'Promedio',
+                    type: 'line',
+                    yAxisIndex: 1,
+                    data: avgScores,
+                    smooth: true,
+                    symbol: 'circle',
+                    symbolSize: 8,
+                    lineStyle: { color: '#f59e0b', width: 2 },
+                    itemStyle: { color: '#f59e0b' }
+                }
+            ]
+        });
+        window.addEventListener('resize', function() { chart.resize(); });
+    }
+    if (typeof echarts !== 'undefined') { init(); }
+    else { document.addEventListener('echarts:ready', init); }
+})();
+</script>
+{% else %}
+<div class="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400">
+    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+    </svg>
+    <p>No hay evaluaciones con intentos registrados</p>
+</div>
+{% endif %}

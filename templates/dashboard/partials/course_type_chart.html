@@ -1,0 +1,52 @@
+<div id="course-type-render" style="width:100%;height:100%;min-height:220px;"></div>
+{{ type_data|json_script:"type-data-json" }}
+{{ enrollment_data|json_script:"enrollment-type-json" }}
+<script>
+(function() {
+    function init() {
+        var el = document.getElementById('course-type-render');
+        if (!el || typeof echarts === 'undefined') return;
+        var chart = echarts.init(el);
+        var typeData = JSON.parse(document.getElementById('type-data-json').textContent);
+        var enrollmentData = JSON.parse(document.getElementById('enrollment-type-json').textContent);
+
+        var colors = { 'Obligatorio': '#ef4444', 'Opcional': '#3b82f6', 'Refuerzo': '#f59e0b' };
+        var chartData = typeData.map(function(item) {
+            return {
+                value: item.value,
+                name: item.name,
+                itemStyle: { color: colors[item.name] || '#94a3b8' }
+            };
+        });
+
+        chart.setOption({
+            tooltip: {
+                trigger: 'item',
+                formatter: function(params) {
+                    var ed = enrollmentData[params.name] || {};
+                    var total = ed.total || 0;
+                    var completed = ed.completed || 0;
+                    var rate = total > 0 ? Math.round(completed / total * 100) : 0;
+                    return params.name + ': ' + params.value + ' cursos<br/>' +
+                           'Inscripciones: ' + total + '<br/>' +
+                           'Completados: ' + completed + ' (' + rate + '%)';
+                }
+            },
+            legend: { bottom: 0, left: 'center', textStyle: { fontSize: 11 } },
+            series: [{
+                name: 'Tipos de Curso',
+                type: 'pie',
+                radius: ['0%', '65%'],
+                center: ['50%', '45%'],
+                roseType: 'area',
+                itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+                label: { show: true, formatter: '{b}\n{c}', fontSize: 11 },
+                data: chartData
+            }]
+        });
+        window.addEventListener('resize', function() { chart.resize(); });
+    }
+    if (typeof echarts !== 'undefined') { init(); }
+    else { document.addEventListener('echarts:ready', init); }
+})();
+</script>

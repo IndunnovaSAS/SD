@@ -1,20 +1,28 @@
 {% extends "base/dashboard.html" %}
 
-{% block page_title %}Panel de Administración{% endblock %}
+{% block page_title %}Panel de Analítica{% endblock %}
 {% block page_description %}
 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-    Resumen general del sistema de formación
+    Métricas y seguimiento del sistema de formación
 </p>
+{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>document.dispatchEvent(new Event('echarts:ready'));</script>
 {% endblock %}
 
 {% block dashboard_content %}
 <div class="space-y-6">
+    <!-- Filter Bar -->
+    {% include "dashboard/partials/filter_bar.html" %}
+
     <!-- Stats Cards Row -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
          hx-get="{% url 'reports:dashboard-stats' %}"
-         hx-trigger="load"
+         hx-trigger="load, filterChanged from:body"
+         hx-include="#dashboard-filters"
          hx-swap="innerHTML">
-        <!-- Loading placeholder -->
         {% for i in "1234" %}
         <div class="card bg-base-100 shadow animate-pulse">
             <div class="card-body">
@@ -25,17 +33,19 @@
         {% endfor %}
     </div>
 
-    <!-- Charts Row -->
+    <!-- Charts Row 1: Compliance + Training Trend -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Compliance Chart -->
         <div class="card bg-base-100 shadow">
             <div class="card-body">
-                <h3 class="card-title text-lg">Cumplimiento de Formación</h3>
+                <h3 class="card-title text-lg">Estado de Inscripciones</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Distribución por estado actual</p>
                 <div id="compliance-chart"
-                     hx-get="{% url 'reports:dashboard-compliance-chart' %}"
-                     hx-trigger="load"
+                     hx-get="{% url 'reports:compliance-chart' %}"
+                     hx-trigger="load, filterChanged from:body"
+                     hx-include="#dashboard-filters"
                      hx-swap="innerHTML"
-                     class="h-64">
+                     class="h-72">
                     <div class="flex items-center justify-center h-full">
                         <span class="loading loading-spinner loading-lg"></span>
                     </div>
@@ -46,15 +56,71 @@
         <!-- Training Trend Chart -->
         <div class="card bg-base-100 shadow">
             <div class="card-body">
-                <h3 class="card-title text-lg">Tendencia de Capacitación</h3>
+                <h3 class="card-title text-lg">Tendencia de Completados</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Cursos completados por semana</p>
                 <div id="training-trend-chart"
-                     hx-get="{% url 'reports:dashboard-training-trend' %}"
-                     hx-trigger="load"
+                     hx-get="{% url 'reports:training-trend' %}"
+                     hx-trigger="load, filterChanged from:body"
+                     hx-include="#dashboard-filters"
                      hx-swap="innerHTML"
-                     class="h-64">
+                     class="h-72">
                     <div class="flex items-center justify-center h-full">
                         <span class="loading loading-spinner loading-lg"></span>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2: Course Progress + Course Types -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Course Progress (wider) -->
+        <div class="card bg-base-100 shadow lg:col-span-2">
+            <div class="card-body">
+                <h3 class="card-title text-lg">Progreso por Curso</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Top 10 cursos con más inscripciones</p>
+                <div hx-get="{% url 'reports:dashboard-course-progress' %}"
+                     hx-trigger="load, filterChanged from:body"
+                     hx-include="#dashboard-filters"
+                     hx-swap="innerHTML"
+                     class="h-80">
+                    <div class="flex items-center justify-center h-full">
+                        <span class="loading loading-spinner loading-lg"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Type Distribution -->
+        <div class="card bg-base-100 shadow">
+            <div class="card-body">
+                <h3 class="card-title text-lg">Tipos de Curso</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Distribución por categoría</p>
+                <div hx-get="{% url 'reports:dashboard-course-types' %}"
+                     hx-trigger="load, filterChanged from:body"
+                     hx-include="#dashboard-filters"
+                     hx-swap="innerHTML"
+                     class="h-72">
+                    <div class="flex items-center justify-center h-full">
+                        <span class="loading loading-spinner loading-lg"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 3: Assessment Performance -->
+    <div class="card bg-base-100 shadow">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Rendimiento en Evaluaciones</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Aprobados, intentos totales y puntaje promedio por evaluación</p>
+            <div hx-get="{% url 'reports:dashboard-assessment-performance' %}"
+                 hx-trigger="load, filterChanged from:body"
+                 hx-include="#dashboard-filters"
+                 hx-swap="innerHTML"
+                 class="h-80">
+                <div class="flex items-center justify-center h-full">
+                    <span class="loading loading-spinner loading-lg"></span>
                 </div>
             </div>
         </div>
@@ -72,7 +138,8 @@
                     </a>
                 </div>
                 <div hx-get="{% url 'reports:dashboard-expiring-certs' %}"
-                     hx-trigger="load"
+                     hx-trigger="load, filterChanged from:body"
+                     hx-include="#dashboard-filters"
                      hx-swap="innerHTML">
                     <div class="flex items-center justify-center h-32">
                         <span class="loading loading-spinner loading-md"></span>
@@ -91,7 +158,8 @@
                     </a>
                 </div>
                 <div hx-get="{% url 'reports:dashboard-overdue-assignments' %}"
-                     hx-trigger="load"
+                     hx-trigger="load, filterChanged from:body"
+                     hx-include="#dashboard-filters"
                      hx-swap="innerHTML">
                     <div class="flex items-center justify-center h-32">
                         <span class="loading loading-spinner loading-md"></span>
@@ -113,6 +181,7 @@
                             hx-get="{% url 'reports:dashboard-recent-activity' %}"
                             hx-trigger="change"
                             hx-target="#activity-list"
+                            hx-include="#dashboard-filters"
                             name="filter"
                             aria-label="Filtrar actividad reciente">
                         <option value="all">Todas</option>
@@ -124,7 +193,8 @@
             </div>
             <div id="activity-list"
                  hx-get="{% url 'reports:dashboard-recent-activity' %}"
-                 hx-trigger="load"
+                 hx-trigger="load, filterChanged from:body"
+                 hx-include="#dashboard-filters"
                  hx-swap="innerHTML"
                  role="region"
                  aria-live="polite"
@@ -137,19 +207,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-<script>
-    // Initialize charts after HTMX loads content
-    document.body.addEventListener('htmx:afterSwap', function(evt) {
-        if (evt.detail.target.id === 'compliance-chart') {
-            initComplianceChart();
-        }
-        if (evt.detail.target.id === 'training-trend-chart') {
-            initTrainingTrendChart();
-        }
-    });
-</script>
 {% endblock %}

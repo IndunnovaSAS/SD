@@ -1,44 +1,23 @@
-<div id="compliance-chart-container" class="h-full">
-    <canvas id="compliance-pie"></canvas>
-</div>
+<div id="compliance-chart-render" style="width:100%;height:100%;min-height:220px;"></div>
 <script>
 (function() {
-    const ctx = document.getElementById('compliance-pie');
-    if (ctx && typeof echarts !== 'undefined') {
-        const chart = echarts.init(ctx.parentElement);
-        const option = {
-            tooltip: {
-                trigger: 'item',
-                formatter: '{b}: {c} ({d}%)'
-            },
-            legend: {
-                bottom: '0%',
-                left: 'center'
-            },
+    function init() {
+        var el = document.getElementById('compliance-chart-render');
+        if (!el || typeof echarts === 'undefined') return;
+        var chart = echarts.init(el);
+        chart.setOption({
+            tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+            legend: { bottom: 0, left: 'center', textStyle: { fontSize: 11 } },
             series: [{
                 name: 'Cumplimiento',
                 type: 'pie',
                 radius: ['40%', '70%'],
+                center: ['50%', '45%'],
                 avoidLabelOverlap: false,
-                itemStyle: {
-                    borderRadius: 10,
-                    borderColor: '#fff',
-                    borderWidth: 2
-                },
-                label: {
-                    show: false,
-                    position: 'center'
-                },
-                emphasis: {
-                    label: {
-                        show: true,
-                        fontSize: 20,
-                        fontWeight: 'bold'
-                    }
-                },
-                labelLine: {
-                    show: false
-                },
+                itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+                label: { show: false, position: 'center' },
+                emphasis: { label: { show: true, fontSize: 18, fontWeight: 'bold' } },
+                labelLine: { show: false },
                 data: [
                     { value: {{ chart_data.completed }}, name: 'Completados', itemStyle: { color: '#22c55e' } },
                     { value: {{ chart_data.in_progress }}, name: 'En Progreso', itemStyle: { color: '#3b82f6' } },
@@ -46,9 +25,10 @@
                     { value: {{ chart_data.expired }}, name: 'Vencidos', itemStyle: { color: '#ef4444' } }
                 ]
             }]
-        };
-        chart.setOption(option);
-        window.addEventListener('resize', () => chart.resize());
+        });
+        window.addEventListener('resize', function() { chart.resize(); });
     }
+    if (typeof echarts !== 'undefined') { init(); }
+    else { document.addEventListener('echarts:ready', init); }
 })();
 </script>

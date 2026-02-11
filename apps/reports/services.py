@@ -461,9 +461,9 @@ class AnalyticsService:
         enrollments = Enrollment.objects.all()
 
         if start_date:
-            enrollments = enrollments.filter(enrolled_at__date__gte=start_date)
+            enrollments = enrollments.filter(created_at__date__gte=start_date)
         if end_date:
-            enrollments = enrollments.filter(enrolled_at__date__lte=end_date)
+            enrollments = enrollments.filter(created_at__date__lte=end_date)
 
         # By status
         by_status = enrollments.values("status").annotate(count=Count("id"))
@@ -637,7 +637,7 @@ class AnalyticsService:
         # Enrollments
         enrollments = Enrollment.objects.filter(
             user=user
-        ).select_related("course").order_by("-enrolled_at")
+        ).select_related("course").order_by("-created_at")
 
         # Attempts
         attempts = AssessmentAttempt.objects.filter(
@@ -655,7 +655,7 @@ class AnalyticsService:
                     "course_title": e.course.title,
                     "status": e.status,
                     "progress": e.progress,
-                    "enrolled_at": e.enrolled_at.isoformat(),
+                    "created_at": e.created_at.isoformat(),
                     "completed_at": e.completed_at.isoformat() if e.completed_at else None,
                 }
                 for e in enrollments

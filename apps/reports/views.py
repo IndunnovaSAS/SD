@@ -5,7 +5,7 @@ Dashboard views for SD LMS.
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
+from django.db.models import Avg, Count, Q
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -13,56 +13,121 @@ from django.views.decorators.http import require_GET
 
 from apps.accounts.models import User
 from apps.certifications.models import Certificate
-from apps.courses.models import Enrollment
+from apps.courses.models import Category, Course, Enrollment
 from apps.learning_paths.models import PathAssignment
 from apps.reports.services import AnalyticsService, DashboardService
+
+
+def _get_filter_params(request):
+    """Extract dashboard filter parameters from request."""
+    return {
+        "category": request.GET.get("category", ""),
+        "subcategory": request.GET.get("subcategory", ""),
+        "job_profile": request.GET.get("job_profile", ""),
+    }
+
+
+def _apply_category_filter(qs, filters, course_field="course__category"):
+    """Apply category/subcategory filter to a queryset."""
+    subcategory = filters["subcategory"]
+    category = filters["category"]
+    if subcategory:
+        qs = qs.filter(**{f"{course_field}_id": subcategory})
+    elif category:
+        qs = qs.filter(
+            Q(**{f"{course_field}_id": category})
+            | Q(**{f"{course_field}__parent_id": category})
+        )
+    return qs
+
+
+def _apply_profile_filter(qs, filters, user_field="user__job_profile"):
+    """Apply job profile filter to a queryset."""
+    if filters["job_profile"]:
+        qs = qs.filter(**{user_field: filters["job_profile"]})
+    return qs
 
 
 @login_required
 @require_GET
 def admin_dashboard(request):
     """Main admin dashboard view."""
-    return render(request, "dashboard/admin.html")
+    categories = Category.objects.filter(
+        parent__isnull=True, is_active=True
+    ).order_by("order", "name")
+    context = {
+        "categories": categories,
+        "job_profiles": User.JobProfile.choices,
+    }
+    return render(request, "dashboard/admin.html", context)
+
+
+@login_required
+@require_GET
+def dashboard_subcategories(request):
+    """Return subcategory options for a given parent category (HTMX)."""
+    category_id = request.GET.get("category", "")
+    subcategories = []
+    if category_id:
+        subcategories = Category.objects.filter(
+            parent_id=category_id, is_active=True
+        ).order_by("order", "name")
+    return render(
+        request,
+        "dashboard/partials/subcategory_options.html",
+        {"subcategories": subcategories},
+    )
 
 
 @login_required
 @require_GET
 def dashboard_stats(request):
     """Get dashboard statistics cards."""
-    # Active users
-    active_users = User.objects.filter(is_active=True).count()
+    filters = _get_filter_params(request)
+
+    # Active users (filtered by profile)
+    users_qs = User.objects.filter(is_active=True)
+    if filters["job_profile"]:
+        users_qs = users_qs.filter(job_profile=filters["job_profile"])
+    active_users = users_qs.count()
 
     # Users change (vs last month)
     last_month = timezone.now() - timedelta(days=30)
-    new_users_this_month = User.objects.filter(
-        date_joined__gte=last_month
-    ).count()
+    new_users_qs = users_qs.filter(date_joined__gte=last_month)
+    new_users_this_month = new_users_qs.count()
     users_change = round((new_users_this_month / max(active_users, 1)) * 100, 1)
 
     # Compliance rate
     compliance_data = AnalyticsService.get_compliance_report()
     compliance_rate = compliance_data.get("compliance_score", 0)
 
-    # Courses completed
-    courses_completed = Enrollment.objects.filter(
-        status=Enrollment.Status.COMPLETED
-    ).count()
-    courses_in_progress = Enrollment.objects.filter(
-        status=Enrollment.Status.IN_PROGRESS
-    ).count()
+    # Courses completed (filtered)
+    enrollments_completed = Enrollment.objects.filter(status=Enrollment.Status.COMPLETED)
+    enrollments_completed = _apply_category_filter(enrollments_completed, filters)
+    enrollments_completed = _apply_profile_filter(enrollments_completed, filters)
+    courses_completed = enrollments_completed.count()
 
-    # Valid certificates
-    valid_certificates = Certificate.objects.filter(
-        status=Certificate.Status.ISSUED
-    ).count()
+    enrollments_in_progress = Enrollment.objects.filter(status=Enrollment.Status.IN_PROGRESS)
+    enrollments_in_progress = _apply_category_filter(enrollments_in_progress, filters)
+    enrollments_in_progress = _apply_profile_filter(enrollments_in_progress, filters)
+    courses_in_progress = enrollments_in_progress.count()
 
-    # Expiring certificates (next 30 days)
+    # Valid certificates (filtered)
+    certs_qs = Certificate.objects.filter(status=Certificate.Status.ISSUED)
+    certs_qs = _apply_category_filter(certs_qs, filters)
+    certs_qs = _apply_profile_filter(certs_qs, filters)
+    valid_certificates = certs_qs.count()
+
+    # Expiring certificates (next 30 days, filtered)
     expiring_date = timezone.now() + timedelta(days=30)
-    expiring_certificates = Certificate.objects.filter(
+    expiring_qs = Certificate.objects.filter(
         status=Certificate.Status.ISSUED,
         expires_at__lte=expiring_date,
         expires_at__gt=timezone.now(),
-    ).count()
+    )
+    expiring_qs = _apply_category_filter(expiring_qs, filters)
+    expiring_qs = _apply_profile_filter(expiring_qs, filters)
+    expiring_certificates = expiring_qs.count()
 
     context = {
         "stats": {
@@ -83,8 +148,13 @@ def dashboard_stats(request):
 @require_GET
 def compliance_chart(request):
     """Get compliance chart data."""
-    # Get enrollment stats by status
-    enrollments = Enrollment.objects.values("status").annotate(count=Count("id"))
+    filters = _get_filter_params(request)
+
+    # Get enrollment stats by status (filtered)
+    enrollments_qs = Enrollment.objects.all()
+    enrollments_qs = _apply_category_filter(enrollments_qs, filters)
+    enrollments_qs = _apply_profile_filter(enrollments_qs, filters)
+    enrollments = enrollments_qs.values("status").annotate(count=Count("id"))
 
     data = {
         "completed": 0,
@@ -99,7 +169,7 @@ def compliance_chart(request):
             data["completed"] = item["count"]
         elif status == Enrollment.Status.IN_PROGRESS:
             data["in_progress"] = item["count"]
-        elif status == Enrollment.Status.NOT_STARTED:
+        elif status == Enrollment.Status.ENROLLED:
             data["not_started"] = item["count"]
         elif status == Enrollment.Status.EXPIRED:
             data["expired"] = item["count"]
@@ -112,8 +182,32 @@ def compliance_chart(request):
 @require_GET
 def training_trend(request):
     """Get training trend chart data."""
-    report = AnalyticsService.get_training_report()
-    context = {"trend_data": report.get("completion_trend", [])}
+    filters = _get_filter_params(request)
+
+    # Build filtered completion trend inline instead of using AnalyticsService
+    from django.db.models.functions import TruncWeek
+
+    enrollments_qs = Enrollment.objects.filter(
+        status=Enrollment.Status.COMPLETED,
+        completed_at__isnull=False,
+    )
+    enrollments_qs = _apply_category_filter(enrollments_qs, filters)
+    enrollments_qs = _apply_profile_filter(enrollments_qs, filters)
+
+    completion_trend = (
+        enrollments_qs.annotate(week=TruncWeek("completed_at"))
+        .values("week")
+        .annotate(count=Count("id"))
+        .order_by("week")
+    )
+    # Take last 12 weeks
+    trend_list = list(completion_trend)[-12:]
+    trend_data = [
+        {"week": item["week"].isoformat() if item["week"] else None, "count": item["count"]}
+        for item in trend_list
+    ]
+
+    context = {"trend_data": trend_data}
     return render(request, "dashboard/partials/training_trend.html", context)
 
 
@@ -121,14 +215,18 @@ def training_trend(request):
 @require_GET
 def expiring_certs(request):
     """Get expiring certificates list."""
+    filters = _get_filter_params(request)
     expiring_date = timezone.now() + timedelta(days=30)
     now = timezone.now()
 
-    certificates = Certificate.objects.filter(
+    certs_qs = Certificate.objects.filter(
         status=Certificate.Status.ISSUED,
         expires_at__lte=expiring_date,
         expires_at__gt=now,
-    ).select_related("user", "course").order_by("expires_at")[:10]
+    )
+    certs_qs = _apply_category_filter(certs_qs, filters)
+    certs_qs = _apply_profile_filter(certs_qs, filters)
+    certificates = certs_qs.select_related("user", "course").order_by("expires_at")[:10]
 
     # Add days until expiry
     for cert in certificates:
@@ -143,15 +241,18 @@ def expiring_certs(request):
 @require_GET
 def overdue_assignments(request):
     """Get overdue assignments list."""
+    filters = _get_filter_params(request)
     today = timezone.now().date()
 
-    assignments = PathAssignment.objects.filter(
+    assignments_qs = PathAssignment.objects.filter(
         due_date__lt=today,
         status__in=[
             PathAssignment.Status.ASSIGNED,
             PathAssignment.Status.IN_PROGRESS,
         ],
-    ).select_related("user", "learning_path").order_by("due_date")[:10]
+    )
+    assignments_qs = _apply_profile_filter(assignments_qs, filters)
+    assignments = assignments_qs.select_related("user", "learning_path").order_by("due_date")[:10]
 
     # Add days overdue
     for assignment in assignments:
@@ -166,30 +267,37 @@ def overdue_assignments(request):
 @require_GET
 def recent_activity(request):
     """Get recent activity feed."""
+    filters = _get_filter_params(request)
     filter_type = request.GET.get("filter", "all")
     activities = []
 
     # Get recent enrollments
     if filter_type in ["all", "enrollments"]:
-        enrollments = Enrollment.objects.select_related(
+        enroll_qs = Enrollment.objects.all()
+        enroll_qs = _apply_category_filter(enroll_qs, filters)
+        enroll_qs = _apply_profile_filter(enroll_qs, filters)
+        enrollments = enroll_qs.select_related(
             "user", "course"
-        ).order_by("-enrolled_at")[:10]
+        ).order_by("-created_at")[:10]
 
         for e in enrollments:
             activities.append({
                 "type": "enrollment",
                 "description": f"Se inscribió en {e.course.title}",
                 "user": e.user,
-                "timestamp": e.enrolled_at,
+                "timestamp": e.created_at,
                 "url": f"/courses/{e.course.id}/",
             })
 
     # Get recent completions
     if filter_type in ["all", "completions"]:
-        completions = Enrollment.objects.filter(
+        comp_qs = Enrollment.objects.filter(
             status=Enrollment.Status.COMPLETED,
             completed_at__isnull=False,
-        ).select_related("user", "course").order_by("-completed_at")[:10]
+        )
+        comp_qs = _apply_category_filter(comp_qs, filters)
+        comp_qs = _apply_profile_filter(comp_qs, filters)
+        completions = comp_qs.select_related("user", "course").order_by("-completed_at")[:10]
 
         for e in completions:
             activities.append({
@@ -202,9 +310,12 @@ def recent_activity(request):
 
     # Get recent certifications
     if filter_type in ["all", "certifications"]:
-        certs = Certificate.objects.filter(
+        certs_qs = Certificate.objects.filter(
             status=Certificate.Status.ISSUED,
-        ).select_related("user", "course").order_by("-issued_at")[:10]
+        )
+        certs_qs = _apply_category_filter(certs_qs, filters)
+        certs_qs = _apply_profile_filter(certs_qs, filters)
+        certs = certs_qs.select_related("user", "course").order_by("-issued_at")[:10]
 
         for c in certs:
             activities.append({
@@ -221,6 +332,154 @@ def recent_activity(request):
 
     context = {"activities": activities}
     return render(request, "dashboard/partials/recent_activity.html", context)
+
+
+@login_required
+@require_GET
+def course_progress(request):
+    """Get per-course enrollment/completion stats for chart."""
+    filters = _get_filter_params(request)
+
+    courses_qs = Course.objects.filter(status=Course.Status.PUBLISHED)
+    courses_qs = _apply_category_filter(courses_qs, filters, course_field="category")
+
+    # Build enrollment filter conditions for annotations
+    enroll_filter = Q()
+    if filters["job_profile"]:
+        enroll_filter &= Q(enrollments__user__job_profile=filters["job_profile"])
+
+    courses = (
+        courses_qs.annotate(
+            total_enrolled=Count("enrollments", filter=enroll_filter if enroll_filter else None),
+            total_completed=Count(
+                "enrollments",
+                filter=(enroll_filter & Q(enrollments__status=Enrollment.Status.COMPLETED))
+                if enroll_filter
+                else Q(enrollments__status=Enrollment.Status.COMPLETED),
+            ),
+            total_in_progress=Count(
+                "enrollments",
+                filter=(
+                    enroll_filter
+                    & Q(
+                        enrollments__status__in=[
+                            Enrollment.Status.IN_PROGRESS,
+                            Enrollment.Status.ENROLLED,
+                        ]
+                    )
+                )
+                if enroll_filter
+                else Q(
+                    enrollments__status__in=[
+                        Enrollment.Status.IN_PROGRESS,
+                        Enrollment.Status.ENROLLED,
+                    ]
+                ),
+            ),
+            avg_progress=Avg(
+                "enrollments__progress",
+                filter=enroll_filter if enroll_filter else None,
+            ),
+        )
+        .filter(total_enrolled__gt=0)
+        .order_by("-total_enrolled")[:10]
+    )
+
+    context = {"courses": courses}
+    return render(request, "dashboard/partials/course_progress.html", context)
+
+
+@login_required
+@require_GET
+def course_type_distribution(request):
+    """Get course type distribution data."""
+    filters = _get_filter_params(request)
+
+    courses_qs = Course.objects.filter(status=Course.Status.PUBLISHED)
+    courses_qs = _apply_category_filter(courses_qs, filters, course_field="category")
+
+    distribution = courses_qs.values("course_type").annotate(count=Count("id"))
+
+    type_labels = {
+        Course.Type.MANDATORY: "Obligatorio",
+        Course.Type.OPTIONAL: "Opcional",
+        Course.Type.REFRESHER: "Refuerzo",
+    }
+
+    data = []
+    for item in distribution:
+        data.append({
+            "name": type_labels.get(item["course_type"], item["course_type"]),
+            "value": item["count"],
+        })
+
+    # Enrollment stats by course type (filtered)
+    enroll_qs = Enrollment.objects.all()
+    enroll_qs = _apply_category_filter(enroll_qs, filters)
+    enroll_qs = _apply_profile_filter(enroll_qs, filters)
+
+    enrollment_by_type = enroll_qs.values("course__course_type").annotate(
+        total=Count("id"),
+        completed=Count("id", filter=Q(status=Enrollment.Status.COMPLETED)),
+    )
+
+    enrollment_data = {}
+    for item in enrollment_by_type:
+        label = type_labels.get(item["course__course_type"], item["course__course_type"])
+        enrollment_data[label] = {
+            "total": item["total"],
+            "completed": item["completed"],
+        }
+
+    context = {
+        "type_data": data,
+        "enrollment_data": enrollment_data,
+    }
+    return render(request, "dashboard/partials/course_type_chart.html", context)
+
+
+@login_required
+@require_GET
+def assessment_performance(request):
+    """Get assessment performance stats for chart."""
+    filters = _get_filter_params(request)
+    from apps.assessments.models import Assessment, AssessmentAttempt
+
+    assessments_qs = Assessment.objects.all()
+
+    # Filter by course category
+    subcategory = filters["subcategory"]
+    category = filters["category"]
+    if subcategory:
+        assessments_qs = assessments_qs.filter(course__category_id=subcategory)
+    elif category:
+        assessments_qs = assessments_qs.filter(
+            Q(course__category_id=category) | Q(course__category__parent_id=category)
+        )
+
+    # Build attempt filter for profile
+    attempt_filter = Q(attempts__status=AssessmentAttempt.Status.GRADED)
+    if filters["job_profile"]:
+        attempt_filter &= Q(attempts__user__job_profile=filters["job_profile"])
+
+    assessments = (
+        assessments_qs.annotate(
+            total_attempts=Count("attempts", filter=attempt_filter),
+            passed=Count(
+                "attempts",
+                filter=attempt_filter & Q(attempts__passed=True),
+            ),
+            avg_score=Avg(
+                "attempts__score",
+                filter=attempt_filter,
+            ),
+        )
+        .filter(total_attempts__gt=0)
+        .order_by("-total_attempts")[:10]
+    )
+
+    context = {"assessments": assessments}
+    return render(request, "dashboard/partials/assessment_performance.html", context)
 
 
 # ============================================================================
