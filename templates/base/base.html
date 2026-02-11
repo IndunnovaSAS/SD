@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="es" class="h-full" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }" :class="{ 'dark': darkMode }">
+<html lang="es" class="h-full" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }" :class="{ 'dark': darkMode }" :data-theme="darkMode ? 'dark' : 'light'">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +11,15 @@
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
+
+    <!-- Theme initialization (prevents flash of wrong theme) -->
+    <script nonce="{{ request.csp_nonce }}">
+        (function() {
+            var d = localStorage.getItem('darkMode') === 'true';
+            if (d) document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', d ? 'dark' : 'light');
+        })();
+    </script>
 
     <!-- Tailwind CSS (via CDN for development, replace with build for production) -->
     <script src="https://cdn.tailwindcss.com" nonce="{{ request.csp_nonce }}"></script>
