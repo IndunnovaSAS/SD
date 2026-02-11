@@ -15,12 +15,10 @@ urlpatterns = [
     path("my-reports/", views.my_reports, name="my-reports"),
     path("<int:report_id>/status/", views.report_status, name="status"),
     path("<int:report_id>/delete/", views.delete_report, name="delete"),
-
     # Scheduled reports
     path("scheduled/", views.scheduled_list, name="scheduled-list"),
     path("scheduled/create/", views.schedule_create, name="schedule-create"),
     path("scheduled/<int:schedule_id>/toggle/", views.schedule_toggle, name="schedule-toggle"),
-
     # Dashboard views
     path("dashboard/", views.admin_dashboard, name="dashboard"),
     path("dashboard/subcategories/", views.dashboard_subcategories, name="dashboard-subcategories"),
@@ -32,5 +30,9 @@ urlpatterns = [
     path("dashboard/recent-activity/", views.recent_activity, name="recent-activity"),
     path("dashboard/course-progress/", views.course_progress, name="dashboard-course-progress"),
     path("dashboard/course-types/", views.course_type_distribution, name="dashboard-course-types"),
-    path("dashboard/assessment-performance/", views.assessment_performance, name="dashboard-assessment-performance"),
+    path(
+        "dashboard/assessment-performance/",
+        views.assessment_performance,
+        name="dashboard-assessment-performance",
+    ),
 ]

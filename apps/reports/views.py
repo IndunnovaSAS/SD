@@ -6,7 +6,6 @@ from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Count, Q
-from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_GET
@@ -15,7 +14,7 @@ from apps.accounts.models import User
 from apps.certifications.models import Certificate
 from apps.courses.models import Category, Course, Enrollment
 from apps.learning_paths.models import PathAssignment
-from apps.reports.services import AnalyticsService, DashboardService
+from apps.reports.services import AnalyticsService
 
 
 def _get_filter_params(request):
@@ -35,8 +34,7 @@ def _apply_category_filter(qs, filters, course_field="course__category"):
         qs = qs.filter(**{f"{course_field}_id": subcategory})
     elif category:
         qs = qs.filter(
-            Q(**{f"{course_field}_id": category})
-            | Q(**{f"{course_field}__parent_id": category})
+            Q(**{f"{course_field}_id": category}) | Q(**{f"{course_field}__parent_id": category})
         )
     return qs
 
@@ -52,9 +50,9 @@ def _apply_profile_filter(qs, filters, user_field="user__job_profile"):
 @require_GET
 def admin_dashboard(request):
     """Main admin dashboard view."""
-    categories = Category.objects.filter(
-        parent__isnull=True, is_active=True
-    ).order_by("order", "name")
+    categories = Category.objects.filter(parent__isnull=True, is_active=True).order_by(
+        "order", "name"
+    )
     context = {
         "categories": categories,
         "job_profiles": User.JobProfile.choices,
@@ -69,9 +67,9 @@ def dashboard_subcategories(request):
     category_id = request.GET.get("category", "")
     subcategories = []
     if category_id:
-        subcategories = Category.objects.filter(
-            parent_id=category_id, is_active=True
-        ).order_by("order", "name")
+        subcategories = Category.objects.filter(parent_id=category_id, is_active=True).order_by(
+            "order", "name"
+        )
     return render(
         request,
         "dashboard/partials/subcategory_options.html",
@@ -276,18 +274,18 @@ def recent_activity(request):
         enroll_qs = Enrollment.objects.all()
         enroll_qs = _apply_category_filter(enroll_qs, filters)
         enroll_qs = _apply_profile_filter(enroll_qs, filters)
-        enrollments = enroll_qs.select_related(
-            "user", "course"
-        ).order_by("-created_at")[:10]
+        enrollments = enroll_qs.select_related("user", "course").order_by("-created_at")[:10]
 
         for e in enrollments:
-            activities.append({
-                "type": "enrollment",
-                "description": f"Se inscribió en {e.course.title}",
-                "user": e.user,
-                "timestamp": e.created_at,
-                "url": f"/courses/{e.course.id}/",
-            })
+            activities.append(
+                {
+                    "type": "enrollment",
+                    "description": f"Se inscribió en {e.course.title}",
+                    "user": e.user,
+                    "timestamp": e.created_at,
+                    "url": f"/courses/{e.course.id}/",
+                }
+            )
 
     # Get recent completions
     if filter_type in ["all", "completions"]:
@@ -300,13 +298,15 @@ def recent_activity(request):
         completions = comp_qs.select_related("user", "course").order_by("-completed_at")[:10]
 
         for e in completions:
-            activities.append({
-                "type": "completion",
-                "description": f"Completó {e.course.title}",
-                "user": e.user,
-                "timestamp": e.completed_at,
-                "url": f"/courses/{e.course.id}/",
-            })
+            activities.append(
+                {
+                    "type": "completion",
+                    "description": f"Completó {e.course.title}",
+                    "user": e.user,
+                    "timestamp": e.completed_at,
+                    "url": f"/courses/{e.course.id}/",
+                }
+            )
 
     # Get recent certifications
     if filter_type in ["all", "certifications"]:
@@ -318,13 +318,15 @@ def recent_activity(request):
         certs = certs_qs.select_related("user", "course").order_by("-issued_at")[:10]
 
         for c in certs:
-            activities.append({
-                "type": "certification",
-                "description": f"Obtuvo certificado de {c.course.title}",
-                "user": c.user,
-                "timestamp": c.issued_at,
-                "url": f"/certifications/{c.id}/",
-            })
+            activities.append(
+                {
+                    "type": "certification",
+                    "description": f"Obtuvo certificado de {c.course.title}",
+                    "user": c.user,
+                    "timestamp": c.issued_at,
+                    "url": f"/certifications/{c.id}/",
+                }
+            )
 
     # Sort by timestamp
     activities.sort(key=lambda x: x["timestamp"] or timezone.now(), reverse=True)
@@ -408,10 +410,12 @@ def course_type_distribution(request):
 
     data = []
     for item in distribution:
-        data.append({
-            "name": type_labels.get(item["course_type"], item["course_type"]),
-            "value": item["count"],
-        })
+        data.append(
+            {
+                "name": type_labels.get(item["course_type"], item["course_type"]),
+                "value": item["count"],
+            }
+        )
 
     # Enrollment stats by course type (filtered)
     enroll_qs = Enrollment.objects.all()
@@ -487,10 +491,9 @@ def assessment_performance(request):
 # ============================================================================
 
 from django.contrib.auth.decorators import user_passes_test
-from django.core.paginator import Paginator
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect
-from django.views.decorators.http import require_POST, require_http_methods
+from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_http_methods, require_POST
 
 from apps.reports.models import GeneratedReport, ReportTemplate, ScheduledReport
 from apps.reports.services import ReportService, ScheduledReportService
@@ -553,9 +556,10 @@ def report_status(request, report_id):
     """Get report generation status (for polling)."""
     report = get_object_or_404(GeneratedReport, id=report_id, generated_by=request.user)
 
-    if report.status == GeneratedReport.Status.COMPLETED:
-        return render(request, "reports/partials/report_row.html", {"report": report})
-    elif report.status == GeneratedReport.Status.FAILED:
+    if (
+        report.status == GeneratedReport.Status.COMPLETED
+        or report.status == GeneratedReport.Status.FAILED
+    ):
         return render(request, "reports/partials/report_row.html", {"report": report})
     else:
         # Still processing
@@ -564,7 +568,7 @@ def report_status(request, report_id):
             f'hx-get="/reports/{report_id}/status/" '
             f'hx-trigger="every 3s" hx-swap="outerHTML">'
             f'<span class="loading loading-spinner loading-xs"></span>'
-            f'Generando</span>'
+            f"Generando</span>"
         )
 
 
@@ -586,9 +590,11 @@ def delete_report(request, report_id):
 @require_GET
 def scheduled_list(request):
     """Get scheduled reports list."""
-    schedules = ScheduledReport.objects.filter(
-        created_by=request.user
-    ).select_related("template").order_by("-created_at")
+    schedules = (
+        ScheduledReport.objects.filter(created_by=request.user)
+        .select_related("template")
+        .order_by("-created_at")
+    )
 
     context = {"schedules": schedules}
     return render(request, "reports/partials/scheduled_list.html", context)
@@ -607,10 +613,11 @@ def schedule_create(request):
     recipients_str = request.POST.get("recipients", "")
 
     from datetime import datetime
+
     time_of_day = datetime.strptime(time_str, "%H:%M").time()
     recipients = [r.strip() for r in recipients_str.split(",") if r.strip()]
 
-    schedule = ScheduledReportService.create_schedule(
+    ScheduledReportService.create_schedule(
         template=template,
         name=f"{template.name} - {frequency.title()}",
         frequency=frequency,
@@ -620,9 +627,11 @@ def schedule_create(request):
         recipients=recipients,
     )
 
-    schedules = ScheduledReport.objects.filter(
-        created_by=request.user
-    ).select_related("template").order_by("-created_at")
+    schedules = (
+        ScheduledReport.objects.filter(created_by=request.user)
+        .select_related("template")
+        .order_by("-created_at")
+    )
 
     context = {"schedules": schedules}
     return render(request, "reports/partials/scheduled_list.html", context)
@@ -638,5 +647,5 @@ def schedule_toggle(request, schedule_id):
 
     return HttpResponse(
         f'<span class="badge {"badge-success" if schedule.is_active else "badge-ghost"}">'
-        f'{"Activo" if schedule.is_active else "Inactivo"}</span>'
+        f"{'Activo' if schedule.is_active else 'Inactivo'}</span>"
     )

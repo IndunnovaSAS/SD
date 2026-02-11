@@ -15,14 +15,14 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
+
 from django_otp import devices_for_user
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
-from .models import JobHistory
 from .forms import (
     LoginForm,
     PasswordChangeForm,
@@ -34,6 +34,7 @@ from .forms import (
     UserCreateForm,
     UserEditForm,
 )
+from .models import JobHistory
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -152,8 +153,15 @@ def logout_view(request):
 @login_required
 def dashboard(request):
     """Main dashboard."""
+    from apps.courses.models import Category
+
+    categories = Category.objects.filter(parent__isnull=True, is_active=True).order_by(
+        "order", "name"
+    )
     context = {
         "user": request.user,
+        "categories": categories,
+        "job_profiles": User.JobProfile.choices,
     }
     return render(request, "accounts/dashboard.html", context)
 
@@ -199,7 +207,9 @@ def change_password(request):
 
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "Contraseña actualizada correctamente. Por favor, inicie sesión nuevamente.")
+        messages.success(
+            request, "Contraseña actualizada correctamente. Por favor, inicie sesión nuevamente."
+        )
         logout(request)
         return redirect("accounts:login")
 
@@ -275,7 +285,9 @@ def password_reset_confirm(request, uidb64, token):
 
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "Contraseña restablecida correctamente. Ahora puede iniciar sesión.")
+        messages.success(
+            request, "Contraseña restablecida correctamente. Ahora puede iniciar sesión."
+        )
         return redirect("accounts:login")
 
     context = {"form": form}
@@ -390,7 +402,9 @@ def user_list(request):
         users = users.filter(job_profile=job_profile_filter)
 
     # Get unique job profiles for filter dropdown
-    job_profiles = User.objects.values_list("job_profile", flat=True).distinct().order_by("job_profile")
+    job_profiles = (
+        User.objects.values_list("job_profile", flat=True).distinct().order_by("job_profile")
+    )
 
     context = {
         "users": users,
