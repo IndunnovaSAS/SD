@@ -130,13 +130,13 @@ class TestNotification:
 
     def test_notification_str_representation(self):
         """Test string representation of notification."""
-        user = UserFactory(email="john@test.com")
+        user = UserFactory(email="john@test.com", document_number="99990001")
         notification = NotificationFactory(
             user=user,
             subject="Test Subject",
         )
 
-        assert "john@test.com" in str(notification)
+        assert "99990001" in str(notification)
         assert "Test Subject" in str(notification)
 
     def test_notification_status_choices(self):
@@ -275,10 +275,10 @@ class TestUserNotificationPreference:
 
     def test_preference_str_representation(self):
         """Test string representation of preferences."""
-        user = UserFactory(email="prefs@test.com")
+        user = UserFactory(email="prefs@test.com", document_number="99990002")
         preference = UserNotificationPreferenceFactory(user=user)
 
-        assert "prefs@test.com" in str(preference)
+        assert "99990002" in str(preference)
 
     def test_preference_defaults(self):
         """Test default preference values."""
@@ -386,18 +386,18 @@ class TestPushSubscription:
 
     def test_subscription_str_representation(self):
         """Test string representation of subscription."""
-        user = UserFactory(email="push@test.com")
+        user = UserFactory(email="push@test.com", document_number="99990003")
         subscription = PushSubscriptionFactory(
             user=user,
             device_name="iPhone 15 Pro",
         )
 
-        assert "push@test.com" in str(subscription)
+        assert "99990003" in str(subscription)
         assert "iPhone 15 Pro" in str(subscription)
 
     def test_subscription_str_without_device_name(self):
         """Test string representation without device name."""
-        user = UserFactory(email="push@test.com")
+        user = UserFactory(email="push2@test.com", document_number="99990004")
         subscription = PushSubscriptionFactory(
             user=user,
             device_name="",
