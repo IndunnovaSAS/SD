@@ -114,7 +114,6 @@ class CertificateAPITests(TestCase):
             code="CERT-C1",
             title="Curso con Certificado",
             description="Descripción del curso",
-            duration=60,
             created_by=self.admin,
         )
 

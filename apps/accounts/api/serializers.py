@@ -31,7 +31,6 @@ class UserSerializer(serializers.ModelSerializer):
             "photo",
             "job_position",
             "job_profile",
-            "work_front",
             "hire_date",
             "status",
             "is_active",

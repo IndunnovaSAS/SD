@@ -45,7 +45,6 @@ class AssessmentAPITests(TestCase):
             code="ASSESS-C1",
             title="Curso de Prueba",
             description="Descripción del curso",
-            duration=60,
             created_by=self.user,
         )
 
@@ -200,7 +199,6 @@ class AssessmentAttemptAPITests(TestCase):
             code="ATTEMPT-C1",
             title="Curso de Intento",
             description="Descripción",
-            duration=60,
             created_by=self.user,
         )
 

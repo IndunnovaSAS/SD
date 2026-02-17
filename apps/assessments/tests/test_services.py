@@ -46,7 +46,6 @@ class AssessmentServiceTest(TestCase):
         self.course = Course.objects.create(
             code="TEST-001",
             title="Test Course",
-            duration=60,
             created_by=self.admin,
             status=Course.Status.PUBLISHED,
         )

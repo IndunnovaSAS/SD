@@ -404,7 +404,6 @@ class CourseVersionFactory(DjangoModelFactory):
             "objectives": obj.course.objectives,
             "duration": obj.course.total_duration,
             "course_type": obj.course.course_type,
-            "risk_level": obj.course.risk_level,
             "target_profiles": obj.course.target_profiles,
             "validity_months": obj.course.validity_months,
             "modules": [],

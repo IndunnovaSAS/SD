@@ -103,7 +103,6 @@ class TestCourseService:
             "code": "TEST-003",
             "title": "Full Course",
             "description": "Description",
-            "duration": 180,
             "modules": [
                 {
                     "title": "Module 1",
@@ -193,7 +192,6 @@ class TestCourseService:
         original = CourseFactory(
             title="Original Course",
             description="Original description",
-            duration=60,
         )
 
         duplicate = CourseService.duplicate_course(original, user)
@@ -988,7 +986,6 @@ class TestServiceEdgeCases:
             "code": "TEST-EMPTY",
             "title": "Course with Empty Modules",
             "description": "Description",
-            "duration": 60,
             "modules": [],
         }
 

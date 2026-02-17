@@ -107,7 +107,6 @@ class CategoryAPITests(TestCase):
             code="SEC-001",
             title="Curso de Seguridad",
             description="Descripción del curso",
-            duration=60,
             category=self.category,
             status=Course.Status.PUBLISHED,
             created_by=self.user,
@@ -328,7 +327,6 @@ class ModuleAPITests(TestCase):
             code="MOD-001",
             title="Curso de Seguridad",
             description="Descripción del curso",
-            duration=60,
             created_by=self.user,
         )
 
@@ -403,7 +401,6 @@ class EnrollmentAPITests(TestCase):
             code="ENR-001",
             title="Curso de Seguridad",
             description="Descripción del curso",
-            duration=60,
             status=Course.Status.PUBLISHED,
             created_by=self.user,
         )
@@ -768,11 +765,11 @@ class TestCourseAPIAdditional:
 
         Course.objects.all().delete()
         category = CategoryFactory()
-        CourseFactory(risk_level=Course.RiskLevel.HIGH, category=category, created_by=user)
-        CourseFactory(risk_level=Course.RiskLevel.LOW, category=category, created_by=user)
+        CourseFactory(course_type=Course.Type.MANDATORY, category=category, created_by=user)
+        CourseFactory(course_type=Course.Type.OPTIONAL, category=category, created_by=user)
 
         url = reverse("courses_api:course-list")
-        response = client.get(url, {"risk_level": "high", "category": category.id})
+        response = client.get(url, {"type": "mandatory", "category": category.id})
 
         results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
@@ -1118,7 +1115,6 @@ class TestAPIEdgeCases:
             "code": "SPECIAL-001",
             "title": "Seguridad & Salud - Nivel (1) <Alto>",
             "description": "Descripcion con acentos y signos",
-            "duration": 60,
         }
         response = client.post(url, data)
 
@@ -1134,7 +1130,6 @@ class TestAPIEdgeCases:
             "code": "LONG-001",
             "title": "Long Description Course",
             "description": "A" * 10000,  # Very long description
-            "duration": 60,
         }
         response = client.post(url, data)
 

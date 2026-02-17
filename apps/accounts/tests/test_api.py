@@ -34,7 +34,7 @@ class JWTAuthenticationTests(APITestCase):
         """Test obtaining JWT token pair."""
         response = self.client.post(
             self.token_url,
-            {"email": "test@example.com", "password": "testpassword123"},
+            {"document_number": "12345678", "password": "testpassword123"},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.data)
@@ -44,7 +44,7 @@ class JWTAuthenticationTests(APITestCase):
         """Test token request with invalid credentials."""
         response = self.client.post(
             self.token_url,
-            {"email": "test@example.com", "password": "wrongpassword"},
+            {"document_number": "12345678", "password": "wrongpassword"},
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -53,7 +53,7 @@ class JWTAuthenticationTests(APITestCase):
         # First get tokens
         response = self.client.post(
             self.token_url,
-            {"email": "test@example.com", "password": "testpassword123"},
+            {"document_number": "12345678", "password": "testpassword123"},
         )
         refresh_token = response.data["refresh"]
 
@@ -70,7 +70,7 @@ class JWTAuthenticationTests(APITestCase):
         # First get tokens
         response = self.client.post(
             self.token_url,
-            {"email": "test@example.com", "password": "testpassword123"},
+            {"document_number": "12345678", "password": "testpassword123"},
         )
         access_token = response.data["access"]
 

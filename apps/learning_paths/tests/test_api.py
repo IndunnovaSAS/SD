@@ -40,14 +40,12 @@ class LearningPathAPITests(TestCase):
             code="PATH-C1",
             title="Curso 1",
             description="Primer curso",
-            duration=60,
             created_by=self.user,
         )
         self.course2 = Course.objects.create(
             code="PATH-C2",
             title="Curso 2",
             description="Segundo curso",
-            duration=90,
             created_by=self.user,
         )
 
@@ -152,7 +150,6 @@ class LearningPathAPITests(TestCase):
             code="PATH-C3",
             title="Curso 3",
             description="Tercer curso",
-            duration=45,
             created_by=self.user,
         )
 

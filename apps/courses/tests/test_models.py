@@ -175,7 +175,6 @@ class TestCourse:
                 code="UNIQUE-001",
                 title="Duplicate",
                 description="Test",
-                duration=60,
                 created_by=course.created_by,
             )
 
@@ -948,10 +947,10 @@ class TestEdgeCases:
         course = CourseFactory(target_profiles=[])
         assert course.target_profiles == []
 
-    def test_course_with_zero_duration(self):
-        """Test course with zero duration."""
-        course = CourseFactory(duration=0)
-        assert course.duration == 0
+    def test_course_with_zero_total_duration(self):
+        """Test course with no lessons has zero total_duration."""
+        course = CourseFactory()
+        assert course.total_duration == 0
 
     def test_enrollment_progress_boundaries(self):
         """Test enrollment progress at boundaries."""

@@ -43,21 +43,18 @@ class LearningPathServiceTest(TestCase):
         self.course1 = Course.objects.create(
             code="COURSE-001",
             title="Course 1",
-            duration=60,
             created_by=self.admin,
             status=Course.Status.PUBLISHED,
         )
         self.course2 = Course.objects.create(
             code="COURSE-002",
             title="Course 2",
-            duration=90,
             created_by=self.admin,
             status=Course.Status.PUBLISHED,
         )
         self.course3 = Course.objects.create(
             code="COURSE-003",
             title="Course 3",
-            duration=45,
             created_by=self.admin,
             status=Course.Status.PUBLISHED,
         )

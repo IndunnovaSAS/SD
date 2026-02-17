@@ -37,7 +37,7 @@ class LoginViewTests(TestCase):
         """Test login with valid credentials redirects to dashboard."""
         response = self.client.post(
             self.login_url,
-            {"email": "test@example.com", "password": "testpassword123"},
+            {"username": "12345678", "password": "testpassword123"},
         )
         self.assertRedirects(response, reverse("accounts:dashboard"))
 
@@ -45,14 +45,14 @@ class LoginViewTests(TestCase):
         """Test login with invalid credentials shows error."""
         response = self.client.post(
             self.login_url,
-            {"email": "test@example.com", "password": "wrongpassword"},
+            {"username": "12345678", "password": "wrongpassword"},
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Credenciales inválidas")
 
     def test_authenticated_user_redirected(self):
         """Test authenticated user is redirected from login page."""
-        self.client.login(email="test@example.com", password="testpassword123")
+        self.client.login(username="12345678", password="testpassword123")
         response = self.client.get(self.login_url)
         self.assertRedirects(response, reverse("accounts:dashboard"))
 
@@ -80,7 +80,7 @@ class DashboardViewTests(TestCase):
 
     def test_dashboard_accessible_when_logged_in(self):
         """Test dashboard is accessible when logged in."""
-        self.client.login(email="test@example.com", password="testpassword123")
+        self.client.login(username="12345678", password="testpassword123")
         response = self.client.get(self.dashboard_url)
         self.assertEqual(response.status_code, 200)
 
@@ -101,7 +101,7 @@ class ProfileViewTests(TestCase):
             document_number="12345678",
             hire_date=date(2024, 1, 1),
         )
-        self.client.login(email="test@example.com", password="testpassword123")
+        self.client.login(username="12345678", password="testpassword123")
 
     def test_profile_page_loads(self):
         """Test profile page loads correctly."""
@@ -179,13 +179,13 @@ class LogoutViewTests(TestCase):
 
     def test_logout_confirmation_page(self):
         """Test logout confirmation page loads."""
-        self.client.login(email="test@example.com", password="testpassword123")
+        self.client.login(username="12345678", password="testpassword123")
         response = self.client.get(self.logout_url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "¿Desea cerrar sesión?")
 
     def test_logout_post(self):
         """Test logout via POST."""
-        self.client.login(email="test@example.com", password="testpassword123")
+        self.client.login(username="12345678", password="testpassword123")
         response = self.client.post(self.logout_url)
         self.assertRedirects(response, reverse("accounts:login"))
