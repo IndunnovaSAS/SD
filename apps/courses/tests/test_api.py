@@ -768,11 +768,11 @@ class TestCourseAPIAdditional:
 
         Course.objects.all().delete()
         category = CategoryFactory()
-        CourseFactory(course_type=Course.Type.MANDATORY, category=category, created_by=user)
-        CourseFactory(course_type=Course.Type.OPTIONAL, category=category, created_by=user)
+        CourseFactory(risk_level=Course.RiskLevel.HIGH, category=category, created_by=user)
+        CourseFactory(risk_level=Course.RiskLevel.LOW, category=category, created_by=user)
 
         url = reverse("courses_api:course-list")
-        response = client.get(url, {"type": "mandatory", "category": category.id})
+        response = client.get(url, {"risk_level": "high", "category": category.id})
 
         results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1

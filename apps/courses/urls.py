@@ -41,6 +41,25 @@ urlpatterns = [
         views.course_toggle_status,
         name="course_toggle_status",
     ),
+    path(
+        "admin-courses/<int:course_id>/edit/",
+        views.course_full_edit,
+        name="course_full_edit",
+    ),
+    path(
+        "admin-courses/<int:course_id>/delete/",
+        views.course_delete,
+        name="course_delete",
+    ),
+    # Job Profile Type management (Parametrizacion)
+    path("profiles/create/", views.profile_type_create, name="profile_type_create"),
+    path("profiles/<int:profile_id>/edit/", views.profile_type_edit, name="profile_type_edit"),
+    path("profiles/<int:profile_id>/delete/", views.profile_type_delete, name="profile_type_delete"),
+    path(
+        "profiles/<int:profile_id>/toggle/",
+        views.profile_type_toggle_active,
+        name="profile_type_toggle",
+    ),
     # Category management (Maestros)
     path("categories/", views.category_list, name="category_list"),
     path("categories/create/", views.category_create, name="category_create"),

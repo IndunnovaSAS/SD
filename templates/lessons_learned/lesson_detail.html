@@ -19,12 +19,14 @@
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <div class="flex items-center gap-2 mb-2">
-                        {% if lesson.lesson_type == 'accident' %}
-                        <span class="badge badge-error">Accidente</span>
+                        {% if lesson.lesson_type == 'incident' %}
+                        <span class="badge badge-error">Incidente</span>
                         {% elif lesson.lesson_type == 'near_miss' %}
                         <span class="badge badge-warning">Casi accidente</span>
-                        {% elif lesson.lesson_type == 'best_practice' %}
+                        {% elif lesson.lesson_type == 'good_practice' %}
                         <span class="badge badge-success">Buena práctica</span>
+                        {% elif lesson.lesson_type == 'observation' %}
+                        <span class="badge badge-ghost">Observación</span>
                         {% else %}
                         <span class="badge badge-info">Mejora</span>
                         {% endif %}
@@ -117,24 +119,34 @@
                 <h3>Descripción</h3>
                 <p>{{ lesson.description }}</p>
 
+                {% if lesson.situation %}
+                <h3>Situación / Contexto</h3>
+                <p>{{ lesson.situation }}</p>
+                {% endif %}
+
                 {% if lesson.root_cause %}
                 <h3>Causa Raíz</h3>
                 <p>{{ lesson.root_cause }}</p>
                 {% endif %}
 
-                {% if lesson.corrective_actions %}
-                <h3>Acciones Correctivas</h3>
-                <p>{{ lesson.corrective_actions }}</p>
-                {% endif %}
-
-                {% if lesson.preventive_actions %}
-                <h3>Acciones Preventivas</h3>
-                <p>{{ lesson.preventive_actions }}</p>
+                {% if lesson.lesson %}
+                <h3>Lección Aprendida</h3>
+                <p>{{ lesson.lesson }}</p>
                 {% endif %}
 
                 {% if lesson.recommendations %}
                 <h3>Recomendaciones</h3>
                 <p>{{ lesson.recommendations }}</p>
+                {% endif %}
+
+                {% if lesson.location %}
+                <h3>Ubicación</h3>
+                <p>{{ lesson.location }}</p>
+                {% endif %}
+
+                {% if lesson.date_occurred %}
+                <h3>Fecha del evento</h3>
+                <p>{{ lesson.date_occurred|date:"d/m/Y" }}</p>
                 {% endif %}
             </div>
 
@@ -150,22 +162,20 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
                         </svg>
-                        {{ attachment.filename }}
+                        {{ attachment.original_name }}
                     </a>
                     {% endfor %}
                 </div>
             </div>
             {% endif %}
 
-            <!-- Related Courses -->
-            {% if lesson.related_courses.exists %}
+            <!-- Tags -->
+            {% if lesson.tags %}
             <div class="mt-6">
-                <h3 class="font-medium mb-3">Cursos relacionados</h3>
+                <h3 class="font-medium mb-3">Etiquetas</h3>
                 <div class="flex flex-wrap gap-2">
-                    {% for course in lesson.related_courses.all %}
-                    <a href="{% url 'courses:detail' course.id %}" class="badge badge-primary gap-1">
-                        {{ course.title }}
-                    </a>
+                    {% for tag in lesson.tags %}
+                    <span class="badge badge-primary badge-outline">{{ tag }}</span>
                     {% endfor %}
                 </div>
             </div>

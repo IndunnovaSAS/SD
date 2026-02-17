@@ -68,6 +68,51 @@ class LessonLearnedService:
         return lesson_learned
 
     @staticmethod
+    @transaction.atomic
+    def update_lesson(
+        lesson: LessonLearned,
+        title: str,
+        description: str,
+        category: Category,
+        situation: str,
+        lesson_text: str,
+        recommendations: str,
+        lesson_type: str = None,
+        severity: str = None,
+        root_cause: str = "",
+        location: str = "",
+        date_occurred=None,
+        tags: list = None,
+        target_profiles: list = None,
+    ) -> LessonLearned:
+        """
+        Update an existing lesson learned.
+        """
+        lesson.title = title
+        lesson.description = description
+        lesson.category = category
+        lesson.situation = situation
+        lesson.lesson = lesson_text
+        lesson.recommendations = recommendations
+        lesson.root_cause = root_cause
+        lesson.location = location
+        lesson.date_occurred = date_occurred
+
+        if lesson_type:
+            lesson.lesson_type = lesson_type
+        if severity:
+            lesson.severity = severity
+        if tags is not None:
+            lesson.tags = tags
+        if target_profiles is not None:
+            lesson.target_profiles = target_profiles
+
+        lesson.save()
+
+        logger.info(f"Lesson learned updated: {lesson.id}")
+        return lesson
+
+    @staticmethod
     def submit_for_review(lesson_learned: LessonLearned) -> LessonLearned:
         """
         Submit a lesson learned for review.

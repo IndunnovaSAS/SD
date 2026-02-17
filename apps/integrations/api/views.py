@@ -81,7 +81,7 @@ class ExternalSystemViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def test_connection(self, request, pk=None):
         """Test connection to external system."""
-        system = self.get_object()
+        self.get_object()
 
         # In a real implementation, attempt to connect to the system
         # For now, return a simulated result

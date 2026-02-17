@@ -43,7 +43,6 @@ class GamificationDashboardService:
         now = timezone.now()
         today = now.date()
         week_start = today - timedelta(days=today.weekday())
-        month_start = today.replace(day=1)
 
         # Point statistics
         total_points = (

@@ -214,7 +214,7 @@ def submit_attempt(request, attempt_id):
     )
 
     # Save any remaining answers
-    for key, value in request.POST.items():
+    for key, _value in request.POST.items():
         if key.startswith("question_"):
             question_id = key.replace("question_", "")
             selected_ids = request.POST.getlist(key)

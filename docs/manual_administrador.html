@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Administrador - SD LMS</title>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --primary-light: #3b82f6;
+            --primary-dark: #1e3a8a;
+            --secondary: #059669;
+            --accent: #d97706;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --bg-white: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --sidebar-width: 300px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.7;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+
+        .header h1 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .header .badge {
+            background: var(--accent);
+            color: white;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 12px;
+            text-transform: uppercase;
+        }
+
+        .header .version {
+            margin-left: auto;
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 64px;
+            left: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--bg-white);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 1rem 0;
+            z-index: 100;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .sidebar .nav-section {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-light);
+            margin-top: 0.5rem;
+        }
+
+        .sidebar a {
+            display: block;
+            padding: 0.45rem 1.5rem;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.88rem;
+            transition: all 0.15s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar a:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+            border-left-color: var(--primary-light);
+        }
+
+        .sidebar a.sub {
+            padding-left: 2.5rem;
+            font-size: 0.82rem;
+            color: var(--text-light);
+        }
+
+        .sidebar a.sub:hover {
+            color: var(--primary);
+        }
+
+        /* Main */
+        .main {
+            margin-left: var(--sidebar-width);
+            margin-top: 64px;
+            padding: 2rem 3rem 4rem;
+            max-width: 960px;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 3rem;
+            scroll-margin-top: 80px;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: var(--primary-dark);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--primary-light);
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            color: var(--primary);
+            margin: 1.5rem 0 0.75rem;
+        }
+
+        h4 {
+            font-size: 1.05rem;
+            color: var(--text);
+            margin: 1rem 0 0.5rem;
+            font-weight: 600;
+        }
+
+        p {
+            margin-bottom: 0.75rem;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 0.5rem 0 1rem 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.3rem;
+        }
+
+        /* Info boxes */
+        .info-box {
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid;
+        }
+
+        .info-box.tip {
+            background: #f0fdf4;
+            border-color: var(--secondary);
+            color: #166534;
+        }
+
+        .info-box.warning {
+            background: #fffbeb;
+            border-color: var(--accent);
+            color: #92400e;
+        }
+
+        .info-box.danger {
+            background: #fef2f2;
+            border-color: var(--danger);
+            color: #991b1b;
+        }
+
+        .info-box.info {
+            background: #eff6ff;
+            border-color: var(--primary-light);
+            color: #1e40af;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 0.65rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* Steps */
+        .steps {
+            counter-reset: step;
+            list-style: none;
+            margin-left: 0;
+            padding-left: 0;
+        }
+
+        .steps li {
+            counter-increment: step;
+            padding: 0.75rem 0 0.75rem 3.5rem;
+            position: relative;
+            margin-bottom: 0.5rem;
+            min-height: 2.5rem;
+        }
+
+        .steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 0.6rem;
+            width: 2.2rem;
+            height: 2.2rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        /* Code / paths */
+        code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.85em;
+            color: var(--primary-dark);
+        }
+
+        .path {
+            display: inline-block;
+            background: #1e293b;
+            color: #94a3b8;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            margin: 0.5rem 0;
+        }
+
+        .path span {
+            color: #60a5fa;
+        }
+
+        /* Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .card {
+            background: var(--bg-white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            transition: box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .card .icon {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .card h4 {
+            margin: 0 0 0.4rem;
+            color: var(--primary);
+        }
+
+        .card p {
+            font-size: 0.88rem;
+            color: var(--text-light);
+            margin: 0;
+        }
+
+        /* Screenshot placeholder */
+        .screenshot {
+            background: linear-gradient(135deg, #e2e8f0, #f1f5f9);
+            border: 2px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 3rem 2rem;
+            text-align: center;
+            color: var(--text-light);
+            margin: 1rem 0;
+            font-style: italic;
+        }
+
+        .screenshot::before {
+            content: "🖥️";
+            display: block;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            font-style: normal;
+        }
+
+        /* Keyboard shortcuts */
+        kbd {
+            background: linear-gradient(180deg, #f8fafc, #e2e8f0);
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-family: 'Cascadia Code', 'Consolas', monospace;
+            font-size: 0.8em;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* Print styles */
+        @media print {
+            .sidebar { display: none; }
+            .header { position: static; }
+            .main {
+                margin-left: 0;
+                margin-top: 0;
+                max-width: 100%;
+            }
+            .section { break-inside: avoid; }
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .sidebar { display: none; }
+            .main {
+                margin-left: 0;
+                padding: 1.5rem;
+            }
+        }
+
+        /* Workflow diagram */
+        .workflow {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .workflow .step {
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .workflow .arrow {
+            color: var(--text-light);
+            font-size: 1.2rem;
+        }
+
+        /* TOC intro */
+        .intro-hero {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .intro-hero h2 {
+            color: white;
+            border: none;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .intro-hero p {
+            opacity: 0.9;
+            font-size: 1.05rem;
+        }
+
+        /* Status indicator */
+        .status {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .status.active { background: #dcfce7; color: #166534; }
+        .status.inactive { background: #fee2e2; color: #991b1b; }
+        .status.pending { background: #fef3c7; color: #92400e; }
+        .status.draft { background: #e2e8f0; color: #475569; }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <h1>SD LMS - Manual de Administrador</h1>
+    <span class="badge">Administrador</span>
+    <span class="version">v1.0 - Febrero 2026</span>
+</header>
+
+<nav class="sidebar">
+    <div class="nav-section">Inicio</div>
+    <a href="#introduccion">Introduccion</a>
+    <a href="#acceso">Acceso al sistema</a>
+
+    <div class="nav-section">Gestion de Usuarios</div>
+    <a href="#usuarios">Administrar usuarios</a>
+    <a href="#roles">Roles y permisos</a>
+    <a href="#contratos">Contratos</a>
+
+    <div class="nav-section">Gestion Academica</div>
+    <a href="#categorias">Categorias</a>
+    <a href="#cursos">Cursos</a>
+    <a href="#modulos-lecciones">Modulos y lecciones</a>
+    <a href="#evaluaciones">Evaluaciones</a>
+    <a href="#rutas">Rutas de aprendizaje</a>
+
+    <div class="nav-section">Certificaciones</div>
+    <a href="#plantillas-cert">Plantillas de certificados</a>
+    <a href="#certificados">Emision de certificados</a>
+
+    <div class="nav-section">Gestion Operativa</div>
+    <a href="#charlas">Charlas preoperacionales</a>
+    <a href="#lecciones-aprendidas">Lecciones aprendidas</a>
+
+    <div class="nav-section">Gamificacion</div>
+    <a href="#puntos">Sistema de puntos</a>
+    <a href="#insignias">Insignias y logros</a>
+    <a href="#tablas">Tablas de clasificacion</a>
+    <a href="#retos">Retos</a>
+    <a href="#recompensas">Recompensas</a>
+
+    <div class="nav-section">Notificaciones</div>
+    <a href="#notificaciones">Gestion de notificaciones</a>
+    <a href="#plantillas-notif">Plantillas</a>
+
+    <div class="nav-section">Reportes y Dashboard</div>
+    <a href="#dashboard">Dashboard administrativo</a>
+    <a href="#reportes">Generacion de reportes</a>
+    <a href="#reportes-programados">Reportes programados</a>
+
+    <div class="nav-section">Integraciones</div>
+    <a href="#sistemas-externos">Sistemas externos</a>
+    <a href="#webhooks">Webhooks</a>
+
+    <div class="nav-section">Sincronizacion</div>
+    <a href="#paquetes-offline">Paquetes offline</a>
+    <a href="#sincronizacion">Sincronizacion</a>
+
+    <div class="nav-section">Configuracion</div>
+    <a href="#parametrizacion">Parametrizacion</a>
+    <a href="#panel-django">Panel de Django Admin</a>
+    <a href="#seguridad">Seguridad</a>
+    <a href="#api">API y documentacion</a>
+</nav>
+
+<main class="main">
+
+    <!-- INTRODUCCION -->
+    <div class="intro-hero">
+        <h2>Manual de Administrador</h2>
+        <p>Guia completa para la gestion y administracion del Sistema de Desarrollo de Aprendizaje (SD LMS). Este manual cubre todas las funcionalidades disponibles para el rol de Administrador.</p>
+    </div>
+
+    <section class="section" id="introduccion">
+        <h2>1. Introduccion</h2>
+        <p>SD LMS es un Sistema de Gestion de Aprendizaje (LMS) disenado para la administracion de capacitaciones y certificaciones en entornos de trabajo de alto riesgo electrico. El sistema permite gestionar cursos, evaluaciones, certificaciones, rutas de aprendizaje, lecciones aprendidas, charlas preoperacionales y un completo sistema de gamificacion.</p>
+
+        <h3>1.1 Funcionalidades principales</h3>
+        <div class="card-grid">
+            <div class="card">
+                <div class="icon">👥</div>
+                <h4>Gestion de Usuarios</h4>
+                <p>Crear, editar y gestionar usuarios con multiples roles y perfiles ocupacionales.</p>
+            </div>
+            <div class="card">
+                <div class="icon">📚</div>
+                <h4>Cursos y Formacion</h4>
+                <p>Administrar cursos con modulos, lecciones multimedia, SCORM y evaluaciones.</p>
+            </div>
+            <div class="card">
+                <div class="icon">🏆</div>
+                <h4>Certificaciones</h4>
+                <p>Emitir, verificar y gestionar certificados con validez temporal y codigos QR.</p>
+            </div>
+            <div class="card">
+                <div class="icon">📊</div>
+                <h4>Reportes y Analitica</h4>
+                <p>Dashboard en tiempo real, reportes automatizados y metricas de cumplimiento.</p>
+            </div>
+            <div class="card">
+                <div class="icon">🎮</div>
+                <h4>Gamificacion</h4>
+                <p>Puntos, insignias, retos, tablas de clasificacion y recompensas canjeables.</p>
+            </div>
+            <div class="card">
+                <div class="icon">🔔</div>
+                <h4>Notificaciones</h4>
+                <p>Alertas multicanal: correo, push, SMS y notificaciones en la aplicacion.</p>
+            </div>
+        </div>
+
+        <h3>1.2 Requisitos del sistema</h3>
+        <ul>
+            <li>Navegador web moderno (Chrome, Firefox, Edge, Safari)</li>
+            <li>Conexion a Internet (con soporte offline parcial)</li>
+            <li>Resolucion de pantalla minima recomendada: 1280x720</li>
+        </ul>
+    </section>
+
+    <!-- ACCESO -->
+    <section class="section" id="acceso">
+        <h2>2. Acceso al Sistema</h2>
+
+        <h3>2.1 Inicio de sesion</h3>
+        <p>Como administrador, el acceso se realiza mediante <strong>correo electronico y contrasena</strong>.</p>
+
+        <ol class="steps">
+            <li>Ingrese a la URL del sistema proporcionada por su organizacion.</li>
+            <li>En la pantalla de inicio de sesion, seleccione la opcion <strong>"Iniciar sesion con correo"</strong>.</li>
+            <li>Ingrese su correo electronico corporativo y contrasena.</li>
+            <li>Si tiene habilitada la autenticacion de dos factores (2FA), ingrese el codigo generado por su aplicacion de autenticacion (Google Authenticator, Authy, etc.).</li>
+            <li>Haga clic en <strong>"Iniciar sesion"</strong> para acceder al sistema.</li>
+        </ol>
+
+        <div class="info-box tip">
+            <strong>Consejo de seguridad</strong>
+            Se recomienda activar la autenticacion de dos factores (2FA) para mayor seguridad de su cuenta de administrador.
+        </div>
+
+        <h3>2.2 Recuperacion de contrasena</h3>
+        <ol class="steps">
+            <li>En la pantalla de inicio de sesion, haga clic en <strong>"Olvidaste tu contrasena?"</strong>.</li>
+            <li>Ingrese su correo electronico registrado.</li>
+            <li>Revise su bandeja de entrada (y la carpeta de spam) para encontrar el enlace de recuperacion.</li>
+            <li>Haga clic en el enlace y establezca una nueva contrasena segura.</li>
+        </ol>
+
+        <h3>2.3 Configurar autenticacion de dos factores (2FA)</h3>
+        <ol class="steps">
+            <li>Acceda a su perfil desde el menu superior.</li>
+            <li>Seleccione <strong>"Configurar 2FA"</strong>.</li>
+            <li>Escanee el codigo QR con su aplicacion de autenticacion (Google Authenticator, Authy).</li>
+            <li>Ingrese el codigo de 6 digitos generado para confirmar la activacion.</li>
+        </ol>
+
+        <div class="info-box warning">
+            <strong>Importante</strong>
+            Guarde los codigos de respaldo en un lugar seguro. Si pierde acceso a su aplicacion de autenticacion, necesitara estos codigos para ingresar al sistema.
+        </div>
+    </section>
+
+    <!-- GESTION DE USUARIOS -->
+    <section class="section" id="usuarios">
+        <h2>3. Gestion de Usuarios</h2>
+        <p>Como administrador, usted tiene acceso completo para crear, editar y gestionar todos los usuarios del sistema.</p>
+
+        <div class="path"><span>Navegacion:</span> Menu lateral &gt; Usuarios &gt; Lista de usuarios</div>
+
+        <h3>3.1 Listado de usuarios</h3>
+        <p>La vista de listado muestra todos los usuarios registrados con la siguiente informacion:</p>
+        <ul>
+            <li>Nombre completo y foto de perfil</li>
+            <li>Numero de documento</li>
+            <li>Perfil ocupacional</li>
+            <li>Estado (Activo, Inactivo, Suspendido, Periodo de Prueba)</li>
+            <li>Tipo de vinculacion (Directa o Contratista)</li>
+        </ul>
+
+        <h3>3.2 Crear un nuevo usuario</h3>
+        <ol class="steps">
+            <li>Haga clic en el boton <strong>"Nuevo usuario"</strong> en la esquina superior derecha.</li>
+            <li>Complete la informacion personal:
+                <ul>
+                    <li><strong>Nombre</strong> y <strong>Apellido</strong></li>
+                    <li><strong>Tipo de documento</strong> (CC, CE, TI, Pasaporte)</li>
+                    <li><strong>Numero de documento</strong> (obligatorio, debe ser unico)</li>
+                    <li><strong>Correo electronico</strong> (obligatorio para personal profesional y administrativo)</li>
+                    <li><strong>Foto de perfil</strong> (opcional)</li>
+                </ul>
+            </li>
+            <li>Seleccione la informacion laboral:
+                <ul>
+                    <li><strong>Cargo</strong></li>
+                    <li><strong>Perfil ocupacional</strong> (Liniero, Tecnico, Operador, Jefe de Cuadrilla, Ingeniero Residente, Coordinador HSEQ, Administrador)</li>
+                    <li><strong>Tipo de vinculacion</strong> (Directa o Contratista)</li>
+                    <li><strong>Fecha de ingreso</strong></li>
+                </ul>
+            </li>
+            <li>Asigne los <strong>roles</strong> correspondientes (Admin, Supervisor, Instructor, Trabajador, Auditor).</li>
+            <li>Haga clic en <strong>"Guardar"</strong> para crear el usuario.</li>
+        </ol>
+
+        <div class="info-box info">
+            <strong>Autenticacion segun perfil</strong>
+            Los perfiles operativos (Liniero, Tecnico, Operador) inician sesion con su <strong>numero de documento</strong>. Los perfiles profesionales y administrativos inician sesion con su <strong>correo electronico</strong>.
+        </div>
+
+        <h3>3.3 Editar un usuario</h3>
+        <ol class="steps">
+            <li>Busque el usuario en el listado o use el campo de busqueda.</li>
+            <li>Haga clic en el nombre del usuario para ver su detalle.</li>
+            <li>Haga clic en <strong>"Editar"</strong>.</li>
+            <li>Modifique los campos necesarios.</li>
+            <li>Haga clic en <strong>"Guardar cambios"</strong>.</li>
+        </ol>
+
+        <div class="info-box tip">
+            <strong>Historial laboral</strong>
+            Cada vez que se modifica el cargo o perfil ocupacional de un usuario, el sistema registra automaticamente un historial con la fecha del cambio, los valores anteriores y los nuevos, generando una trazabilidad completa.
+        </div>
+
+        <h3>3.4 Activar/Desactivar usuarios</h3>
+        <p>Desde el detalle del usuario, utilice el boton <strong>"Cambiar estado"</strong> para alternar entre:</p>
+        <table>
+            <tr><th>Estado</th><th>Descripcion</th></tr>
+            <tr><td><span class="status active">Activo</span></td><td>El usuario puede acceder al sistema y realizar todas sus actividades normalmente.</td></tr>
+            <tr><td><span class="status inactive">Inactivo</span></td><td>El usuario no puede iniciar sesion. Sus datos y progreso se conservan.</td></tr>
+            <tr><td><span class="status pending">Suspendido</span></td><td>Acceso temporalmente restringido. Util para investigaciones o ausencias prolongadas.</td></tr>
+            <tr><td><span class="status draft">Periodo de Prueba</span></td><td>Usuario nuevo en periodo de evaluacion con acceso limitado.</td></tr>
+        </table>
+    </section>
+
+    <!-- ROLES -->
+    <section class="section" id="roles">
+        <h2>4. Roles y Permisos</h2>
+        <p>El sistema cuenta con un esquema de roles personalizados que se mapean al sistema de permisos de Django.</p>
+
+        <h3>4.1 Roles del sistema</h3>
+        <table>
+            <tr><th>Rol</th><th>Descripcion</th><th>Permisos principales</th></tr>
+            <tr>
+                <td><strong>Administrador</strong></td>
+                <td>Control total del sistema</td>
+                <td>Gestion de usuarios, cursos, reportes, configuracion del sistema, integraciones</td>
+            </tr>
+            <tr>
+                <td><strong>Supervisor</strong></td>
+                <td>Supervisa equipos de trabajo</td>
+                <td>Ver reportes de su equipo, aprobar lecciones aprendidas, gestionar charlas</td>
+            </tr>
+            <tr>
+                <td><strong>Instructor</strong></td>
+                <td>Crea y gestiona contenido formativo</td>
+                <td>Crear/editar cursos, calificar evaluaciones, gestionar contenido</td>
+            </tr>
+            <tr>
+                <td><strong>Trabajador</strong></td>
+                <td>Colaborador/empleado</td>
+                <td>Tomar cursos, presentar evaluaciones, ver certificados, participar en gamificacion</td>
+            </tr>
+            <tr>
+                <td><strong>Auditor ISA</strong></td>
+                <td>Auditor externo de cumplimiento</td>
+                <td>Ver reportes de cumplimiento, verificar certificados, consultar registros</td>
+            </tr>
+        </table>
+
+        <h3>4.2 Perfiles ocupacionales</h3>
+        <p>Ademas de los roles, cada usuario tiene un <strong>perfil ocupacional</strong> que determina:</p>
+        <ul>
+            <li>El metodo de autenticacion (documento vs. correo electronico)</li>
+            <li>Los cursos asignables por defecto</li>
+            <li>Las rutas de aprendizaje sugeridas</li>
+            <li>Los filtros disponibles en reportes</li>
+        </ul>
+
+        <table>
+            <tr><th>Categoria</th><th>Perfiles</th><th>Autenticacion</th></tr>
+            <tr>
+                <td>Personal operativo</td>
+                <td>Liniero, Tecnico, Operador</td>
+                <td>Numero de documento</td>
+            </tr>
+            <tr>
+                <td>Personal profesional</td>
+                <td>Jefe de Cuadrilla, Ingeniero Residente, Coordinador HSEQ</td>
+                <td>Correo electronico</td>
+            </tr>
+            <tr>
+                <td>Personal administrativo</td>
+                <td>Administrador</td>
+                <td>Correo electronico</td>
+            </tr>
+        </table>
+
+        <h3>4.3 Asignar roles a usuarios</h3>
+        <ol class="steps">
+            <li>Acceda al detalle del usuario.</li>
+            <li>En la seccion de <strong>"Roles"</strong>, seleccione los roles que desea asignar.</li>
+            <li>Un usuario puede tener multiples roles simultaneamente.</li>
+            <li>Los permisos se acumulan (un usuario con roles Instructor + Supervisor tendra los permisos de ambos).</li>
+        </ol>
+    </section>
+
+    <!-- CONTRATOS -->
+    <section class="section" id="contratos">
+        <h2>5. Gestion de Contratos</h2>
+        <p>El sistema permite gestionar contratos de clientes y asignar usuarios a estos contratos.</p>
+
+        <h3>5.1 Contratos</h3>
+        <p>Los contratos representan acuerdos con clientes (ej. ISA Intercolombia) y permiten organizar la formacion por proyecto o contrato.</p>
+        <ul>
+            <li><strong>Nombre del contrato</strong></li>
+            <li><strong>Descripcion</strong></li>
+            <li><strong>Fechas de inicio y finalizacion</strong></li>
+            <li><strong>Estado</strong> (Activo/Inactivo)</li>
+        </ul>
+
+        <h3>5.2 Asignar usuarios a contratos</h3>
+        <ol class="steps">
+            <li>Acceda a la gestion de contratos desde el panel de administracion.</li>
+            <li>Seleccione el contrato deseado.</li>
+            <li>En la seccion de asignaciones, agregue los usuarios que forman parte de ese contrato.</li>
+            <li>Registre las fechas de asignacion y notas relevantes.</li>
+        </ol>
+    </section>
+
+    <!-- CATEGORIAS -->
+    <section class="section" id="categorias">
+        <h2>6. Gestion de Categorias</h2>
+        <p>Las categorias organizan los cursos en una estructura jerarquica de arbol (categorias padre e hijas).</p>
+
+        <div class="path"><span>Navegacion:</span> Menu lateral &gt; Parametrizacion &gt; Categorias</div>
+
+        <h3>6.1 Crear una categoria</h3>
+        <ol class="steps">
+            <li>Acceda a la seccion de <strong>Categorias</strong>.</li>
+            <li>Haga clic en <strong>"Nueva categoria"</strong>.</li>
+            <li>Complete los campos:
+                <ul>
+                    <li><strong>Nombre</strong> de la categoria</li>
+                    <li><strong>Descripcion</strong> (opcional)</li>
+                    <li><strong>Categoria padre</strong> (para crear subcategorias)</li>
+                    <li><strong>Orden</strong> de visualizacion</li>
+                    <li><strong>Estado</strong> (activa/inactiva)</li>
+                </ul>
+            </li>
+            <li>Haga clic en <strong>"Guardar"</strong>.</li>
+        </ol>
+
+        <h3>6.2 Estructura jerarquica</h3>
+        <p>Ejemplo de estructura:</p>
+        <ul>
+            <li><strong>Seguridad Electrica</strong> (categoria padre)
+                <ul>
+                    <li>Trabajos en Alta Tension (subcategoria)</li>
+                    <li>Primeros Auxilios Electricos (subcategoria)</li>
+                    <li>Equipos de Proteccion (subcategoria)</li>
+                </ul>
+            </li>
+            <li><strong>Normas y Regulaciones</strong> (categoria padre)
+                <ul>
+                    <li>RETIE (subcategoria)</li>
+                    <li>NTC 2050 (subcategoria)</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>6.3 Activar/Desactivar categorias</h3>
+        <p>Use el boton de alternancia para activar o desactivar una categoria. Las categorias inactivas no se muestran en el catalogo de cursos para los trabajadores.</p>
+    </section>
+
+    <!-- CURSOS -->
+    <section class="section" id="cursos">
+        <h2>7. Gestion de Cursos</h2>
+        <p>Los cursos son el nucleo del sistema formativo. Cada curso puede contener multiples modulos con lecciones de diferentes tipos.</p>
+
+        <div class="path"><span>Navegacion:</span> Menu lateral &gt; Parametrizacion &gt; Cursos</div>
+
+        <h3>7.1 Crear un nuevo curso</h3>
+        <ol class="steps">
+            <li>Acceda a la seccion de <strong>Cursos</strong> y haga clic en <strong>"Nuevo curso"</strong>.</li>
+            <li>Complete la informacion basica:
+                <ul>
+                    <li><strong>Titulo</strong> del curso</li>
+                    <li><strong>Descripcion</strong> detallada</li>
+                    <li><strong>Categoria</strong> a la que pertenece</li>
+                    <li><strong>Imagen de portada</strong></li>
+                </ul>
+            </li>
+            <li>Configure los parametros del curso:
+                <ul>
+                    <li><strong>Tipo</strong>: Obligatorio, Opcional o Reentrenamiento</li>
+                    <li><strong>Prerrequisitos</strong>: Cursos que deben completarse antes</li>
+                    <li><strong>Perfiles objetivo</strong>: Perfiles ocupacionales a los que se dirige</li>
+                    <li><strong>Validez del certificado</strong> (meses)</li>
+                </ul>
+            </li>
+            <li>El curso se crea en estado <span class="status draft">Borrador</span>.</li>
+        </ol>
+
+        <h3>7.2 Estados del curso</h3>
+        <div class="workflow">
+            <span class="step">Borrador</span>
+            <span class="arrow">→</span>
+            <span class="step">Publicado</span>
+            <span class="arrow">→</span>
+            <span class="step">Archivado</span>
+        </div>
+        <table>
+            <tr><th>Estado</th><th>Descripcion</th></tr>
+            <tr><td><span class="status draft">Borrador</span></td><td>En construccion. Solo visible para administradores e instructores. No disponible para inscripcion.</td></tr>
+            <tr><td><span class="status active">Publicado</span></td><td>Disponible para los trabajadores. Visible en el catalogo de cursos.</td></tr>
+            <tr><td><span class="status inactive">Archivado</span></td><td>Retirado del catalogo. Los estudiantes inscritos conservan su progreso pero no se permiten nuevas inscripciones.</td></tr>
+        </table>
+
+        <h3>7.3 Tipos de curso</h3>
+        <table>
+            <tr><th>Tipo</th><th>Descripcion</th></tr>
+            <tr><td><strong>Obligatorio</strong></td><td>Cursos requeridos por normativa o politica interna. Afectan el indicador de cumplimiento.</td></tr>
+            <tr><td><strong>Opcional</strong></td><td>Cursos de formacion complementaria. No son obligatorios pero otorgan puntos y mejoran el perfil.</td></tr>
+            <tr><td><strong>Reentrenamiento</strong></td><td>Cursos de actualizacion periodica. Se asignan automaticamente cuando un certificado esta por vencer.</td></tr>
+        </table>
+
+        <h3>7.4 Control de versiones</h3>
+        <p>El sistema mantiene un historial de versiones de cada curso:</p>
+        <ul>
+            <li>Se crea una instantanea (snapshot) del contenido del curso cada vez que se publica una actualizacion importante.</li>
+            <li>Cada version registra un <strong>registro de cambios</strong> (changelog).</li>
+            <li>Es posible marcar versiones como <strong>version mayor</strong> para cambios significativos.</li>
+            <li>Se puede consultar el historial completo de versiones y quien realizo cada cambio.</li>
+        </ul>
+
+        <h3>7.5 Inscripciones masivas</h3>
+        <p>Desde el panel de administracion puede realizar inscripciones masivas a un curso:</p>
+        <ol class="steps">
+            <li>Acceda al detalle del curso.</li>
+            <li>Seleccione <strong>"Inscripcion masiva"</strong>.</li>
+            <li>Filtre los usuarios por perfil ocupacional, contrato o estado.</li>
+            <li>Seleccione los usuarios deseados y confirme la inscripcion.</li>
+        </ol>
+    </section>
+
+    <!-- MODULOS Y LECCIONES -->
+    <section class="section" id="modulos-lecciones">
+        <h2>8. Modulos y Lecciones</h2>
+        <p>Cada curso se organiza en modulos, y cada modulo contiene lecciones ordenadas secuencialmente.</p>
+
+        <h3>8.1 Crear un modulo</h3>
+        <ol class="steps">
+            <li>Dentro del curso, acceda a la seccion de <strong>"Modulos"</strong>.</li>
+            <li>Haga clic en <strong>"Agregar modulo"</strong>.</li>
+            <li>Ingrese el <strong>titulo</strong> y la <strong>descripcion</strong> del modulo.</li>
+            <li>Defina el <strong>orden</strong> dentro del curso.</li>
+        </ol>
+
+        <h3>8.2 Tipos de leccion</h3>
+        <p>Cada leccion puede ser de uno de los siguientes tipos:</p>
+        <table>
+            <tr><th>Tipo</th><th>Descripcion</th><th>Formatos aceptados</th></tr>
+            <tr><td><strong>Video</strong></td><td>Contenido audiovisual</td><td>MP4, WebM, y otros formatos de video</td></tr>
+            <tr><td><strong>PDF</strong></td><td>Documentos para lectura</td><td>Archivos PDF</td></tr>
+            <tr><td><strong>SCORM</strong></td><td>Contenido interactivo estandarizado</td><td>Paquetes SCORM 1.2, SCORM 2004</td></tr>
+            <tr><td><strong>Interactivo</strong></td><td>Actividades interactivas personalizadas</td><td>HTML5, contenido web</td></tr>
+            <tr><td><strong>Audio</strong></td><td>Contenido solo audio</td><td>MP3, WAV, OGG</td></tr>
+            <tr><td><strong>Cuestionario</strong></td><td>Evaluaciones integradas</td><td>Preguntas del sistema</td></tr>
+            <tr><td><strong>Texto</strong></td><td>Contenido textual enriquecido</td><td>HTML, texto con formato</td></tr>
+        </table>
+
+        <h3>8.3 Crear una leccion</h3>
+        <ol class="steps">
+            <li>Dentro del modulo, haga clic en <strong>"Agregar leccion"</strong>.</li>
+            <li>Seleccione el <strong>tipo de leccion</strong>.</li>
+            <li>Ingrese el <strong>titulo</strong> y la <strong>descripcion</strong>.</li>
+            <li>Suba el <strong>contenido</strong> (archivo, video, paquete SCORM, etc.).</li>
+            <li>Configure la <strong>duracion estimada</strong> en minutos.</li>
+            <li>Marque si la leccion esta <strong>disponible offline</strong> (el contenido se incluira en paquetes de descarga).</li>
+            <li>Defina el <strong>orden</strong> dentro del modulo.</li>
+        </ol>
+
+        <h3>8.4 Contenido SCORM</h3>
+        <p>Para subir contenido SCORM:</p>
+        <ol class="steps">
+            <li>Prepare su paquete SCORM en formato ZIP.</li>
+            <li>Seleccione la <strong>version SCORM</strong> (1.2 o 2004).</li>
+            <li>Suba el archivo ZIP. El sistema extraera automaticamente el contenido.</li>
+            <li>El manifiesto (imsmanifest.xml) sera procesado para configurar la URL de lanzamiento.</li>
+            <li>Verifique que el contenido se visualiza correctamente en la previsualizacion.</li>
+        </ol>
+
+        <h3>8.5 Gestion de activos multimedia</h3>
+        <p>El sistema cuenta con una <strong>biblioteca de recursos</strong> para gestionar archivos multimedia reutilizables:</p>
+        <ul>
+            <li>Los archivos subidos se procesan automaticamente (compresion, generacion de miniaturas).</li>
+            <li>Estado de procesamiento: <span class="status pending">Pendiente</span> → <span class="status active">Procesando</span> → <span class="status active">Listo</span></li>
+            <li>Los archivos pueden reutilizarse en multiples lecciones y cursos.</li>
+        </ul>
+    </section>
+
+    <!-- EVALUACIONES -->
+    <section class="section" id="evaluaciones">
+        <h2>9. Evaluaciones</h2>
+        <p>El modulo de evaluaciones permite crear examenes, cuestionarios, practicas y encuestas asociadas a los cursos.</p>
+
+        <h3>9.1 Tipos de evaluacion</h3>
+        <table>
+            <tr><th>Tipo</th><th>Proposito</th></tr>
+            <tr><td><strong>Cuestionario (Quiz)</strong></td><td>Evaluacion rapida para reforzar conceptos de un modulo o leccion.</td></tr>
+            <tr><td><strong>Examen</strong></td><td>Evaluacion formal que determina la aprobacion del curso.</td></tr>
+            <tr><td><strong>Practica</strong></td><td>Ejercicios de entrenamiento sin calificacion formal.</td></tr>
+            <tr><td><strong>Encuesta</strong></td><td>Recoleccion de retroalimentacion sin calificacion.</td></tr>
+        </table>
+
+        <h3>9.2 Crear una evaluacion</h3>
+        <ol class="steps">
+            <li>Acceda al curso y seleccione <strong>"Evaluaciones"</strong>.</li>
+            <li>Haga clic en <strong>"Nueva evaluacion"</strong>.</li>
+            <li>Configure los parametros:
+                <ul>
+                    <li><strong>Titulo</strong> y <strong>descripcion</strong></li>
+                    <li><strong>Tipo</strong> de evaluacion</li>
+                    <li><strong>Puntaje de aprobacion</strong> (porcentaje minimo, ej. 80%)</li>
+                    <li><strong>Tiempo limite</strong> (minutos, 0 = sin limite)</li>
+                    <li><strong>Intentos maximos</strong> (0 = intentos ilimitados)</li>
+                    <li><strong>Mezclar preguntas</strong> (aleatorizar el orden)</li>
+                    <li><strong>Mezclar respuestas</strong> (aleatorizar las opciones)</li>
+                    <li><strong>Mostrar respuestas correctas</strong> al finalizar</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>9.3 Tipos de preguntas</h3>
+        <table>
+            <tr><th>Tipo</th><th>Descripcion</th></tr>
+            <tr><td><strong>Seleccion unica</strong></td><td>Una sola respuesta correcta entre varias opciones.</td></tr>
+            <tr><td><strong>Seleccion multiple</strong></td><td>Varias respuestas correctas posibles.</td></tr>
+            <tr><td><strong>Verdadero/Falso</strong></td><td>Afirmacion que se debe evaluar como correcta o incorrecta.</td></tr>
+            <tr><td><strong>Respuesta corta</strong></td><td>Respuesta textual breve. Requiere calificacion manual o automatica.</td></tr>
+            <tr><td><strong>Ensayo</strong></td><td>Respuesta extensa. Siempre requiere calificacion manual.</td></tr>
+            <tr><td><strong>Emparejamiento</strong></td><td>Relacionar elementos de dos columnas.</td></tr>
+            <tr><td><strong>Ordenamiento</strong></td><td>Organizar elementos en el orden correcto.</td></tr>
+        </table>
+
+        <h3>9.4 Agregar preguntas</h3>
+        <ol class="steps">
+            <li>Dentro de la evaluacion, haga clic en <strong>"Agregar pregunta"</strong>.</li>
+            <li>Seleccione el <strong>tipo</strong> de pregunta.</li>
+            <li>Redacte el <strong>texto</strong> de la pregunta.</li>
+            <li>Agregue las <strong>opciones de respuesta</strong> marcando las correctas.</li>
+            <li>Configure los <strong>puntos</strong> que vale la pregunta.</li>
+            <li>Opcionalmente, agregue una <strong>explicacion</strong> y <strong>retroalimentacion</strong> por opcion.</li>
+            <li>Defina el <strong>orden</strong> de la pregunta.</li>
+        </ol>
+
+        <h3>9.5 Revision y calificacion</h3>
+        <p>Las preguntas de seleccion unica, seleccion multiple, verdadero/falso, emparejamiento y ordenamiento se califican automaticamente. Las preguntas de respuesta corta y ensayo requieren revision manual:</p>
+        <ol class="steps">
+            <li>Acceda al listado de <strong>intentos pendientes de revision</strong>.</li>
+            <li>Revise cada respuesta y asigne un puntaje.</li>
+            <li>El sistema recalcula automaticamente la calificacion total.</li>
+        </ol>
+    </section>
+
+    <!-- RUTAS DE APRENDIZAJE -->
+    <section class="section" id="rutas">
+        <h2>10. Rutas de Aprendizaje</h2>
+        <p>Las rutas de aprendizaje son secuencias organizadas de cursos que guian al trabajador a traves de un programa formativo completo.</p>
+
+        <h3>10.1 Crear una ruta de aprendizaje</h3>
+        <ol class="steps">
+            <li>Acceda a <strong>Rutas de Aprendizaje</strong> y haga clic en <strong>"Nueva ruta"</strong>.</li>
+            <li>Complete la informacion:
+                <ul>
+                    <li><strong>Titulo</strong> y <strong>descripcion</strong></li>
+                    <li><strong>Perfiles objetivo</strong></li>
+                    <li><strong>Duracion estimada</strong> total</li>
+                    <li><strong>Imagen</strong> representativa</li>
+                </ul>
+            </li>
+            <li>Agregue los cursos en el orden deseado, configurando para cada uno:
+                <ul>
+                    <li><strong>Orden</strong> en la ruta</li>
+                    <li><strong>Obligatorio/Opcional</strong></li>
+                    <li><strong>Dependencias</strong> (cursos que deben completarse antes)</li>
+                </ul>
+            </li>
+            <li>Publique la ruta cuando este lista.</li>
+        </ol>
+
+        <h3>10.2 Asignar rutas</h3>
+        <p>Las rutas se asignan a usuarios individuales o por perfil ocupacional:</p>
+        <ol class="steps">
+            <li>Seleccione la ruta a asignar.</li>
+            <li>Elija los usuarios o filtros de perfil.</li>
+            <li>Configure la <strong>fecha limite</strong> de completado.</li>
+            <li>El sistema creara las asignaciones y notificara a los trabajadores.</li>
+        </ol>
+
+        <h3>10.3 Seguimiento de progreso</h3>
+        <table>
+            <tr><th>Estado</th><th>Descripcion</th></tr>
+            <tr><td><span class="status pending">Asignada</span></td><td>Ruta asignada, el usuario no ha iniciado ningun curso.</td></tr>
+            <tr><td><span class="status active">En Progreso</span></td><td>El usuario ha iniciado al menos un curso de la ruta.</td></tr>
+            <tr><td><span class="status active">Completada</span></td><td>Todos los cursos obligatorios han sido aprobados.</td></tr>
+            <tr><td><span class="status inactive">Vencida</span></td><td>La fecha limite ha pasado sin completar la ruta.</td></tr>
+        </table>
+    </section>
+
+    <!-- CERTIFICACIONES -->
+    <section class="section" id="plantillas-cert">
+        <h2>11. Plantillas de Certificados</h2>
+        <p>Las plantillas definen el diseno visual de los certificados que se emiten al completar cursos.</p>
+
+        <h3>11.1 Crear una plantilla</h3>
+        <ol class="steps">
+            <li>Acceda a <strong>Certificaciones &gt; Plantillas</strong>.</li>
+            <li>Haga clic en <strong>"Nueva plantilla"</strong>.</li>
+            <li>Configure los elementos del diseno:
+                <ul>
+                    <li><strong>Nombre</strong> de la plantilla</li>
+                    <li><strong>Imagen de fondo</strong></li>
+                    <li><strong>Logotipo</strong> de la organizacion</li>
+                    <li><strong>Imagen de firma</strong></li>
+                    <li><strong>Nombre del firmante</strong> y <strong>cargo</strong></li>
+                    <li><strong>Plantilla HTML</strong> para personalizacion avanzada</li>
+                </ul>
+            </li>
+            <li>Asocie la plantilla a los cursos correspondientes.</li>
+        </ol>
+    </section>
+
+    <section class="section" id="certificados">
+        <h2>12. Emision de Certificados</h2>
+        <p>Los certificados se emiten automaticamente cuando un trabajador completa un curso satisfactoriamente, o pueden emitirse manualmente.</p>
+
+        <h3>12.1 Emision automatica</h3>
+        <p>Cuando un trabajador aprueba la evaluacion final de un curso, el sistema:</p>
+        <ol class="steps">
+            <li>Genera un <strong>numero de certificado unico</strong>.</li>
+            <li>Calcula la <strong>fecha de vencimiento</strong> segun la validez configurada.</li>
+            <li>Genera un <strong>codigo QR</strong> con la URL de verificacion.</li>
+            <li>Crea el <strong>archivo PDF</strong> del certificado.</li>
+            <li>Envia una <strong>notificacion</strong> al trabajador.</li>
+        </ol>
+
+        <h3>12.2 Estados del certificado</h3>
+        <table>
+            <tr><th>Estado</th><th>Descripcion</th></tr>
+            <tr><td><span class="status pending">Pendiente</span></td><td>En proceso de generacion.</td></tr>
+            <tr><td><span class="status active">Emitido</span></td><td>Certificado valido y activo.</td></tr>
+            <tr><td><span class="status inactive">Revocado</span></td><td>Certificado anulado por el administrador.</td></tr>
+            <tr><td><span class="status draft">Vencido</span></td><td>La fecha de vencimiento ha pasado.</td></tr>
+        </table>
+
+        <h3>12.3 Verificacion de certificados</h3>
+        <p>Cualquier persona puede verificar la autenticidad de un certificado:</p>
+        <ul>
+            <li>Escaneando el <strong>codigo QR</strong> impreso en el certificado.</li>
+            <li>Ingresando el <strong>numero de certificado</strong> en la pagina de verificacion.</li>
+            <li>El sistema registra cada intento de verificacion para auditoria.</li>
+        </ul>
+
+        <h3>12.4 Revocar un certificado</h3>
+        <ol class="steps">
+            <li>Busque el certificado en el listado.</li>
+            <li>Haga clic en <strong>"Revocar"</strong>.</li>
+            <li>Ingrese el motivo de la revocacion.</li>
+            <li>Confirme la accion. El certificado quedara marcado como revocado.</li>
+        </ol>
+
+        <div class="info-box danger">
+            <strong>Atencion</strong>
+            La revocacion de un certificado es una accion sensible. Asegurese de documentar el motivo correctamente para fines de auditoria.
+        </div>
+    </section>
+
+    <!-- CHARLAS PREOPERACIONALES -->
+    <section class="section" id="charlas">
+        <h2>13. Charlas Preoperacionales</h2>
+        <p>Modulo para gestionar las charlas diarias de seguridad antes del inicio de actividades operativas.</p>
+
+        <h3>13.1 Plantillas de charla</h3>
+        <p>Cree plantillas reutilizables con temas de seguridad predefinidos:</p>
+        <ul>
+            <li><strong>Titulo</strong> y <strong>descripcion</strong></li>
+            <li><strong>Puntos clave</strong> de seguridad</li>
+            <li><strong>Temas de seguridad</strong> a tratar</li>
+            <li><strong>Actividades objetivo</strong></li>
+            <li><strong>Duracion estimada</strong></li>
+            <li><strong>Requiere firma</strong> de los asistentes</li>
+        </ul>
+
+        <h3>13.2 Tipos de charla</h3>
+        <table>
+            <tr><th>Tipo</th><th>Frecuencia</th><th>Descripcion</th></tr>
+            <tr><td><strong>Diaria</strong></td><td>Todos los dias</td><td>Charla rutinaria antes del inicio de la jornada.</td></tr>
+            <tr><td><strong>Semanal</strong></td><td>Una vez por semana</td><td>Charla de repaso semanal de temas importantes.</td></tr>
+            <tr><td><strong>Especial</strong></td><td>Segun necesidad</td><td>Charla sobre temas especificos o cambios en procedimientos.</td></tr>
+            <tr><td><strong>Emergencia</strong></td><td>Inmediata</td><td>Charla ante incidentes, accidentes o situaciones de emergencia.</td></tr>
+        </table>
+
+        <h3>13.3 Registrar una charla</h3>
+        <ol class="steps">
+            <li>Seleccione una <strong>plantilla</strong> o cree una charla nueva.</li>
+            <li>Complete la informacion de la charla:
+                <ul>
+                    <li><strong>Proyecto/Ubicacion</strong></li>
+                    <li><strong>Actividad de trabajo</strong></li>
+                    <li><strong>Condiciones climaticas</strong></li>
+                    <li><strong>Riesgos especiales</strong> identificados</li>
+                    <li><strong>Coordenadas GPS</strong> (latitud/longitud)</li>
+                </ul>
+            </li>
+            <li>Registre los <strong>asistentes</strong> con:
+                <ul>
+                    <li>Firma digital (captura de firma)</li>
+                    <li>Marca de tiempo de la firma</li>
+                    <li>Confirmacion de entendimiento</li>
+                    <li>Comentarios</li>
+                </ul>
+            </li>
+            <li>Adjunte cualquier material de apoyo.</li>
+            <li>Finalice la charla registrando la duracion real.</li>
+        </ol>
+
+        <h3>13.4 Consultar historial</h3>
+        <p>Desde el historial de charlas puede filtrar por:</p>
+        <ul>
+            <li>Rango de fechas</li>
+            <li>Proyecto o ubicacion</li>
+            <li>Conductor de la charla</li>
+            <li>Tipo de charla</li>
+        </ul>
+    </section>
+
+    <!-- LECCIONES APRENDIDAS -->
+    <section class="section" id="lecciones-aprendidas">
+        <h2>14. Lecciones Aprendidas</h2>
+        <p>Base de conocimiento colaborativa donde los trabajadores pueden compartir experiencias, incidentes y buenas practicas.</p>
+
+        <h3>14.1 Tipos de leccion</h3>
+        <table>
+            <tr><th>Tipo</th><th>Descripcion</th></tr>
+            <tr><td><strong>Incidente</strong></td><td>Evento no deseado que ocurrio y genero consecuencias.</td></tr>
+            <tr><td><strong>Casi-accidente</strong></td><td>Situacion que pudo haber generado un incidente pero fue controlada.</td></tr>
+            <tr><td><strong>Buena practica</strong></td><td>Procedimiento o accion que demostro ser efectiva y debe replicarse.</td></tr>
+            <tr><td><strong>Mejora</strong></td><td>Propuesta de mejora para procesos o procedimientos existentes.</td></tr>
+            <tr><td><strong>Observacion</strong></td><td>Hallazgo durante inspecciones u operaciones que debe documentarse.</td></tr>
+        </table>
+
+        <h3>14.2 Flujo de aprobacion</h3>
+        <div class="workflow">
+            <span class="step">Borrador</span>
+            <span class="arrow">→</span>
+            <span class="step">Pendiente de Revision</span>
+            <span class="arrow">→</span>
+            <span class="step">Aprobada / Rechazada</span>
+        </div>
+        <ol class="steps">
+            <li>El trabajador crea la leccion y la envia para revision.</li>
+            <li>Un administrador o supervisor revisa el contenido.</li>
+            <li>El revisor puede <strong>aprobar</strong>, <strong>rechazar</strong> (con notas) o solicitar modificaciones.</li>
+            <li>Las lecciones aprobadas quedan visibles para todos los usuarios.</li>
+        </ol>
+
+        <h3>14.3 Niveles de severidad</h3>
+        <table>
+            <tr><th>Nivel</th><th>Descripcion</th></tr>
+            <tr><td><span class="status active">Bajo</span></td><td>Impacto minimo, informativo.</td></tr>
+            <tr><td><span class="status pending">Medio</span></td><td>Impacto moderado, requiere atencion.</td></tr>
+            <tr><td><span class="status inactive">Alto</span></td><td>Impacto significativo, accion correctiva necesaria.</td></tr>
+            <tr><td style="background:#fecaca;color:#991b1b;font-weight:600;border-radius:20px;padding:2px 10px;font-size:0.78rem;display:inline-block;">Critico</span></td><td>Riesgo grave, accion inmediata requerida.</td></tr>
+        </table>
+
+        <h3>14.4 Gestionar lecciones (como administrador)</h3>
+        <ul>
+            <li>Revisar y aprobar/rechazar lecciones enviadas</li>
+            <li>Marcar lecciones como <strong>destacadas</strong> para mayor visibilidad</li>
+            <li>Archivar lecciones antiguas o no relevantes</li>
+            <li>Moderar comentarios y discusiones</li>
+            <li>Aprobar o eliminar comentarios inapropiados</li>
+        </ul>
+    </section>
+
+    <!-- GAMIFICACION -->
+    <section class="section" id="puntos">
+        <h2>15. Gamificacion - Sistema de Puntos</h2>
+        <p>El sistema de gamificacion motiva a los trabajadores mediante puntos, insignias, retos y recompensas.</p>
+
+        <h3>15.1 Categorias de puntos</h3>
+        <p>Configure diferentes categorias de puntos con multiplicadores:</p>
+        <ul>
+            <li><strong>Formacion</strong>: Puntos por completar cursos y lecciones</li>
+            <li><strong>Evaluacion</strong>: Puntos por aprobar examenes</li>
+            <li><strong>Participacion</strong>: Puntos por actividad en la plataforma</li>
+            <li><strong>Contribucion</strong>: Puntos por crear lecciones aprendidas</li>
+        </ul>
+
+        <h3>15.2 Transacciones de puntos</h3>
+        <table>
+            <tr><th>Tipo</th><th>Descripcion</th></tr>
+            <tr><td><strong>Ganados</strong></td><td>Puntos obtenidos por acciones normales (completar curso, aprobar examen).</td></tr>
+            <tr><td><strong>Gastados</strong></td><td>Puntos usados para canjear recompensas.</td></tr>
+            <tr><td><strong>Bonus</strong></td><td>Puntos extra otorgados por el administrador o por logros especiales.</td></tr>
+            <tr><td><strong>Penalizacion</strong></td><td>Puntos restados por infracciones o incumplimientos.</td></tr>
+            <tr><td><strong>Ajuste</strong></td><td>Correccion manual realizada por el administrador.</td></tr>
+        </table>
+
+        <h3>15.3 Niveles</h3>
+        <p>Configure niveles que los usuarios alcanzan al acumular puntos:</p>
+        <ul>
+            <li>Defina el nombre, descripcion y puntos minimos para cada nivel.</li>
+            <li>Asigne un icono representativo a cada nivel.</li>
+            <li>Los niveles se alcanzan automaticamente al llegar al puntaje requerido.</li>
+        </ul>
+    </section>
+
+    <section class="section" id="insignias">
+        <h2>16. Insignias y Logros</h2>
+
+        <h3>16.1 Crear insignias</h3>
+        <p>Las insignias son reconocimientos visuales que los trabajadores obtienen por logros especificos:</p>
+        <ol class="steps">
+            <li>Acceda a <strong>Gamificacion &gt; Insignias</strong>.</li>
+            <li>Haga clic en <strong>"Nueva insignia"</strong>.</li>
+            <li>Configure:
+                <ul>
+                    <li><strong>Nombre</strong> y <strong>descripcion</strong></li>
+                    <li><strong>Imagen</strong> de la insignia</li>
+                    <li><strong>Categoria</strong></li>
+                    <li><strong>Rareza</strong>: Comun, Poco comun, Rara, Epica, Legendaria</li>
+                    <li><strong>Puntos</strong> otorgados al obtenerla</li>
+                    <li><strong>Secreta</strong>: Si se oculta hasta ser obtenida</li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>16.2 Logros</h3>
+        <p>Los logros son metas predefinidas que se desbloquean automaticamente:</p>
+        <table>
+            <tr><th>Tipo</th><th>Ejemplo</th></tr>
+            <tr><td><strong>Hito</strong></td><td>Completar 10 cursos, acumular 1000 puntos</td></tr>
+            <tr><td><strong>Racha</strong></td><td>Iniciar sesion 7 dias consecutivos, completar 5 lecciones seguidas</td></tr>
+            <tr><td><strong>Completado</strong></td><td>Completar una ruta de aprendizaje, aprobar todos los cursos obligatorios</td></tr>
+            <tr><td><strong>Social</strong></td><td>Publicar 5 lecciones aprendidas, comentar en 10 lecciones</td></tr>
+            <tr><td><strong>Especial</strong></td><td>Logros unicos por eventos o campanas especiales</td></tr>
+        </table>
+    </section>
+
+    <section class="section" id="tablas">
+        <h2>17. Tablas de Clasificacion</h2>
+        <p>Configure tablas de clasificacion para fomentar la competencia sana:</p>
+
+        <h3>17.1 Configurar tablas</h3>
+        <ul>
+            <li><strong>Periodo</strong>: Diaria, Semanal, Mensual, Todos los tiempos</li>
+            <li><strong>Alcance</strong>: Global, Departamento, Equipo, Cargo</li>
+            <li><strong>Limite de entradas</strong>: Numero maximo de posiciones a mostrar</li>
+            <li><strong>Estado</strong>: Activa/Inactiva</li>
+        </ul>
+    </section>
+
+    <section class="section" id="retos">
+        <h2>18. Retos</h2>
+        <p>Los retos son competencias temporales que motivan a los trabajadores a cumplir objetivos especificos.</p>
+
+        <h3>18.1 Crear un reto</h3>
+        <ol class="steps">
+            <li>Acceda a <strong>Gamificacion &gt; Retos</strong>.</li>
+            <li>Haga clic en <strong>"Nuevo reto"</strong>.</li>
+            <li>Configure:
+                <ul>
+                    <li><strong>Titulo</strong> y <strong>descripcion</strong></li>
+                    <li><strong>Tipo</strong>: Individual, Equipo, Departamento, Global</li>
+                    <li><strong>Fechas</strong> de inicio y fin</li>
+                    <li><strong>Metrica objetivo</strong> y <strong>valor meta</strong></li>
+                    <li><strong>Puntos</strong> de recompensa</li>
+                    <li><strong>Insignia</strong> de recompensa</li>
+                    <li><strong>Limite de participantes</strong></li>
+                </ul>
+            </li>
+        </ol>
+    </section>
+
+    <section class="section" id="recompensas">
+        <h2>19. Recompensas</h2>
+        <p>Los trabajadores pueden canjear sus puntos acumulados por recompensas configuradas por el administrador.</p>
+
+        <h3>19.1 Tipos de recompensa</h3>
+        <table>
+            <tr><th>Tipo</th><th>Ejemplos</th></tr>
+            <tr><td><strong>Fisica</strong></td><td>Merchandising, herramientas, equipos</td></tr>
+            <tr><td><strong>Digital</strong></td><td>Acceso a contenido premium, certificados especiales</td></tr>
+            <tr><td><strong>Experiencia</strong></td><td>Dia libre, almuerzo con gerencia, visita tecnica</td></tr>
+            <tr><td><strong>Reconocimiento</strong></td><td>Mencion en cartelera, reconocimiento publico</td></tr>
+        </table>
+
+        <h3>19.2 Configurar recompensas</h3>
+        <ol class="steps">
+            <li>Acceda a <strong>Gamificacion &gt; Recompensas</strong>.</li>
+            <li>Haga clic en <strong>"Nueva recompensa"</strong>.</li>
+            <li>Configure:
+                <ul>
+                    <li><strong>Nombre</strong>, <strong>descripcion</strong> e <strong>imagen</strong></li>
+                    <li><strong>Tipo</strong> de recompensa</li>
+                    <li><strong>Costo en puntos</strong></li>
+                    <li><strong>Cantidad disponible</strong></li>
+                    <li><strong>Nivel minimo</strong> requerido</li>
+                    <li><strong>Fechas de validez</strong></li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>19.3 Gestionar canjes</h3>
+        <p>Revise y procese las solicitudes de canje:</p>
+        <table>
+            <tr><th>Estado</th><th>Accion</th></tr>
+            <tr><td><span class="status pending">Pendiente</span></td><td>Revisar solicitud y aprobar o rechazar.</td></tr>
+            <tr><td><span class="status active">Aprobado</span></td><td>Proceder a la entrega de la recompensa.</td></tr>
+            <tr><td><span class="status active">Entregado</span></td><td>Recompensa entregada al trabajador.</td></tr>
+            <tr><td><span class="status inactive">Cancelado</span></td><td>Solicitud cancelada. Puntos devueltos.</td></tr>
+        </table>
+    </section>
+
+    <!-- NOTIFICACIONES -->
+    <section class="section" id="notificaciones">
+        <h2>20. Gestion de Notificaciones</h2>
+        <p>Administre las notificaciones multicanal del sistema.</p>
+
+        <h3>20.1 Canales de notificacion</h3>
+        <table>
+            <tr><th>Canal</th><th>Descripcion</th></tr>
+            <tr><td><strong>En la aplicacion</strong></td><td>Notificaciones dentro de la plataforma (campana de notificaciones).</td></tr>
+            <tr><td><strong>Correo electronico</strong></td><td>Emails con formato HTML personalizable.</td></tr>
+            <tr><td><strong>Push</strong></td><td>Notificaciones push en el navegador o dispositivo movil.</td></tr>
+            <tr><td><strong>SMS</strong></td><td>Mensajes de texto para alertas urgentes.</td></tr>
+        </table>
+
+        <h3>20.2 Tipos de notificacion</h3>
+        <ul>
+            <li><strong>Recordatorio de curso</strong>: Aviso sobre cursos pendientes o proximos a vencer.</li>
+            <li><strong>Resultado de evaluacion</strong>: Notificacion de aprobacion o reprobacion.</li>
+            <li><strong>Certificado emitido</strong>: Aviso de nuevo certificado disponible.</li>
+            <li><strong>Nueva asignacion</strong>: Notificacion de curso o ruta asignada.</li>
+            <li><strong>Recordatorio de fecha limite</strong>: Aviso de plazos proximos a vencer.</li>
+            <li><strong>Leccion aprendida</strong>: Notificacion sobre nuevas lecciones relevantes.</li>
+        </ul>
+
+        <h3>20.3 Prioridades</h3>
+        <table>
+            <tr><th>Prioridad</th><th>Uso</th></tr>
+            <tr><td>Baja</td><td>Informacion general, recordatorios no urgentes.</td></tr>
+            <tr><td>Normal</td><td>Notificaciones estandar del sistema.</td></tr>
+            <tr><td>Alta</td><td>Avisos importantes que requieren atencion pronta.</td></tr>
+            <tr><td>Urgente</td><td>Alertas criticas que requieren accion inmediata.</td></tr>
+        </table>
+    </section>
+
+    <section class="section" id="plantillas-notif">
+        <h2>21. Plantillas de Notificacion</h2>
+        <p>Personalice los mensajes que se envian a los usuarios:</p>
+        <ol class="steps">
+            <li>Acceda a <strong>Notificaciones &gt; Plantillas</strong>.</li>
+            <li>Seleccione la plantilla a editar o cree una nueva.</li>
+            <li>Configure:
+                <ul>
+                    <li><strong>Asunto</strong> del mensaje</li>
+                    <li><strong>Cuerpo</strong> del mensaje (con variables como <code>{{nombre_usuario}}</code>, <code>{{nombre_curso}}</code>, etc.)</li>
+                    <li><strong>Version HTML</strong> para correos electronicos</li>
+                    <li><strong>Canal</strong> al que aplica</li>
+                </ul>
+            </li>
+        </ol>
+
+        <div class="info-box info">
+            <strong>Variables disponibles</strong>
+            Las plantillas soportan variables dinamicas usando la sintaxis <code>{{variable}}</code>. Las variables disponibles dependen del tipo de notificacion (ej. <code>{{nombre_curso}}</code>, <code>{{fecha_limite}}</code>, <code>{{puntaje}}</code>).
+        </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section class="section" id="dashboard">
+        <h2>22. Dashboard Administrativo</h2>
+        <p>El dashboard ofrece una vista consolidada de las metricas clave del sistema en tiempo real.</p>
+
+        <div class="path"><span>Navegacion:</span> Menu lateral &gt; Dashboard / Reportes</div>
+
+        <h3>22.1 Filtros disponibles</h3>
+        <p>Todas las metricas del dashboard pueden filtrarse por:</p>
+        <ul>
+            <li><strong>Categoria</strong>: Filtra por categoria padre de cursos.</li>
+            <li><strong>Subcategoria</strong>: Filtra por subcategoria (se carga dinamicamente al seleccionar la categoria).</li>
+            <li><strong>Perfil ocupacional</strong>: Filtra por tipo de perfil del trabajador.</li>
+        </ul>
+
+        <h3>22.2 Tarjetas de estadisticas</h3>
+        <div class="card-grid">
+            <div class="card">
+                <h4>Usuarios activos</h4>
+                <p>Total de usuarios con estado activo en el sistema.</p>
+            </div>
+            <div class="card">
+                <h4>Crecimiento de usuarios</h4>
+                <p>Porcentaje de crecimiento respecto al mes anterior.</p>
+            </div>
+            <div class="card">
+                <h4>Cumplimiento</h4>
+                <p>Porcentaje de cumplimiento de cursos obligatorios.</p>
+            </div>
+            <div class="card">
+                <h4>Cursos completados</h4>
+                <p>Total de cursos finalizados exitosamente.</p>
+            </div>
+            <div class="card">
+                <h4>Cursos en progreso</h4>
+                <p>Inscripciones activas actualmente.</p>
+            </div>
+            <div class="card">
+                <h4>Certificados vigentes</h4>
+                <p>Certificados emitidos y dentro de su periodo de validez.</p>
+            </div>
+        </div>
+
+        <h3>22.3 Graficos y visualizaciones</h3>
+        <ul>
+            <li><strong>Grafico de cumplimiento</strong>: Desglose de inscripciones por estado (Completado, En progreso, No iniciado).</li>
+            <li><strong>Tendencia de formacion</strong>: Cursos completados por semana durante las ultimas 12 semanas.</li>
+            <li><strong>Progreso de cursos</strong>: Top cursos por numero de inscripciones con porcentaje de avance.</li>
+            <li><strong>Distribucion por tipo</strong>: Proporcion entre cursos obligatorios, opcionales y de reentrenamiento.</li>
+            <li><strong>Desempeno en evaluaciones</strong>: Tasa de aprobacion por evaluacion con promedios de puntaje.</li>
+        </ul>
+
+        <h3>22.4 Listas de seguimiento</h3>
+        <ul>
+            <li><strong>Certificados por vencer</strong>: Certificados que vencen en los proximos 30 dias, con datos del trabajador y fecha de vencimiento.</li>
+            <li><strong>Asignaciones vencidas</strong>: Rutas de aprendizaje cuya fecha limite ha pasado sin ser completadas.</li>
+            <li><strong>Actividad reciente</strong>: Historial de eventos del sistema (inscripciones, completados, certificaciones).</li>
+        </ul>
+    </section>
+
+    <!-- REPORTES -->
+    <section class="section" id="reportes">
+        <h2>23. Generacion de Reportes</h2>
+        <p>El sistema permite generar reportes detallados en multiples formatos.</p>
+
+        <h3>23.1 Tipos de reporte</h3>
+        <table>
+            <tr><th>Tipo</th><th>Contenido</th></tr>
+            <tr><td><strong>Formacion</strong></td><td>Progreso de cursos, inscripciones, completados, horas de formacion.</td></tr>
+            <tr><td><strong>Cumplimiento</strong></td><td>Estado de cumplimiento de cursos obligatorios por usuario/area.</td></tr>
+            <tr><td><strong>Evaluaciones</strong></td><td>Resultados de evaluaciones, tasas de aprobacion, promedios.</td></tr>
+            <tr><td><strong>Certificaciones</strong></td><td>Certificados emitidos, vigentes, por vencer, revocados.</td></tr>
+            <tr><td><strong>Progreso</strong></td><td>Avance individual o grupal en rutas de aprendizaje.</td></tr>
+            <tr><td><strong>Personalizado</strong></td><td>Reporte configurable con campos y filtros personalizados.</td></tr>
+        </table>
+
+        <h3>23.2 Formatos de exportacion</h3>
+        <ul>
+            <li><strong>PDF</strong>: Formato presentable para impresion y archivo.</li>
+            <li><strong>Excel (.xlsx)</strong>: Para analisis de datos en hoja de calculo.</li>
+            <li><strong>CSV</strong>: Formato universal para importacion en otros sistemas.</li>
+            <li><strong>HTML</strong>: Visualizacion en navegador web.</li>
+        </ul>
+
+        <h3>23.3 Generar un reporte</h3>
+        <ol class="steps">
+            <li>Acceda a <strong>Reportes &gt; Generar reporte</strong>.</li>
+            <li>Seleccione la <strong>plantilla de reporte</strong>.</li>
+            <li>Configure los <strong>filtros</strong> (fechas, perfiles, cursos, etc.).</li>
+            <li>Seleccione el <strong>formato</strong> de salida.</li>
+            <li>Haga clic en <strong>"Generar"</strong>. El sistema procesara el reporte.</li>
+            <li>Una vez generado, podra descargarlo desde <strong>"Mis reportes"</strong>.</li>
+        </ol>
+    </section>
+
+    <section class="section" id="reportes-programados">
+        <h2>24. Reportes Programados</h2>
+        <p>Automatice la generacion y distribucion de reportes periodicos.</p>
+
+        <h3>24.1 Crear un reporte programado</h3>
+        <ol class="steps">
+            <li>Acceda a <strong>Reportes &gt; Programados</strong>.</li>
+            <li>Haga clic en <strong>"Nuevo programa"</strong>.</li>
+            <li>Configure:
+                <ul>
+                    <li><strong>Plantilla de reporte</strong> a generar</li>
+                    <li><strong>Frecuencia</strong>: Diaria, Semanal, Quincenal, Mensual, Trimestral</li>
+                    <li><strong>Hora de ejecucion</strong></li>
+                    <li><strong>Dia de ejecucion</strong> (para semanal/mensual)</li>
+                    <li><strong>Correos de distribucion</strong> (destinatarios del reporte)</li>
+                </ul>
+            </li>
+            <li>Active el programa.</li>
+        </ol>
+
+        <div class="info-box tip">
+            <strong>Consejo</strong>
+            Programe los reportes de cumplimiento para generarse semanalmente y distribuirse automaticamente a los supervisores y coordinadores HSEQ.
+        </div>
+    </section>
+
+    <!-- INTEGRACIONES -->
+    <section class="section" id="sistemas-externos">
+        <h2>25. Sistemas Externos</h2>
+        <p>Conecte el LMS con otros sistemas de la organizacion para sincronizar datos.</p>
+
+        <h3>25.1 Tipos de sistema</h3>
+        <table>
+            <tr><th>Tipo</th><th>Descripcion</th></tr>
+            <tr><td><strong>Recursos Humanos</strong></td><td>Sincronizacion de datos de empleados.</td></tr>
+            <tr><td><strong>ERP</strong></td><td>Integracion con sistemas empresariales.</td></tr>
+            <tr><td><strong>Operaciones</strong></td><td>Conexion con sistemas operativos de campo.</td></tr>
+            <tr><td><strong>SSO</strong></td><td>Autenticacion unica corporativa.</td></tr>
+            <tr><td><strong>SCORM</strong></td><td>Repositorios de contenido SCORM.</td></tr>
+            <tr><td><strong>API</strong></td><td>Integraciones genericas via API REST.</td></tr>
+            <tr><td><strong>Webhook</strong></td><td>Notificaciones de eventos a sistemas externos.</td></tr>
+        </table>
+
+        <h3>25.2 Configurar una integracion</h3>
+        <ol class="steps">
+            <li>Acceda a <strong>Integraciones &gt; Sistemas</strong>.</li>
+            <li>Haga clic en <strong>"Nuevo sistema"</strong>.</li>
+            <li>Configure:
+                <ul>
+                    <li><strong>Nombre</strong> y <strong>descripcion</strong></li>
+                    <li><strong>Tipo</strong> de sistema</li>
+                    <li><strong>URL base</strong></li>
+                    <li><strong>Tipo de autenticacion</strong>: Basic, Bearer, OAuth2, API Key</li>
+                    <li><strong>Credenciales</strong></li>
+                    <li><strong>Cabeceras personalizadas</strong></li>
+                </ul>
+            </li>
+            <li>Use <strong>"Probar conexion"</strong> para verificar la configuracion.</li>
+        </ol>
+
+        <h3>25.3 Mapeo de datos</h3>
+        <p>Configure como se relacionan los campos entre el LMS y el sistema externo:</p>
+        <ul>
+            <li>Defina el <strong>campo de origen</strong> y el <strong>campo de destino</strong></li>
+            <li>Configure <strong>transformaciones</strong> si es necesario</li>
+            <li>Marque los campos <strong>obligatorios</strong></li>
+            <li>Establezca <strong>valores por defecto</strong></li>
+        </ul>
+    </section>
+
+    <section class="section" id="webhooks">
+        <h2>26. Webhooks</h2>
+        <p>Configure webhooks para notificar a sistemas externos cuando ocurren eventos en el LMS.</p>
+
+        <h3>26.1 Eventos disponibles</h3>
+        <table>
+            <tr><th>Evento</th><th>Se dispara cuando...</th></tr>
+            <tr><td><code>user.created</code></td><td>Se crea un nuevo usuario.</td></tr>
+            <tr><td><code>user.updated</code></td><td>Se actualizan datos de un usuario.</td></tr>
+            <tr><td><code>enrollment.created</code></td><td>Un usuario se inscribe en un curso.</td></tr>
+            <tr><td><code>course.completed</code></td><td>Un usuario completa un curso.</td></tr>
+            <tr><td><code>certificate.issued</code></td><td>Se emite un certificado.</td></tr>
+            <tr><td><code>assessment.passed</code></td><td>Un usuario aprueba una evaluacion.</td></tr>
+            <tr><td><code>assessment.failed</code></td><td>Un usuario reprueba una evaluacion.</td></tr>
+        </table>
+
+        <h3>26.2 Configurar un webhook</h3>
+        <ol class="steps">
+            <li>Acceda a <strong>Integraciones &gt; Webhooks</strong>.</li>
+            <li>Haga clic en <strong>"Nuevo webhook"</strong>.</li>
+            <li>Configure:
+                <ul>
+                    <li><strong>URL</strong> de destino</li>
+                    <li><strong>Eventos</strong> a los que se suscribe</li>
+                    <li><strong>Secreto</strong> para verificacion de firma</li>
+                    <li><strong>Cabeceras</strong> personalizadas</li>
+                    <li><strong>Reintentos</strong> maximos</li>
+                    <li><strong>Timeout</strong> en segundos</li>
+                </ul>
+            </li>
+        </ol>
+    </section>
+
+    <!-- SINCRONIZACION -->
+    <section class="section" id="paquetes-offline">
+        <h2>27. Paquetes Offline</h2>
+        <p>Genere paquetes de contenido para uso sin conexion a Internet, ideales para trabajo en campo.</p>
+
+        <h3>27.1 Crear un paquete offline</h3>
+        <ol class="steps">
+            <li>Acceda a <strong>Sincronizacion &gt; Paquetes</strong>.</li>
+            <li>Haga clic en <strong>"Nuevo paquete"</strong>.</li>
+            <li>Seleccione el <strong>curso</strong> a empaquetar.</li>
+            <li>Elija el <strong>contenido</strong> a incluir:
+                <ul>
+                    <li>Videos</li>
+                    <li>Documentos PDF</li>
+                    <li>Evaluaciones</li>
+                    <li>Material complementario</li>
+                </ul>
+            </li>
+            <li>Active la <strong>compresion</strong> si desea reducir el tamano.</li>
+            <li>El sistema generara el paquete y le asignara un checksum de integridad.</li>
+        </ol>
+
+        <h3>27.2 Seguimiento de descargas</h3>
+        <p>Monitoree quien ha descargado cada paquete, desde que dispositivo, y cuando fue la ultima vez que se accedio al contenido.</p>
+    </section>
+
+    <section class="section" id="sincronizacion">
+        <h2>28. Sincronizacion de Datos</h2>
+        <p>Cuando los trabajadores usan la plataforma offline, los datos deben sincronizarse cuando recuperen la conexion.</p>
+
+        <h3>28.1 Tipos de sincronizacion</h3>
+        <ul>
+            <li><strong>Subida</strong>: Datos del dispositivo al servidor (progreso, respuestas de evaluaciones).</li>
+            <li><strong>Descarga</strong>: Datos del servidor al dispositivo (nuevos cursos, actualizaciones).</li>
+            <li><strong>Bidireccional</strong>: Intercambio completo en ambas direcciones.</li>
+        </ul>
+
+        <h3>28.2 Resolucion de conflictos</h3>
+        <p>Cuando los datos del dispositivo y del servidor difieren:</p>
+        <table>
+            <tr><th>Estrategia</th><th>Descripcion</th></tr>
+            <tr><td><strong>Servidor gana</strong></td><td>Se priorizan los datos del servidor.</td></tr>
+            <tr><td><strong>Cliente gana</strong></td><td>Se priorizan los datos del dispositivo.</td></tr>
+            <tr><td><strong>Combinado</strong></td><td>Se fusionan los datos automaticamente.</td></tr>
+            <tr><td><strong>Manual</strong></td><td>El administrador decide caso por caso.</td></tr>
+        </table>
+    </section>
+
+    <!-- CONFIGURACION -->
+    <section class="section" id="parametrizacion">
+        <h2>29. Parametrizacion</h2>
+        <p>El hub de parametrizacion centraliza la configuracion de categorias, cursos y perfiles ocupacionales.</p>
+
+        <div class="path"><span>Navegacion:</span> Menu lateral &gt; Parametrizacion</div>
+
+        <h3>29.1 Funciones disponibles</h3>
+        <ul>
+            <li><strong>Gestion de categorias</strong>: Crear, editar, activar/desactivar categorias y subcategorias.</li>
+            <li><strong>Gestion de cursos</strong>: Administrar cursos, modulos y lecciones.</li>
+            <li><strong>Perfiles ocupacionales</strong>: Configurar los tipos de perfil dinamicamente.</li>
+            <li><strong>Parametros de curso</strong>: Editar tipo, prerrequisitos, perfiles objetivo y validez de certificado.</li>
+        </ul>
+    </section>
+
+    <section class="section" id="panel-django">
+        <h2>30. Panel de Administracion de Django</h2>
+        <p>Para configuraciones avanzadas, el sistema cuenta con el panel de administracion nativo de Django.</p>
+
+        <div class="path"><span>URL:</span> /admin/</div>
+
+        <div class="info-box warning">
+            <strong>Precaucion</strong>
+            El panel de Django Admin es una herramienta avanzada. Los cambios realizados aqui afectan directamente la base de datos. Use con precaucion y solo para configuraciones que no estan disponibles en la interfaz principal.
+        </div>
+
+        <h3>30.1 Modelos administrables</h3>
+        <p>Desde el panel de Django Admin puede gestionar directamente:</p>
+        <ul>
+            <li>Usuarios, roles y contratos</li>
+            <li>Cursos, modulos, lecciones y activos multimedia</li>
+            <li>Evaluaciones con preguntas y respuestas</li>
+            <li>Plantillas y certificados emitidos</li>
+            <li>Todos los modelos de gamificacion</li>
+            <li>Notificaciones y plantillas</li>
+            <li>Rutas de aprendizaje</li>
+            <li>Lecciones aprendidas con adjuntos y comentarios</li>
+            <li>Charlas preoperacionales con asistentes</li>
+            <li>Reportes y dashboards</li>
+            <li>Sincronizacion y paquetes offline</li>
+            <li>Integraciones y webhooks</li>
+        </ul>
+    </section>
+
+    <section class="section" id="seguridad">
+        <h2>31. Seguridad</h2>
+
+        <h3>31.1 Medidas de seguridad del sistema</h3>
+        <ul>
+            <li><strong>Proteccion CSRF</strong>: Todos los formularios estan protegidos contra ataques Cross-Site Request Forgery.</li>
+            <li><strong>Hash de contrasenas</strong>: Las contrasenas se almacenan de forma segura usando algoritmos de hash.</li>
+            <li><strong>Autenticacion 2FA</strong>: Soporte para autenticacion de dos factores basada en TOTP.</li>
+            <li><strong>Registro de IP</strong>: Se registra la direccion IP en acciones criticas como intentos de evaluacion.</li>
+            <li><strong>User Agent</strong>: Se registra el navegador/dispositivo usado.</li>
+            <li><strong>Tokens seguros</strong>: Los enlaces de recuperacion de contrasena usan tokens de un solo uso.</li>
+            <li><strong>Permisos granulares</strong>: Sistema de permisos basado en roles con control por accion.</li>
+            <li><strong>Auditoria</strong>: Historial de cambios en datos criticos (historial laboral, verificaciones de certificados).</li>
+            <li><strong>Verificacion de firma</strong> en webhooks para integraciones seguras.</li>
+        </ul>
+
+        <h3>31.2 Recomendaciones de seguridad</h3>
+        <div class="info-box danger">
+            <strong>Mejores practicas</strong>
+            <ul>
+                <li>Active 2FA para todas las cuentas de administrador.</li>
+                <li>Revise periodicamente los usuarios y sus roles.</li>
+                <li>Desactive las cuentas de usuarios que ya no trabajan en la organizacion.</li>
+                <li>Revise los logs de integracion periodicamente.</li>
+                <li>Mantenga actualizado el sistema y sus dependencias.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="section" id="api">
+        <h2>32. API y Documentacion Tecnica</h2>
+        <p>El sistema expone una API REST completa documentada con OpenAPI.</p>
+
+        <h3>32.1 Acceso a la documentacion</h3>
+        <table>
+            <tr><th>Herramienta</th><th>URL</th><th>Uso</th></tr>
+            <tr><td><strong>Swagger UI</strong></td><td><code>/api/docs/</code></td><td>Documentacion interactiva con interfaz de prueba.</td></tr>
+            <tr><td><strong>ReDoc</strong></td><td><code>/api/redoc/</code></td><td>Documentacion de referencia con formato legible.</td></tr>
+            <tr><td><strong>Schema OpenAPI</strong></td><td><code>/api/schema/</code></td><td>Esquema JSON/YAML para herramientas de desarrollo.</td></tr>
+        </table>
+
+        <h3>32.2 Endpoints principales</h3>
+        <table>
+            <tr><th>Endpoint</th><th>Descripcion</th></tr>
+            <tr><td><code>/api/v1/auth/</code></td><td>Autenticacion (login, logout, tokens)</td></tr>
+            <tr><td><code>/api/v1/users/</code></td><td>Gestion de usuarios</td></tr>
+            <tr><td><code>/api/v1/courses/</code></td><td>Cursos, modulos, lecciones</td></tr>
+            <tr><td><code>/api/v1/assessments/</code></td><td>Evaluaciones y resultados</td></tr>
+            <tr><td><code>/api/v1/certifications/</code></td><td>Certificaciones</td></tr>
+            <tr><td><code>/api/v1/learning-paths/</code></td><td>Rutas de aprendizaje</td></tr>
+            <tr><td><code>/api/v1/notifications/</code></td><td>Notificaciones</td></tr>
+            <tr><td><code>/api/v1/lessons-learned/</code></td><td>Lecciones aprendidas</td></tr>
+            <tr><td><code>/api/v1/preop-talks/</code></td><td>Charlas preoperacionales</td></tr>
+            <tr><td><code>/api/v1/reports/</code></td><td>Reportes y analitica</td></tr>
+            <tr><td><code>/api/v1/sync/</code></td><td>Sincronizacion offline</td></tr>
+            <tr><td><code>/api/v1/integrations/</code></td><td>Integraciones externas</td></tr>
+        </table>
+    </section>
+
+    <!-- FOOTER -->
+    <div style="text-align:center; padding:3rem 0 1rem; color:var(--text-light); font-size:0.85rem; border-top:1px solid var(--border); margin-top:3rem;">
+        <p><strong>SD LMS - Manual de Administrador</strong></p>
+        <p>Version 1.0 - Febrero 2026</p>
+        <p>Documento generado para uso interno de la organizacion.</p>
+    </div>
+
+</main>
+
+<script>
+    // Smooth scrolling for sidebar links
+    document.querySelectorAll('.sidebar a').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    });
+
+    // Highlight active section in sidebar
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                document.querySelectorAll('.sidebar a').forEach(a => a.style.fontWeight = 'normal');
+                const activeLink = document.querySelector(`.sidebar a[href="#${entry.target.id}"]`);
+                if (activeLink) {
+                    activeLink.style.fontWeight = '700';
+                    activeLink.style.color = 'var(--primary)';
+                }
+            }
+        });
+    }, { threshold: 0.3 });
+
+    document.querySelectorAll('.section').forEach(section => observer.observe(section));
+</script>
+
+</body>
+</html>

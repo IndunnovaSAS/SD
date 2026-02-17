@@ -9,14 +9,28 @@
         var raw = document.getElementById('trend-data-json');
         var trendData = raw ? JSON.parse(raw.textContent) : [];
 
-        var weeks = trendData.map(function(item) {
-            if (item.week) {
-                var d = new Date(item.week);
-                return d.toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
+        var weeks, counts;
+        if (trendData.length === 0) {
+            // Show last 4 weeks with zero data
+            var now = new Date();
+            weeks = [];
+            counts = [];
+            for (var i = 3; i >= 0; i--) {
+                var d = new Date(now);
+                d.setDate(d.getDate() - (i * 7));
+                weeks.push(d.toLocaleDateString('es-CO', { month: 'short', day: 'numeric' }));
+                counts.push(0);
             }
-            return '';
-        });
-        var counts = trendData.map(function(item) { return item.count; });
+        } else {
+            weeks = trendData.map(function(item) {
+                if (item.week) {
+                    var d = new Date(item.week);
+                    return d.toLocaleDateString('es-CO', { month: 'short', day: 'numeric' });
+                }
+                return '';
+            });
+            counts = trendData.map(function(item) { return item.count; });
+        }
 
         chart.setOption({
             tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },

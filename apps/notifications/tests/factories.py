@@ -285,7 +285,9 @@ class PushSubscriptionFactory(DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
     endpoint = factory.Sequence(lambda n: f"https://push.example.com/endpoint/{n}")
     p256dh_key = factory.Sequence(
-        lambda n: f"BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM{n}"
+        lambda n: (
+            f"BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM{n}"
+        )
     )
     auth_key = factory.Sequence(lambda n: f"tBHItJI5svbpez7KI4CCXg{n}")
     device_name = factory.Faker("user_agent")

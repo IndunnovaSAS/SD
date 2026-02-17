@@ -226,7 +226,6 @@ def add_attendee(request, talk_id):
 def remove_attendee(request, attendee_id):
     """Remove an attendee from a talk."""
     attendee = get_object_or_404(TalkAttendee, id=attendee_id)
-    talk_id = attendee.talk_id
 
     # Can't remove signed attendees
     if attendee.signed_at:

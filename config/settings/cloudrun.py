@@ -10,11 +10,15 @@ DEBUG = False
 
 # Security settings for Cloud Run (behind load balancer)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = True
+# Cloud Run handles SSL termination at the load balancer level.
+# Django should NOT redirect HTTP->HTTPS because Cloud Run's internal
+# health checks use HTTP without X-Forwarded-Proto header, causing
+# redirect loops that prevent the container from starting.
+SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
-# HSTS settings
+# HSTS settings (tells browsers to always use HTTPS)
 SECURE_HSTS_SECONDS = 31536000  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
@@ -59,6 +63,8 @@ CACHES = {
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 # Disable Celery for now (async tasks disabled)
+# Use memory broker to avoid Redis connection attempts on startup
+CELERY_BROKER_URL = "memory://"
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 

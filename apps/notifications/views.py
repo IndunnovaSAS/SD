@@ -70,7 +70,7 @@ def mark_read(request, notification_id):
 @require_POST
 def mark_all_read(request):
     """Mark all notifications as read."""
-    count = NotificationService.mark_all_as_read(request.user)
+    NotificationService.mark_all_as_read(request.user)
 
     # Return refreshed list
     return notification_items(request)

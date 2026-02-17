@@ -16,6 +16,35 @@ from apps.core.validators import (
 )
 
 
+class JobProfileType(models.Model):
+    """
+    Dynamic job profile types for course targeting.
+    Replaces hardcoded choices for target_profiles in course forms.
+    """
+
+    code = models.CharField(
+        _("Codigo"),
+        max_length=50,
+        unique=True,
+        help_text=_("Identificador unico (ej: LINIERO, TECNICO)"),
+    )
+    name = models.CharField(_("Nombre"), max_length=100)
+    description = models.TextField(_("Descripcion"), blank=True)
+    is_active = models.BooleanField(_("Activo"), default=True)
+    order = models.PositiveIntegerField(_("Orden"), default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "job_profile_types"
+        verbose_name = _("Tipo de Perfil Ocupacional")
+        verbose_name_plural = _("Tipos de Perfiles Ocupacionales")
+        ordering = ["order", "name"]
+
+    def __str__(self):
+        return self.name
+
+
 class CourseManager(models.Manager):
     """Custom manager for Course model."""
 

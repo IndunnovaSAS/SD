@@ -41,7 +41,7 @@
                 <h3 class="card-title text-lg">Estado de Inscripciones</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Distribución por estado actual</p>
                 <div id="compliance-chart"
-                     hx-get="{% url 'reports:compliance-chart' %}"
+                     hx-get="{% url 'reports:dashboard-compliance-chart' %}"
                      hx-trigger="load, filterChanged from:body"
                      hx-include="#dashboard-filters"
                      hx-swap="innerHTML"
@@ -59,7 +59,7 @@
                 <h3 class="card-title text-lg">Tendencia de Completados</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Cursos completados por semana</p>
                 <div id="training-trend-chart"
-                     hx-get="{% url 'reports:training-trend' %}"
+                     hx-get="{% url 'reports:dashboard-training-trend' %}"
                      hx-trigger="load, filterChanged from:body"
                      hx-include="#dashboard-filters"
                      hx-swap="innerHTML"

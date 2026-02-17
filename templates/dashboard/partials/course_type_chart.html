@@ -19,10 +19,13 @@
             };
         });
 
+        var hasData = chartData.length > 0 && chartData.some(function(d) { return d.value > 0; });
+
         chart.setOption({
             tooltip: {
                 trigger: 'item',
                 formatter: function(params) {
+                    if (!hasData) return 'Sin datos disponibles';
                     var ed = enrollmentData[params.name] || {};
                     var total = ed.total || 0;
                     var completed = ed.completed || 0;
@@ -38,10 +41,16 @@
                 type: 'pie',
                 radius: ['0%', '65%'],
                 center: ['50%', '45%'],
-                roseType: 'area',
+                roseType: hasData ? 'area' : false,
                 itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
-                label: { show: true, formatter: '{b}\n{c}', fontSize: 11 },
-                data: chartData
+                label: {
+                    show: true,
+                    formatter: hasData ? '{b}\n{c}' : 'Sin datos',
+                    fontSize: 11
+                },
+                data: hasData ? chartData : [
+                    { value: 1, name: 'Sin datos', itemStyle: { color: '#e2e8f0' } }
+                ]
             }]
         });
         window.addEventListener('resize', function() { chart.resize(); });

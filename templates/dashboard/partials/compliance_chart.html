@@ -5,7 +5,14 @@
         var el = document.getElementById('compliance-chart-render');
         if (!el || typeof echarts === 'undefined') return;
         var chart = echarts.init(el);
-        chart.setOption({
+
+        var completed = {{ chart_data.completed }};
+        var inProgress = {{ chart_data.in_progress }};
+        var notStarted = {{ chart_data.not_started }};
+        var expired = {{ chart_data.expired }};
+        var total = completed + inProgress + notStarted + expired;
+
+        var option = {
             tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
             legend: { bottom: 0, left: 'center', textStyle: { fontSize: 11 } },
             series: [{
@@ -15,17 +22,27 @@
                 center: ['50%', '45%'],
                 avoidLabelOverlap: false,
                 itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
-                label: { show: false, position: 'center' },
+                label: {
+                    show: total === 0,
+                    position: 'center',
+                    formatter: total === 0 ? 'Sin datos' : '',
+                    fontSize: 14,
+                    color: '#94a3b8'
+                },
                 emphasis: { label: { show: true, fontSize: 18, fontWeight: 'bold' } },
                 labelLine: { show: false },
-                data: [
-                    { value: {{ chart_data.completed }}, name: 'Completados', itemStyle: { color: '#22c55e' } },
-                    { value: {{ chart_data.in_progress }}, name: 'En Progreso', itemStyle: { color: '#3b82f6' } },
-                    { value: {{ chart_data.not_started }}, name: 'Sin Iniciar', itemStyle: { color: '#94a3b8' } },
-                    { value: {{ chart_data.expired }}, name: 'Vencidos', itemStyle: { color: '#ef4444' } }
+                data: total === 0 ? [
+                    { value: 1, name: 'Sin datos', itemStyle: { color: '#e2e8f0' } }
+                ] : [
+                    { value: completed, name: 'Completados', itemStyle: { color: '#22c55e' } },
+                    { value: inProgress, name: 'En Progreso', itemStyle: { color: '#3b82f6' } },
+                    { value: notStarted, name: 'Sin Iniciar', itemStyle: { color: '#94a3b8' } },
+                    { value: expired, name: 'Vencidos', itemStyle: { color: '#ef4444' } }
                 ]
             }]
-        });
+        };
+
+        chart.setOption(option);
         window.addEventListener('resize', function() { chart.resize(); });
     }
     if (typeof echarts !== 'undefined') { init(); }

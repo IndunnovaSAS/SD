@@ -44,8 +44,12 @@ def lesson_grid(request):
     page = request.GET.get("page", 1)
 
     # Get approved lessons
+    category = None
+    if category_id:
+        category = Category.objects.filter(id=category_id, is_active=True).first()
+
     lessons = LessonLearnedService.get_approved_lessons(
-        category_id=category_id,
+        category=category,
         lesson_type=lesson_type,
         severity=severity,
         search=search,
@@ -79,17 +83,22 @@ def lesson_create(request):
     categories = Category.objects.filter(is_active=True)
 
     if request.method == "POST":
+        category_id = request.POST.get("category")
+        category = get_object_or_404(Category, id=category_id) if category_id else None
+
         lesson = LessonLearnedService.create_lesson(
-            title=request.POST.get("title"),
-            description=request.POST.get("description"),
-            lesson_type=request.POST.get("lesson_type"),
-            severity=request.POST.get("severity"),
+            title=request.POST.get("title", ""),
+            description=request.POST.get("description", ""),
+            category=category,
+            situation=request.POST.get("situation", ""),
+            lesson=request.POST.get("lesson", ""),
+            recommendations=request.POST.get("recommendations", ""),
             created_by=request.user,
-            category_id=request.POST.get("category") or None,
-            root_cause=request.POST.get("root_cause"),
-            corrective_actions=request.POST.get("corrective_actions"),
-            preventive_actions=request.POST.get("preventive_actions"),
-            recommendations=request.POST.get("recommendations"),
+            lesson_type=request.POST.get("lesson_type", LessonLearned.Type.OBSERVATION),
+            severity=request.POST.get("severity", LessonLearned.Severity.MEDIUM),
+            root_cause=request.POST.get("root_cause", ""),
+            location=request.POST.get("location", ""),
+            date_occurred=request.POST.get("date_occurred") or None,
         )
 
         messages.success(request, "Lección creada exitosamente")
@@ -112,17 +121,22 @@ def lesson_edit(request, lesson_id):
     categories = Category.objects.filter(is_active=True)
 
     if request.method == "POST":
+        category_id = request.POST.get("category")
+        category = get_object_or_404(Category, id=category_id) if category_id else lesson.category
+
         lesson = LessonLearnedService.update_lesson(
             lesson=lesson,
-            title=request.POST.get("title"),
-            description=request.POST.get("description"),
-            lesson_type=request.POST.get("lesson_type"),
-            severity=request.POST.get("severity"),
-            category_id=request.POST.get("category") or None,
-            root_cause=request.POST.get("root_cause"),
-            corrective_actions=request.POST.get("corrective_actions"),
-            preventive_actions=request.POST.get("preventive_actions"),
-            recommendations=request.POST.get("recommendations"),
+            title=request.POST.get("title", ""),
+            description=request.POST.get("description", ""),
+            category=category,
+            situation=request.POST.get("situation", ""),
+            lesson_text=request.POST.get("lesson", ""),
+            recommendations=request.POST.get("recommendations", ""),
+            lesson_type=request.POST.get("lesson_type", lesson.lesson_type),
+            severity=request.POST.get("severity", lesson.severity),
+            root_cause=request.POST.get("root_cause", ""),
+            location=request.POST.get("location", ""),
+            date_occurred=request.POST.get("date_occurred") or None,
         )
 
         messages.success(request, "Lección actualizada exitosamente")

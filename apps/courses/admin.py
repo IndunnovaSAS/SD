@@ -6,7 +6,17 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from .models import Course, Enrollment, Lesson, LessonEvidence, LessonProgress, MediaAsset, Module
+from .models import Course, Enrollment, JobProfileType, Lesson, LessonEvidence, LessonProgress, MediaAsset, Module
+
+
+@admin.register(JobProfileType)
+class JobProfileTypeAdmin(admin.ModelAdmin):
+    """Admin configuration for JobProfileType model."""
+
+    list_display = ["code", "name", "is_active", "order"]
+    list_filter = ["is_active"]
+    search_fields = ["code", "name"]
+    ordering = ["order"]
 
 
 class ModuleInline(admin.TabularInline):

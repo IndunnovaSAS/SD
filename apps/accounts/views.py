@@ -24,6 +24,7 @@ from django_otp import devices_for_user
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
 from .forms import (
+    BulkUploadForm,
     LoginForm,
     PasswordChangeForm,
     PasswordResetConfirmForm,
@@ -35,6 +36,7 @@ from .forms import (
     UserEditForm,
 )
 from .models import JobHistory
+from .services import BulkUploadService, ExportService, PasswordService
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -564,3 +566,107 @@ def user_toggle_status(request, user_id):
         return response
 
     return redirect("accounts:user_list")
+
+
+@login_required
+@require_POST
+def admin_reset_password(request, user_id):
+    """Reset user password to parameterized default (admin/staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para realizar esta acción.")
+        return redirect("accounts:dashboard")
+
+    user = get_object_or_404(User, pk=user_id)
+    new_password = PasswordService.reset_password(user)
+
+    messages.success(
+        request,
+        f"Contraseña de {user.get_full_name()} restablecida. "
+        f"Nueva contraseña: {new_password}",
+    )
+    logger.info(
+        f"Password reset for {user.document_number} by {request.user.document_number}"
+    )
+
+    if request.htmx:
+        response = HttpResponse()
+        response["HX-Redirect"] = reverse("accounts:user_detail", kwargs={"user_id": user.pk})
+        return response
+
+    return redirect("accounts:user_detail", user_id=user.pk)
+
+
+# ==================== Bulk Upload Views ====================
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def bulk_upload(request):
+    """Bulk upload users from Excel file (admin/staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta página.")
+        return redirect("accounts:dashboard")
+
+    form = BulkUploadForm(request.POST or None, request.FILES or None)
+    results = None
+
+    if request.method == "POST" and form.is_valid():
+        file = form.cleaned_data["file"]
+        rows, parse_errors = BulkUploadService.parse_excel(file)
+
+        if parse_errors:
+            results = {"created": [], "errors": parse_errors}
+        else:
+            created, create_errors = BulkUploadService.create_users_from_rows(rows)
+            results = {"created": created, "errors": create_errors}
+
+            if created:
+                messages.success(
+                    request, f"Se crearon {len(created)} usuarios exitosamente."
+                )
+
+    context = {
+        "form": form,
+        "results": results,
+    }
+    return render(request, "accounts/bulk_upload.html", context)
+
+
+@login_required
+def download_template(request):
+    """Download Excel template for bulk upload."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para realizar esta acción.")
+        return redirect("accounts:dashboard")
+
+    content = BulkUploadService.generate_template()
+    response = HttpResponse(
+        content,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="plantilla_usuarios.xlsx"'
+    return response
+
+
+# ==================== Export Views ====================
+
+
+@login_required
+def export_pending_users(request):
+    """Export users with pending courses to Excel (admin/staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para realizar esta acción.")
+        return redirect("accounts:dashboard")
+
+    category_id = request.GET.get("category")
+    profile = request.GET.get("job_profile")
+
+    content = ExportService.export_pending_users(
+        category_id=category_id, profile=profile
+    )
+    response = HttpResponse(
+        content,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="usuarios_pendientes.xlsx"'
+    return response

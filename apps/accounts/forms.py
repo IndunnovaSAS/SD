@@ -194,27 +194,36 @@ class TwoFactorSetupForm(forms.Form):
         return token
 
 
-class UserCreateForm(forms.ModelForm):
-    """Form for creating new users (admin only)."""
+class BulkUploadForm(forms.Form):
+    """Form for bulk user upload from Excel file."""
 
-    password1 = forms.CharField(
-        label=_("Contraseña"),
-        widget=forms.PasswordInput(
+    file = forms.FileField(
+        label=_("Archivo Excel"),
+        widget=forms.FileInput(
             attrs={
-                "class": "input input-bordered w-full",
-                "placeholder": "••••••••",
+                "class": "file-input file-input-bordered w-full",
+                "accept": ".xlsx,.xls",
             }
         ),
+        help_text=_("Suba un archivo Excel (.xlsx) con las columnas requeridas."),
     )
-    password2 = forms.CharField(
-        label=_("Confirmar contraseña"),
-        widget=forms.PasswordInput(
-            attrs={
-                "class": "input input-bordered w-full",
-                "placeholder": "••••••••",
-            }
-        ),
-    )
+
+    def clean_file(self):
+        file = self.cleaned_data.get("file")
+        if file:
+            if not file.name.endswith((".xlsx", ".xls")):
+                raise forms.ValidationError(
+                    _("Solo se permiten archivos Excel (.xlsx, .xls).")
+                )
+            if file.size > 5 * 1024 * 1024:  # 5MB limit
+                raise forms.ValidationError(
+                    _("El archivo no puede superar los 5MB.")
+                )
+        return file
+
+
+class UserCreateForm(forms.ModelForm):
+    """Form for creating new users (admin only). Password auto-generated."""
 
     class Meta:
         model = User
@@ -246,13 +255,6 @@ class UserCreateForm(forms.ModelForm):
             ),
             "status": forms.Select(attrs={"class": "select select-bordered w-full"}),
         }
-
-    def clean_password2(self):
-        password1 = self.cleaned_data.get("password1")
-        password2 = self.cleaned_data.get("password2")
-        if password1 and password2 and password1 != password2:
-            raise forms.ValidationError(_("Las contraseñas no coinciden."))
-        return password2
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
@@ -288,8 +290,13 @@ class UserCreateForm(forms.ModelForm):
         return cleaned_data
 
     def save(self, commit=True):
+        from .services import PasswordService
+
         user = super().save(commit=False)
-        user.set_password(self.cleaned_data["password1"])
+        password = PasswordService.generate_password(
+            user.document_number, user.first_name
+        )
+        user.set_password(password)
         if commit:
             user.save()
         return user

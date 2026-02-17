@@ -1,4 +1,3 @@
-{% if assessments %}
 <div id="assessment-perf-render" style="width:100%;height:100%;min-height:320px;"></div>
 <script>
 (function() {
@@ -11,6 +10,13 @@
         var passRates = [{% for a in assessments %}{% if a.total_attempts > 0 %}{{ a.passed|floatformat:0 }}{% else %}0{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}];
         var failRates = [{% for a in assessments %}{% if a.total_attempts > 0 %}{{ a.total_attempts }}{% else %}0{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}];
         var avgScores = [{% for a in assessments %}{% if a.avg_score %}{{ a.avg_score|floatformat:1 }}{% else %}0{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}];
+
+        if (names.length === 0) {
+            names = ['Sin evaluaciones'];
+            passRates = [0];
+            failRates = [0];
+            avgScores = [0];
+        }
 
         chart.setOption({
             tooltip: {
@@ -65,11 +71,3 @@
     else { document.addEventListener('echarts:ready', init); }
 })();
 </script>
-{% else %}
-<div class="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400">
-    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-    </svg>
-    <p>No hay evaluaciones con intentos registrados</p>
-</div>
-{% endif %}

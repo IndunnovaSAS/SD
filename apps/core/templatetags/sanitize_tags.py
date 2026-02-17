@@ -321,15 +321,6 @@ def json_safe(value):
 
     # Escape characters that could break out of script context
     # See: https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
-    replacements = [
-        ("&", "\\u0026"),
-        ("<", "\\u003c"),
-        (">", "\\u003e"),
-        ("'", "\\u0027"),
-        ('"', "\\u0022"),
-        ("/", "\\/"),
-    ]
-
     # Only escape < and > to prevent script tag injection
     # JSON already properly escapes quotes and backslashes
     json_str = json_str.replace("<", "\\u003c")

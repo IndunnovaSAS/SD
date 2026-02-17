@@ -5,6 +5,8 @@ Forms for learning paths app.
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from apps.courses.forms import get_profile_choices
+
 from .models import LearningPath
 
 
@@ -13,14 +15,7 @@ class LearningPathCreateForm(forms.ModelForm):
 
     target_profiles = forms.MultipleChoiceField(
         label=_("Perfiles objetivo"),
-        choices=[
-            ("LINIERO", "Liniero"),
-            ("JEFE_CUADRILLA", "Jefe de Cuadrilla"),
-            ("INGENIERO_RESIDENTE", "Ingeniero Residente"),
-            ("COORDINADOR_HSEQ", "Coordinador HSEQ"),
-            ("OPERADOR", "Operador"),
-            ("TECNICO", "Técnico"),
-        ],
+        choices=[],
         widget=forms.CheckboxSelectMultiple(),
         required=False,
     )
@@ -44,6 +39,10 @@ class LearningPathCreateForm(forms.ModelForm):
             "is_mandatory": forms.CheckboxInput(attrs={"class": "checkbox checkbox-primary"}),
             "status": forms.Select(attrs={"class": "select select-bordered w-full"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["target_profiles"].choices = get_profile_choices()
 
     def clean_target_profiles(self):
         profiles = self.cleaned_data.get("target_profiles")

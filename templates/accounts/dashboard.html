@@ -2,6 +2,11 @@
 
 {% block title %}Dashboard - SD LMS{% endblock %}
 
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>document.dispatchEvent(new Event('echarts:ready'));</script>
+{% endblock %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Welcome Section -->
@@ -33,12 +38,50 @@
         {% endfor %}
     </div>
 
-    <!-- Quick Actions -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Current Courses -->
+    <!-- Charts Row 1: Compliance + Training Trend -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Compliance Chart -->
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <h2 class="card-title text-lg">Estado de Inscripciones</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Distribución por estado actual</p>
+                <div hx-get="{% url 'reports:dashboard-compliance-chart' %}"
+                     hx-trigger="load, filterChanged from:body"
+                     hx-include="#dashboard-filters"
+                     hx-swap="innerHTML"
+                     class="h-72">
+                    <div class="flex items-center justify-center h-full">
+                        <span class="loading loading-spinner loading-lg"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Trend Chart -->
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <h2 class="card-title text-lg">Tendencia de Completados</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Cursos completados por semana</p>
+                <div hx-get="{% url 'reports:dashboard-training-trend' %}"
+                     hx-trigger="load, filterChanged from:body"
+                     hx-include="#dashboard-filters"
+                     hx-swap="innerHTML"
+                     class="h-72">
+                    <div class="flex items-center justify-center h-full">
+                        <span class="loading loading-spinner loading-lg"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2: Course Progress + Course Types -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <!-- Course Progress (wider) -->
         <div class="lg:col-span-2 card bg-base-100 shadow-lg">
             <div class="card-body">
-                <h2 class="card-title">Progreso por Curso</h2>
+                <h2 class="card-title text-lg">Progreso por Curso</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Top 10 cursos con más inscripciones</p>
                 <div hx-get="{% url 'reports:dashboard-course-progress' %}"
                      hx-trigger="load, filterChanged from:body"
                      hx-include="#dashboard-filters"
@@ -51,24 +94,43 @@
             </div>
         </div>
 
-        <!-- Recent Activity -->
+        <!-- Course Type Distribution -->
         <div class="card bg-base-100 shadow-lg">
             <div class="card-body">
-                <h2 class="card-title">Actividad Reciente</h2>
-                <div hx-get="{% url 'reports:dashboard-recent-activity' %}"
+                <h2 class="card-title text-lg">Tipos de Curso</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Distribución por categoría</p>
+                <div hx-get="{% url 'reports:dashboard-course-types' %}"
                      hx-trigger="load, filterChanged from:body"
                      hx-include="#dashboard-filters"
-                     hx-swap="innerHTML">
-                    <div class="flex items-center justify-center h-32">
-                        <span class="loading loading-spinner loading-md"></span>
+                     hx-swap="innerHTML"
+                     class="h-72">
+                    <div class="flex items-center justify-center h-full">
+                        <span class="loading loading-spinner loading-lg"></span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Certifications & Assignments Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+    <!-- Assessment Performance -->
+    <div class="card bg-base-100 shadow-lg mb-6">
+        <div class="card-body">
+            <h2 class="card-title text-lg">Rendimiento en Evaluaciones</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Aprobados, intentos totales y puntaje promedio</p>
+            <div hx-get="{% url 'reports:dashboard-assessment-performance' %}"
+                 hx-trigger="load, filterChanged from:body"
+                 hx-include="#dashboard-filters"
+                 hx-swap="innerHTML"
+                 class="h-80">
+                <div class="flex items-center justify-center h-full">
+                    <span class="loading loading-spinner loading-lg"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tables Row: Certifications & Assignments -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <!-- Expiring Certifications -->
         <div class="card bg-base-100 shadow-lg">
             <div class="card-body">
@@ -99,6 +161,23 @@
                     <div class="flex items-center justify-center h-32">
                         <span class="loading loading-spinner loading-md"></span>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card bg-base-100 shadow-lg">
+        <div class="card-body">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="card-title">Actividad Reciente</h2>
+            </div>
+            <div hx-get="{% url 'reports:dashboard-recent-activity' %}"
+                 hx-trigger="load, filterChanged from:body"
+                 hx-include="#dashboard-filters"
+                 hx-swap="innerHTML">
+                <div class="flex items-center justify-center h-32">
+                    <span class="loading loading-spinner loading-md"></span>
                 </div>
             </div>
         </div>

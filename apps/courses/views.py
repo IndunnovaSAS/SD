@@ -9,8 +9,14 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
-from .forms import CategoryForm, CourseCreateForm, CourseEditParamsForm
-from .models import Category, Course, Enrollment, Lesson, LessonProgress
+from .forms import (
+    CategoryForm,
+    CourseCreateForm,
+    CourseEditParamsForm,
+    CourseFullEditForm,
+    JobProfileTypeForm,
+)
+from .models import Category, Course, Enrollment, JobProfileType, Lesson, LessonProgress
 from .services import EnrollmentService
 
 
@@ -25,8 +31,16 @@ def course_list(request):
 
     # Filtering
     category_slug = request.GET.get("category")
+    subcategory_slug = request.GET.get("subcategory")
+
     if category_slug:
-        courses = courses.filter(category__slug=category_slug)
+        if subcategory_slug:
+            courses = courses.filter(category__slug=subcategory_slug)
+        else:
+            # Include courses in the parent category and its subcategories
+            courses = courses.filter(
+                Q(category__slug=category_slug) | Q(category__parent__slug=category_slug)
+            )
 
     course_type = request.GET.get("type")
     if course_type:
@@ -41,6 +55,15 @@ def course_list(request):
         course_count=Count("courses", filter=Q(courses__status="published"))
     )
 
+    # Get subcategories for the selected category
+    subcategories = Category.objects.none()
+    if category_slug:
+        subcategories = (
+            Category.objects.filter(is_active=True, parent__slug=category_slug)
+            .annotate(course_count=Count("courses", filter=Q(courses__status="published")))
+            .order_by("order", "name")
+        )
+
     # Get user's enrollments
     user_enrollments = set(
         Enrollment.objects.filter(user=request.user).values_list("course_id", flat=True)
@@ -49,8 +72,10 @@ def course_list(request):
     context = {
         "courses": courses,
         "categories": categories,
+        "subcategories": subcategories,
         "user_enrollments": user_enrollments,
         "current_category": category_slug,
+        "current_subcategory": subcategory_slug,
         "current_type": course_type,
         "search_query": search,
     }
@@ -377,11 +402,12 @@ def category_toggle_active(request, category_id):
 
 @login_required
 def parametrizacion_hub(request):
-    """Parametrización hub - central admin page for categories and courses."""
+    """Parametrizacion hub - central admin page for categories, courses and profiles."""
     if not request.user.is_staff:
-        messages.error(request, "No tiene permisos para acceder a esta página.")
+        messages.error(request, "No tiene permisos para acceder a esta pagina.")
         return redirect("courses:list")
 
+    # Stats
     total_categories = Category.objects.count()
     active_categories = Category.objects.filter(is_active=True).count()
     inactive_categories = total_categories - active_categories
@@ -390,6 +416,21 @@ def parametrizacion_hub(request):
     draft_courses = Course.objects.filter(status=Course.Status.DRAFT).count()
     archived_courses = Course.objects.filter(status=Course.Status.ARCHIVED).count()
     uncategorized_courses = Course.objects.filter(category__isnull=True).count()
+    total_profiles = JobProfileType.objects.count()
+    active_profiles = JobProfileType.objects.filter(is_active=True).count()
+
+    # Data for tabs
+    courses = Course.objects.select_related("category", "created_by").order_by("title")
+    categories = (
+        Category.objects.filter(parent__isnull=True)
+        .prefetch_related("children")
+        .annotate(course_count=Count("courses"))
+        .order_by("order", "name")
+    )
+    all_categories = Category.objects.filter(is_active=True).order_by("name")
+    profiles = JobProfileType.objects.all().order_by("order", "name")
+
+    active_tab = request.GET.get("tab", "cursos")
 
     context = {
         "total_categories": total_categories,
@@ -400,6 +441,13 @@ def parametrizacion_hub(request):
         "draft_courses": draft_courses,
         "archived_courses": archived_courses,
         "uncategorized_courses": uncategorized_courses,
+        "total_profiles": total_profiles,
+        "active_profiles": active_profiles,
+        "courses": courses,
+        "categories": categories,
+        "all_categories": all_categories,
+        "profiles": profiles,
+        "active_tab": active_tab,
     }
     return render(request, "courses/parametrizacion_hub.html", context)
 
@@ -496,3 +544,159 @@ def course_toggle_status(request, course_id):
             {"course": course},
         )
     return redirect("courses:course_admin_list")
+
+
+# =============================================================================
+# Full Course Edit & Delete (Parametrizacion)
+# =============================================================================
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def course_full_edit(request, course_id):
+    """Full course edit from Parametrizacion (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta pagina.")
+        return redirect("courses:list")
+
+    course = get_object_or_404(Course, id=course_id)
+    form = CourseFullEditForm(request.POST or None, request.FILES or None, instance=course)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, f"Curso '{course.title}' actualizado exitosamente.")
+        return redirect("courses:parametrizacion")
+
+    context = {"form": form, "course": course}
+    return render(request, "courses/course_full_edit.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def course_delete(request, course_id):
+    """Delete a course with confirmation (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta pagina.")
+        return redirect("courses:list")
+
+    course = get_object_or_404(Course, id=course_id)
+
+    if request.method == "POST":
+        active_enrollments = course.enrollments.filter(
+            status__in=[Enrollment.Status.ENROLLED, Enrollment.Status.IN_PROGRESS]
+        ).count()
+
+        if active_enrollments > 0:
+            messages.error(
+                request,
+                f"No se puede eliminar el curso '{course.title}' porque tiene "
+                f"{active_enrollments} inscripciones activas.",
+            )
+            return redirect("courses:parametrizacion")
+
+        title = course.title
+        course.delete()
+        messages.success(request, f"Curso '{title}' eliminado exitosamente.")
+        return redirect("courses:parametrizacion")
+
+    context = {
+        "course": course,
+        "enrollment_count": course.enrollments.count(),
+        "active_enrollment_count": course.enrollments.filter(
+            status__in=[Enrollment.Status.ENROLLED, Enrollment.Status.IN_PROGRESS]
+        ).count(),
+    }
+    return render(request, "courses/course_delete_confirm.html", context)
+
+
+# =============================================================================
+# Job Profile Type CRUD (Parametrizacion)
+# =============================================================================
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def profile_type_create(request):
+    """Create a new job profile type (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta pagina.")
+        return redirect("courses:list")
+
+    form = JobProfileTypeForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, f"Perfil '{form.cleaned_data['name']}' creado exitosamente.")
+        return redirect("courses:parametrizacion")
+
+    context = {"form": form, "action": "Crear"}
+    return render(request, "courses/profile_type_form.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def profile_type_edit(request, profile_id):
+    """Edit a job profile type (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta pagina.")
+        return redirect("courses:list")
+
+    profile = get_object_or_404(JobProfileType, id=profile_id)
+    form = JobProfileTypeForm(request.POST or None, instance=profile)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, f"Perfil '{profile.name}' actualizado exitosamente.")
+        return redirect("courses:parametrizacion")
+
+    context = {"form": form, "profile": profile, "action": "Editar"}
+    return render(request, "courses/profile_type_form.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def profile_type_delete(request, profile_id):
+    """Delete a job profile type (staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para acceder a esta pagina.")
+        return redirect("courses:list")
+
+    profile = get_object_or_404(JobProfileType, id=profile_id)
+
+    # Check if any courses use this profile
+    courses_using = Course.objects.filter(target_profiles__contains=[profile.code])
+    if courses_using.exists():
+        messages.error(
+            request,
+            f"No se puede eliminar el perfil '{profile.name}' porque "
+            f"{courses_using.count()} curso(s) lo utilizan.",
+        )
+        return redirect("courses:parametrizacion")
+
+    name = profile.name
+    profile.delete()
+    messages.success(request, f"Perfil '{name}' eliminado exitosamente.")
+    return redirect("courses:parametrizacion")
+
+
+@login_required
+@require_http_methods(["POST"])
+def profile_type_toggle_active(request, profile_id):
+    """Toggle profile type active status (staff only)."""
+    if not request.user.is_staff:
+        return JsonResponse({"error": "No autorizado"}, status=403)
+
+    profile = get_object_or_404(JobProfileType, id=profile_id)
+    profile.is_active = not profile.is_active
+    profile.save(update_fields=["is_active"])
+
+    action = "activado" if profile.is_active else "desactivado"
+    messages.success(request, f"Perfil '{profile.name}' {action} exitosamente.")
+
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "courses/partials/profile_status_badge.html",
+            {"profile": profile},
+        )
+    return redirect("courses:parametrizacion")

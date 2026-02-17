@@ -5,7 +5,7 @@ URL configuration for SD LMS project.
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.urls import include, path
 
 from drf_spectacular.views import (
@@ -21,8 +21,10 @@ admin.site.index_title = "Panel de Administración"
 
 
 def home(request):
-    """Home page placeholder."""
-    return HttpResponse("<h1>SD LMS</h1><p>Sistema de Gestión de Aprendizaje</p>")
+    """Redirect to dashboard if logged in, otherwise to login."""
+    if request.user.is_authenticated:
+        return redirect("reports:dashboard")
+    return redirect("accounts:login")
 
 
 def health_check(request):

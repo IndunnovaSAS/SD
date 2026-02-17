@@ -23,9 +23,19 @@
                         </svg>
                         Editar
                     </a>
+                    <form method="post" action="{% url 'accounts:admin_reset_password' user_obj.pk %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning btn-sm"
+                                onclick="return confirm('&iquest;Restablecer la contrase&ntilde;a de este usuario a la contrase&ntilde;a parametrizada?')">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                            </svg>
+                            Restablecer Contrase&ntilde;a
+                        </button>
+                    </form>
                     <form method="post" action="{% url 'accounts:user_toggle_status' user_obj.pk %}" class="inline">
                         {% csrf_token %}
-                        <button type="submit" class="btn {% if user_obj.is_active %}btn-error{% else %}btn-success{% endif %}"
+                        <button type="submit" class="btn {% if user_obj.is_active %}btn-error{% else %}btn-success{% endif %} btn-sm"
                                 onclick="return confirm('¿Está seguro de {% if user_obj.is_active %}desactivar{% else %}activar{% endif %} este usuario?')">
                             {% if user_obj.is_active %}
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
