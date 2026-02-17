@@ -30,7 +30,7 @@ INSTALLED_APPS = [  # noqa: F811
 # Simplified middleware — remove axes (needs cache) and CSP
 MIDDLEWARE = [  # noqa: F405
     m
-    for m in MIDDLEWARE
+    for m in MIDDLEWARE  # noqa: F405
     if m not in ("axes.middleware.AxesMiddleware", "csp.middleware.CSPMiddleware")
 ]
 

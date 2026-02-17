@@ -294,10 +294,7 @@ def create_certificates(users, courses):
 
         issued_at = enrollment.completed_at or rand_date(60)
         validity = enrollment.course.validity_months
-        if validity:
-            expires_at = issued_at + timedelta(days=validity * 30)
-        else:
-            expires_at = None
+        expires_at = issued_at + timedelta(days=validity * 30) if validity else None
 
         cert_num = f"SD-{enrollment.course.code}-{enrollment.user.id:04d}-{random.randint(1000, 9999)}"
 

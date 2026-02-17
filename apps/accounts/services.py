@@ -220,10 +220,7 @@ class BulkUploadService:
 
             # Parse hire_date
             hire_date_raw = row.get("fecha_ingreso")
-            if isinstance(hire_date_raw, date):
-                hire_date = hire_date_raw
-            else:
-                hire_date = date.today()
+            hire_date = hire_date_raw if isinstance(hire_date_raw, date) else date.today()
 
             # Check email uniqueness
             if email and User.objects.filter(email=email).exists():
@@ -323,7 +320,7 @@ class ExportService:
         except ImportError:
             return b""
 
-        from apps.courses.models import Course, Enrollment
+        from apps.courses.models import Enrollment
 
         # Get active enrollments that are NOT completed
         enrollments = (
