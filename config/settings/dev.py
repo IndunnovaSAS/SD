@@ -24,7 +24,8 @@ INSTALLED_APPS = [app for app in INSTALLED_APPS if app != "django.contrib.postgr
 INSTALLED_APPS = [  # noqa: F811
     app
     for app in INSTALLED_APPS
-    if app not in ("django_celery_beat", "django_celery_results", "channels", "channels_redis", "axes")
+    if app
+    not in ("django_celery_beat", "django_celery_results", "channels", "channels_redis", "axes")
 ]
 
 # Simplified middleware — remove axes (needs cache) and CSP

@@ -37,7 +37,11 @@ urlpatterns = [
     path("users/<int:user_id>/", views.user_detail, name="user_detail"),
     path("users/<int:user_id>/edit/", views.user_edit, name="user_edit"),
     path("users/<int:user_id>/toggle-status/", views.user_toggle_status, name="user_toggle_status"),
-    path("users/<int:user_id>/reset-password/", views.admin_reset_password, name="admin_reset_password"),
+    path(
+        "users/<int:user_id>/reset-password/",
+        views.admin_reset_password,
+        name="admin_reset_password",
+    ),
     # Bulk Upload
     path("users/bulk-upload/", views.bulk_upload, name="bulk_upload"),
     path("users/bulk-upload/template/", views.download_template, name="download_template"),

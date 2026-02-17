@@ -54,7 +54,9 @@ urlpatterns = [
     # Job Profile Type management (Parametrizacion)
     path("profiles/create/", views.profile_type_create, name="profile_type_create"),
     path("profiles/<int:profile_id>/edit/", views.profile_type_edit, name="profile_type_edit"),
-    path("profiles/<int:profile_id>/delete/", views.profile_type_delete, name="profile_type_delete"),
+    path(
+        "profiles/<int:profile_id>/delete/", views.profile_type_delete, name="profile_type_delete"
+    ),
     path(
         "profiles/<int:profile_id>/toggle/",
         views.profile_type_toggle_active,

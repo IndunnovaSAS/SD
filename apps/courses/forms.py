@@ -31,7 +31,9 @@ class CategoryForm(forms.ModelForm):
             }
         ),
         required=False,
-        help_text=_("Ingrese una subcategoria por linea. Las existentes se conservan, las nuevas se crean automaticamente."),
+        help_text=_(
+            "Ingrese una subcategoria por linea. Las existentes se conservan, las nuevas se crean automaticamente."
+        ),
     )
 
     class Meta:
@@ -64,9 +66,7 @@ class CategoryForm(forms.ModelForm):
             # Pre-populate subcategories field with existing children
             children = self.instance.children.order_by("order", "name")
             if children.exists():
-                self.initial["subcategories_text"] = "\n".join(
-                    child.name for child in children
-                )
+                self.initial["subcategories_text"] = "\n".join(child.name for child in children)
         self.fields["parent"].empty_label = "Sin categoria padre (raiz)"
         self.fields["parent"].required = False
 

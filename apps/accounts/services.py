@@ -32,9 +32,7 @@ class PasswordService:
     @staticmethod
     def reset_password(user) -> str:
         """Reset user password to the parameterized default."""
-        new_password = PasswordService.generate_password(
-            user.document_number, user.first_name
-        )
+        new_password = PasswordService.generate_password(user.document_number, user.first_name)
         user.set_password(new_password)
         user.save(update_fields=["password"])
         logger.info(f"Password reset for user {user.document_number}")
@@ -224,9 +222,7 @@ class BulkUploadService:
 
             # Check email uniqueness
             if email and User.objects.filter(email=email).exists():
-                errors.append(
-                    f"Fila {row_num}: Ya existe un usuario con correo {email}."
-                )
+                errors.append(f"Fila {row_num}: Ya existe un usuario con correo {email}.")
                 continue
 
             # Generate password
@@ -284,19 +280,21 @@ class BulkUploadService:
         ws.append(headers)
 
         # Example row
-        ws.append([
-            "Juan",
-            "Pérez",
-            "1234567890",
-            "CC",
-            "juan@ejemplo.com",
-            "3001234567",
-            "Técnico Electricista",
-            "TECNICO",
-            "directo",
-            date.today().isoformat(),
-            "activo",
-        ])
+        ws.append(
+            [
+                "Juan",
+                "Pérez",
+                "1234567890",
+                "CC",
+                "juan@ejemplo.com",
+                "3001234567",
+                "Técnico Electricista",
+                "TECNICO",
+                "directo",
+                date.today().isoformat(),
+                "activo",
+            ]
+        )
 
         # Set column widths
         for col_idx, header in enumerate(headers, 1):
@@ -365,9 +363,7 @@ class ExportService:
         for col_idx in range(1, len(headers) + 1):
             cell = ws.cell(row=1, column=col_idx)
             cell.font = openpyxl.styles.Font(bold=True)
-            ws.column_dimensions[
-                openpyxl.utils.get_column_letter(col_idx)
-            ].width = 20
+            ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = 20
 
         status_display = {
             "enrolled": "Inscrito",
@@ -376,19 +372,25 @@ class ExportService:
         }
 
         for enrollment in enrollments:
-            ws.append([
-                enrollment.user.first_name,
-                enrollment.user.last_name,
-                enrollment.user.document_number,
-                enrollment.user.get_job_profile_display(),
-                enrollment.user.job_position,
-                enrollment.course.title,
-                enrollment.course.category.name if enrollment.course.category else "Sin categoría",
-                status_display.get(enrollment.status, enrollment.status),
-                float(enrollment.progress),
-                enrollment.created_at.strftime("%Y-%m-%d") if enrollment.created_at else "",
-                enrollment.due_date.strftime("%Y-%m-%d") if enrollment.due_date else "Sin fecha",
-            ])
+            ws.append(
+                [
+                    enrollment.user.first_name,
+                    enrollment.user.last_name,
+                    enrollment.user.document_number,
+                    enrollment.user.get_job_profile_display(),
+                    enrollment.user.job_position,
+                    enrollment.course.title,
+                    enrollment.course.category.name
+                    if enrollment.course.category
+                    else "Sin categoría",
+                    status_display.get(enrollment.status, enrollment.status),
+                    float(enrollment.progress),
+                    enrollment.created_at.strftime("%Y-%m-%d") if enrollment.created_at else "",
+                    enrollment.due_date.strftime("%Y-%m-%d")
+                    if enrollment.due_date
+                    else "Sin fecha",
+                ]
+            )
 
         output = io.BytesIO()
         wb.save(output)

@@ -26,7 +26,11 @@ urlpatterns = [
     path("dashboard/compliance-chart/", views.compliance_chart, name="dashboard-compliance-chart"),
     path("dashboard/training-trend/", views.training_trend, name="dashboard-training-trend"),
     path("dashboard/expiring-certs/", views.expiring_certs, name="dashboard-expiring-certs"),
-    path("dashboard/overdue-assignments/", views.overdue_assignments, name="dashboard-overdue-assignments"),
+    path(
+        "dashboard/overdue-assignments/",
+        views.overdue_assignments,
+        name="dashboard-overdue-assignments",
+    ),
     path("dashboard/recent-activity/", views.recent_activity, name="dashboard-recent-activity"),
     path("dashboard/course-progress/", views.course_progress, name="dashboard-course-progress"),
     path("dashboard/course-types/", views.course_type_distribution, name="dashboard-course-types"),

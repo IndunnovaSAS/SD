@@ -581,12 +581,9 @@ def admin_reset_password(request, user_id):
 
     messages.success(
         request,
-        f"Contraseña de {user.get_full_name()} restablecida. "
-        f"Nueva contraseña: {new_password}",
+        f"Contraseña de {user.get_full_name()} restablecida. Nueva contraseña: {new_password}",
     )
-    logger.info(
-        f"Password reset for {user.document_number} by {request.user.document_number}"
-    )
+    logger.info(f"Password reset for {user.document_number} by {request.user.document_number}")
 
     if request.htmx:
         response = HttpResponse()
@@ -621,9 +618,7 @@ def bulk_upload(request):
             results = {"created": created, "errors": create_errors}
 
             if created:
-                messages.success(
-                    request, f"Se crearon {len(created)} usuarios exitosamente."
-                )
+                messages.success(request, f"Se crearon {len(created)} usuarios exitosamente.")
 
     context = {
         "form": form,
@@ -661,9 +656,7 @@ def export_pending_users(request):
     category_id = request.GET.get("category")
     profile = request.GET.get("job_profile")
 
-    content = ExportService.export_pending_users(
-        category_id=category_id, profile=profile
-    )
+    content = ExportService.export_pending_users(category_id=category_id, profile=profile)
     response = HttpResponse(
         content,
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

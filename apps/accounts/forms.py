@@ -212,13 +212,9 @@ class BulkUploadForm(forms.Form):
         file = self.cleaned_data.get("file")
         if file:
             if not file.name.endswith((".xlsx", ".xls")):
-                raise forms.ValidationError(
-                    _("Solo se permiten archivos Excel (.xlsx, .xls).")
-                )
+                raise forms.ValidationError(_("Solo se permiten archivos Excel (.xlsx, .xls)."))
             if file.size > 5 * 1024 * 1024:  # 5MB limit
-                raise forms.ValidationError(
-                    _("El archivo no puede superar los 5MB.")
-                )
+                raise forms.ValidationError(_("El archivo no puede superar los 5MB."))
         return file
 
 
@@ -293,9 +289,7 @@ class UserCreateForm(forms.ModelForm):
         from .services import PasswordService
 
         user = super().save(commit=False)
-        password = PasswordService.generate_password(
-            user.document_number, user.first_name
-        )
+        password = PasswordService.generate_password(user.document_number, user.first_name)
         user.set_password(password)
         if commit:
             user.save()

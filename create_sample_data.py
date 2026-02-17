@@ -38,16 +38,41 @@ def rand_recent(days_back=30):
 # ── 1. Categories ────────────────────────────────────────────────────
 def create_categories():
     categories_data = [
-        {"name": "Seguridad Electrica", "slug": "seguridad-electrica",
-         "description": "Seguridad en trabajos electricos", "color": "#EF4444", "icon": "bolt"},
-        {"name": "Trabajo en Alturas", "slug": "trabajo-alturas",
-         "description": "Formacion para trabajo en alturas", "color": "#F59E0B", "icon": "arrow-up"},
-        {"name": "Primeros Auxilios", "slug": "primeros-auxilios",
-         "description": "Atencion de emergencias", "color": "#10B981", "icon": "heart"},
-        {"name": "Procedimientos Operativos", "slug": "procedimientos-operativos",
-         "description": "Procedimientos y protocolos", "color": "#3B82F6", "icon": "clipboard"},
-        {"name": "Equipos y Herramientas", "slug": "equipos-herramientas",
-         "description": "Uso y mantenimiento de equipos", "color": "#8B5CF6", "icon": "wrench"},
+        {
+            "name": "Seguridad Electrica",
+            "slug": "seguridad-electrica",
+            "description": "Seguridad en trabajos electricos",
+            "color": "#EF4444",
+            "icon": "bolt",
+        },
+        {
+            "name": "Trabajo en Alturas",
+            "slug": "trabajo-alturas",
+            "description": "Formacion para trabajo en alturas",
+            "color": "#F59E0B",
+            "icon": "arrow-up",
+        },
+        {
+            "name": "Primeros Auxilios",
+            "slug": "primeros-auxilios",
+            "description": "Atencion de emergencias",
+            "color": "#10B981",
+            "icon": "heart",
+        },
+        {
+            "name": "Procedimientos Operativos",
+            "slug": "procedimientos-operativos",
+            "description": "Procedimientos y protocolos",
+            "color": "#3B82F6",
+            "icon": "clipboard",
+        },
+        {
+            "name": "Equipos y Herramientas",
+            "slug": "equipos-herramientas",
+            "description": "Uso y mantenimiento de equipos",
+            "color": "#8B5CF6",
+            "icon": "wrench",
+        },
     ]
     result = []
     for d in categories_data:
@@ -60,30 +85,90 @@ def create_categories():
 # ── 2. Users ─────────────────────────────────────────────────────────
 def create_users(admin_user):
     users_data = [
-        {"first_name": "Carlos", "last_name": "Rodriguez", "document_number": "1001001001",
-         "job_profile": "LINIERO", "job_position": "Liniero Senior"},
-        {"first_name": "Maria", "last_name": "Lopez", "document_number": "1001001002",
-         "job_profile": "LINIERO", "job_position": "Liniero"},
-        {"first_name": "Juan", "last_name": "Martinez", "document_number": "1001001003",
-         "job_profile": "JEFE_CUADRILLA", "job_position": "Jefe de Cuadrilla"},
-        {"first_name": "Andrea", "last_name": "Garcia", "document_number": "1001001004",
-         "job_profile": "TECNICO", "job_position": "Tecnico Electricista"},
-        {"first_name": "Luis", "last_name": "Hernandez", "document_number": "1001001005",
-         "job_profile": "COORDINADOR_HSEQ", "job_position": "Coordinador HSEQ"},
-        {"first_name": "Diana", "last_name": "Torres", "document_number": "1001001006",
-         "job_profile": "INGENIERO_RESIDENTE", "job_position": "Ingeniero Residente"},
-        {"first_name": "Pedro", "last_name": "Sanchez", "document_number": "1001001007",
-         "job_profile": "LINIERO", "job_position": "Liniero"},
-        {"first_name": "Sofia", "last_name": "Ramirez", "document_number": "1001001008",
-         "job_profile": "TECNICO", "job_position": "Tecnico de Campo"},
-        {"first_name": "Diego", "last_name": "Castro", "document_number": "1001001009",
-         "job_profile": "OPERADOR", "job_position": "Operador de Grua"},
-        {"first_name": "Laura", "last_name": "Morales", "document_number": "1001001010",
-         "job_profile": "JEFE_CUADRILLA", "job_position": "Jefe de Cuadrilla"},
-        {"first_name": "Andres", "last_name": "Vargas", "document_number": "1001001011",
-         "job_profile": "LINIERO", "job_position": "Liniero Aprendiz"},
-        {"first_name": "Camila", "last_name": "Diaz", "document_number": "1001001012",
-         "job_profile": "TECNICO", "job_position": "Tecnico de Subestaciones"},
+        {
+            "first_name": "Carlos",
+            "last_name": "Rodriguez",
+            "document_number": "1001001001",
+            "job_profile": "LINIERO",
+            "job_position": "Liniero Senior",
+        },
+        {
+            "first_name": "Maria",
+            "last_name": "Lopez",
+            "document_number": "1001001002",
+            "job_profile": "LINIERO",
+            "job_position": "Liniero",
+        },
+        {
+            "first_name": "Juan",
+            "last_name": "Martinez",
+            "document_number": "1001001003",
+            "job_profile": "JEFE_CUADRILLA",
+            "job_position": "Jefe de Cuadrilla",
+        },
+        {
+            "first_name": "Andrea",
+            "last_name": "Garcia",
+            "document_number": "1001001004",
+            "job_profile": "TECNICO",
+            "job_position": "Tecnico Electricista",
+        },
+        {
+            "first_name": "Luis",
+            "last_name": "Hernandez",
+            "document_number": "1001001005",
+            "job_profile": "COORDINADOR_HSEQ",
+            "job_position": "Coordinador HSEQ",
+        },
+        {
+            "first_name": "Diana",
+            "last_name": "Torres",
+            "document_number": "1001001006",
+            "job_profile": "INGENIERO_RESIDENTE",
+            "job_position": "Ingeniero Residente",
+        },
+        {
+            "first_name": "Pedro",
+            "last_name": "Sanchez",
+            "document_number": "1001001007",
+            "job_profile": "LINIERO",
+            "job_position": "Liniero",
+        },
+        {
+            "first_name": "Sofia",
+            "last_name": "Ramirez",
+            "document_number": "1001001008",
+            "job_profile": "TECNICO",
+            "job_position": "Tecnico de Campo",
+        },
+        {
+            "first_name": "Diego",
+            "last_name": "Castro",
+            "document_number": "1001001009",
+            "job_profile": "OPERADOR",
+            "job_position": "Operador de Grua",
+        },
+        {
+            "first_name": "Laura",
+            "last_name": "Morales",
+            "document_number": "1001001010",
+            "job_profile": "JEFE_CUADRILLA",
+            "job_position": "Jefe de Cuadrilla",
+        },
+        {
+            "first_name": "Andres",
+            "last_name": "Vargas",
+            "document_number": "1001001011",
+            "job_profile": "LINIERO",
+            "job_position": "Liniero Aprendiz",
+        },
+        {
+            "first_name": "Camila",
+            "last_name": "Diaz",
+            "document_number": "1001001012",
+            "job_profile": "TECNICO",
+            "job_position": "Tecnico de Subestaciones",
+        },
     ]
     result = [admin_user]
     for d in users_data:
@@ -110,36 +195,86 @@ def create_users(admin_user):
 # ── 3. Courses ───────────────────────────────────────────────────────
 def create_courses(admin_user, categories):
     courses_data = [
-        {"code": "SEG-001", "title": "Fundamentos de Seguridad Electrica",
-         "description": "Conceptos basicos de seguridad en trabajos electricos.",
-         "course_type": "mandatory", "category": categories[0], "validity_months": 12},
-        {"code": "SEG-002", "title": "Trabajo Seguro en Lineas Energizadas",
-         "description": "Tecnicas para trabajo en lineas de transmision energizadas.",
-         "course_type": "mandatory", "category": categories[0], "validity_months": 12},
-        {"code": "ALT-001", "title": "Trabajo en Alturas - Nivel Basico",
-         "description": "Capacitacion basica para trabajo seguro en alturas.",
-         "course_type": "mandatory", "category": categories[1], "validity_months": 24},
-        {"code": "ALT-002", "title": "Trabajo en Alturas - Nivel Avanzado",
-         "description": "Tecnicas avanzadas de trabajo en alturas.",
-         "course_type": "mandatory", "category": categories[1], "validity_months": 24},
-        {"code": "PRI-001", "title": "Primeros Auxilios Basicos",
-         "description": "Atencion inicial de emergencias medicas en campo.",
-         "course_type": "mandatory", "category": categories[2], "validity_months": 24},
-        {"code": "PRO-001", "title": "Procedimientos Pre-Operacionales",
-         "description": "Charlas de seguridad y permisos de trabajo.",
-         "course_type": "mandatory", "category": categories[3], "validity_months": 12},
-        {"code": "EQU-001", "title": "Uso y Mantenimiento de EPP",
-         "description": "Seleccion y uso de equipos de proteccion personal.",
-         "course_type": "mandatory", "category": categories[4], "validity_months": 12},
-        {"code": "EQU-002", "title": "Herramientas Electricas Especializadas",
-         "description": "Uso de herramientas dielectricas y detectores de tension.",
-         "course_type": "mandatory", "category": categories[4], "validity_months": 12},
-        {"code": "SEG-003", "title": "Cultura de Seguridad y Liderazgo",
-         "description": "Desarrollo de cultura de seguridad y liderazgo.",
-         "course_type": "optional", "category": categories[0], "validity_months": None},
-        {"code": "PRO-002", "title": "Gestion Ambiental en Campo",
-         "description": "Manejo de residuos y cumplimiento ambiental.",
-         "course_type": "optional", "category": categories[3], "validity_months": None},
+        {
+            "code": "SEG-001",
+            "title": "Fundamentos de Seguridad Electrica",
+            "description": "Conceptos basicos de seguridad en trabajos electricos.",
+            "course_type": "mandatory",
+            "category": categories[0],
+            "validity_months": 12,
+        },
+        {
+            "code": "SEG-002",
+            "title": "Trabajo Seguro en Lineas Energizadas",
+            "description": "Tecnicas para trabajo en lineas de transmision energizadas.",
+            "course_type": "mandatory",
+            "category": categories[0],
+            "validity_months": 12,
+        },
+        {
+            "code": "ALT-001",
+            "title": "Trabajo en Alturas - Nivel Basico",
+            "description": "Capacitacion basica para trabajo seguro en alturas.",
+            "course_type": "mandatory",
+            "category": categories[1],
+            "validity_months": 24,
+        },
+        {
+            "code": "ALT-002",
+            "title": "Trabajo en Alturas - Nivel Avanzado",
+            "description": "Tecnicas avanzadas de trabajo en alturas.",
+            "course_type": "mandatory",
+            "category": categories[1],
+            "validity_months": 24,
+        },
+        {
+            "code": "PRI-001",
+            "title": "Primeros Auxilios Basicos",
+            "description": "Atencion inicial de emergencias medicas en campo.",
+            "course_type": "mandatory",
+            "category": categories[2],
+            "validity_months": 24,
+        },
+        {
+            "code": "PRO-001",
+            "title": "Procedimientos Pre-Operacionales",
+            "description": "Charlas de seguridad y permisos de trabajo.",
+            "course_type": "mandatory",
+            "category": categories[3],
+            "validity_months": 12,
+        },
+        {
+            "code": "EQU-001",
+            "title": "Uso y Mantenimiento de EPP",
+            "description": "Seleccion y uso de equipos de proteccion personal.",
+            "course_type": "mandatory",
+            "category": categories[4],
+            "validity_months": 12,
+        },
+        {
+            "code": "EQU-002",
+            "title": "Herramientas Electricas Especializadas",
+            "description": "Uso de herramientas dielectricas y detectores de tension.",
+            "course_type": "mandatory",
+            "category": categories[4],
+            "validity_months": 12,
+        },
+        {
+            "code": "SEG-003",
+            "title": "Cultura de Seguridad y Liderazgo",
+            "description": "Desarrollo de cultura de seguridad y liderazgo.",
+            "course_type": "optional",
+            "category": categories[0],
+            "validity_months": None,
+        },
+        {
+            "code": "PRO-002",
+            "title": "Gestion Ambiental en Campo",
+            "description": "Manejo de residuos y cumplimiento ambiental.",
+            "course_type": "optional",
+            "category": categories[3],
+            "validity_months": None,
+        },
     ]
     result = []
     for d in courses_data:
@@ -165,13 +300,19 @@ def create_courses(admin_user, categories):
 
 def _create_modules(course):
     for i, (title, desc) in enumerate(
-        [("Introduccion", "Conceptos basicos"), ("Contenido Principal", "Desarrollo del tema"),
-         ("Evaluacion", "Verificacion de conocimientos")], 1
+        [
+            ("Introduccion", "Conceptos basicos"),
+            ("Contenido Principal", "Desarrollo del tema"),
+            ("Evaluacion", "Verificacion de conocimientos"),
+        ],
+        1,
     ):
         m = Module.objects.create(course=course, title=title, description=desc, order=i)
         for j in range(1, random.randint(2, 4)):
             Lesson.objects.create(
-                module=m, title=f"Leccion {j}", order=j,
+                module=m,
+                title=f"Leccion {j}",
+                order=j,
                 duration=random.choice([10, 15, 20, 30, 45]),
                 lesson_type=random.choice(["video", "reading", "reading"]),
             )
@@ -214,8 +355,12 @@ def create_enrollments(users, courses):
                 completed_at = None
 
             Enrollment.objects.create(
-                user=user, course=course, status=status, progress=progress,
-                started_at=started, completed_at=completed_at,
+                user=user,
+                course=course,
+                status=status,
+                progress=progress,
+                started_at=started,
+                completed_at=completed_at,
                 created_at=rand_date(120),
             )
             count += 1
@@ -296,7 +441,9 @@ def create_certificates(users, courses):
         validity = enrollment.course.validity_months
         expires_at = issued_at + timedelta(days=validity * 30) if validity else None
 
-        cert_num = f"SD-{enrollment.course.code}-{enrollment.user.id:04d}-{random.randint(1000, 9999)}"
+        cert_num = (
+            f"SD-{enrollment.course.code}-{enrollment.user.id:04d}-{random.randint(1000, 9999)}"
+        )
 
         # Some certificates expire in the next 30 days (for dashboard widget)
         if count < 4 and expires_at:
@@ -321,15 +468,30 @@ def create_certificates(users, courses):
 def create_learning_paths(admin_user, courses):
     courses_dict = {c.code: c for c in courses}
     paths_data = [
-        {"name": "Induccion Liniero Basico", "description": "Ruta obligatoria para nuevos linieros.",
-         "target_profiles": ["LINIERO"], "is_mandatory": True, "estimated_duration": 30,
-         "codes": ["SEG-001", "ALT-001", "PRI-001", "EQU-001"]},
-        {"name": "Formacion Jefe de Cuadrilla", "description": "Ruta completa para jefes de cuadrilla.",
-         "target_profiles": ["JEFE_CUADRILLA"], "is_mandatory": True, "estimated_duration": 60,
-         "codes": ["SEG-001", "SEG-002", "ALT-001", "ALT-002", "PRI-001", "PRO-001"]},
-        {"name": "Certificacion HSEQ", "description": "Formacion para coordinadores HSEQ.",
-         "target_profiles": ["COORDINADOR_HSEQ"], "is_mandatory": True, "estimated_duration": 40,
-         "codes": ["SEG-001", "PRI-001", "PRO-001", "SEG-003", "PRO-002"]},
+        {
+            "name": "Induccion Liniero Basico",
+            "description": "Ruta obligatoria para nuevos linieros.",
+            "target_profiles": ["LINIERO"],
+            "is_mandatory": True,
+            "estimated_duration": 30,
+            "codes": ["SEG-001", "ALT-001", "PRI-001", "EQU-001"],
+        },
+        {
+            "name": "Formacion Jefe de Cuadrilla",
+            "description": "Ruta completa para jefes de cuadrilla.",
+            "target_profiles": ["JEFE_CUADRILLA"],
+            "is_mandatory": True,
+            "estimated_duration": 60,
+            "codes": ["SEG-001", "SEG-002", "ALT-001", "ALT-002", "PRI-001", "PRO-001"],
+        },
+        {
+            "name": "Certificacion HSEQ",
+            "description": "Formacion para coordinadores HSEQ.",
+            "target_profiles": ["COORDINADOR_HSEQ"],
+            "is_mandatory": True,
+            "estimated_duration": 40,
+            "codes": ["SEG-001", "PRI-001", "PRO-001", "SEG-003", "PRO-002"],
+        },
     ]
     result = []
     for d in paths_data:
@@ -342,7 +504,8 @@ def create_learning_paths(admin_user, courses):
             for i, code in enumerate(codes, 1):
                 if code in courses_dict:
                     PathCourse.objects.create(
-                        learning_path=obj, course=courses_dict[code], order=i, is_required=True)
+                        learning_path=obj, course=courses_dict[code], order=i, is_required=True
+                    )
             print(f"  + Ruta: {obj.name}")
         else:
             print(f"  = Existe: {obj.name}")
@@ -380,8 +543,11 @@ def create_assignments(users, paths):
                 due = date.today() - timedelta(days=random.randint(3, 30))
 
             PathAssignment.objects.create(
-                user=user, learning_path=path, status=status,
-                progress=progress, due_date=due,
+                user=user,
+                learning_path=path,
+                status=status,
+                progress=progress,
+                due_date=due,
                 assigned_by=users[0],  # admin
             )
             count += 1
@@ -402,9 +568,13 @@ def main():
     if not admin_user:
         print("\nNo se encontro superusuario. Creando uno...")
         admin_user = User.objects.create_superuser(
-            email="admin@sd.com", username="admin@sd.com", password="admin",
-            first_name="Admin", last_name="SD",
-            document_number="0000000000", hire_date=date.today(),
+            email="admin@sd.com",
+            username="admin@sd.com",
+            password="admin",
+            first_name="Admin",
+            last_name="SD",
+            document_number="0000000000",
+            hire_date=date.today(),
         )
     print(f"\nAdmin: {admin_user.email}")
 
