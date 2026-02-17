@@ -70,7 +70,6 @@ class CourseFactory(DjangoModelFactory):
     title = factory.Sequence(lambda n: f"Test Course {n}")
     description = factory.Faker("paragraph")
     objectives = factory.Faker("paragraph")
-    duration = factory.Faker("random_int", min=30, max=120)
     course_type = Course.Type.MANDATORY
     status = Course.Status.PUBLISHED
     created_by = factory.SubFactory(UserFactory)
