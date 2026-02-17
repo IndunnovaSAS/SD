@@ -53,15 +53,6 @@ ignore = [
     "B007",   # unused loop variable
     "E402",   # module level import not at top of file
 ]
-per-file-ignores = {
-    "create_sample_data.py" = ["E402"],
-    "create_superuser.py" = ["E402"],
-    "config/settings/*.py" = ["E402"],
-    "apps/*/api/views.py" = ["E402"],
-    "apps/*/views.py" = ["E402"],
-    "apps/*/tests/*.py" = ["F841", "E402", "B007"],
-    "apps/*/tests.py" = ["F841", "B007"],
-}
 
 [tool.ruff.lint.isort]
 known-first-party = ["apps", "config"]
