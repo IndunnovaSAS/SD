@@ -33,6 +33,9 @@ CACHES = {
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 
+# Remove CSP middleware in tests (avoids django-csp version conflicts)
+MIDDLEWARE = [m for m in MIDDLEWARE if m != "csp.middleware.CSPMiddleware"]  # noqa: F405
+
 # Use database sessions
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 

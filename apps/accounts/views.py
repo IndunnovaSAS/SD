@@ -209,7 +209,11 @@ def verify_sms_otp_view(request):
                 return redirect("accounts:verify_2fa")
 
             # No TOTP, complete login
-            login(request, user)
+            login(
+                request,
+                user,
+                backend="django.contrib.auth.backends.ModelBackend",
+            )
             remember = request.session.pop("pending_sms_otp_remember", False)
             request.session.pop("pending_sms_otp_user_id", None)
 
