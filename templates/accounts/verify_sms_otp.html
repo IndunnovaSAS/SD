@@ -1,0 +1,45 @@
+{% extends "accounts/base_auth.html" %}
+{% load widget_tweaks %}
+
+{% block title %}Verificaci&oacute;n SMS - SD LMS{% endblock %}
+
+{% block auth_content %}
+<div id="sms-otp-form-container">
+    {% include "accounts/partials/sms_otp_form.html" %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function startResendCountdown() {
+        var btn = document.getElementById('resend-btn');
+        var timer = document.getElementById('resend-timer');
+        if (!btn || !timer) return;
+
+        var seconds = parseInt(btn.dataset.wait || '0');
+        if (seconds <= 0) {
+            btn.disabled = false;
+            timer.textContent = '';
+            return;
+        }
+
+        btn.disabled = true;
+        var interval = setInterval(function() {
+            seconds--;
+            timer.textContent = '(' + seconds + 's)';
+            if (seconds <= 0) {
+                clearInterval(interval);
+                btn.disabled = false;
+                timer.textContent = '';
+            }
+        }, 1000);
+    }
+
+    document.addEventListener('DOMContentLoaded', startResendCountdown);
+    document.addEventListener('htmx:afterSwap', function(e) {
+        if (e.detail.target.id === 'sms-otp-form-container') {
+            startResendCountdown();
+        }
+    });
+</script>
+{% endblock %}

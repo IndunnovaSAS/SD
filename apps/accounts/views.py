@@ -18,7 +18,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from django_otp import devices_for_user
 from django_otp.plugins.otp_totp.models import TOTPDevice
@@ -30,13 +30,14 @@ from .forms import (
     PasswordResetConfirmForm,
     PasswordResetRequestForm,
     ProfileForm,
+    SMSOTPVerifyForm,
     TwoFactorSetupForm,
     TwoFactorVerifyForm,
     UserCreateForm,
     UserEditForm,
 )
 from .models import JobHistory
-from .services import BulkUploadService, ExportService, PasswordService
+from .services import BulkUploadService, ExportService, PasswordService, SMSOTPService
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -60,9 +61,40 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
 
             if user is not None:
-                # Check if user has 2FA enabled
-                if user_has_2fa(user):
-                    # Store user ID in session for 2FA verification
+                # Check if SMS OTP verification is required
+                if SMSOTPService.user_requires_sms_otp(user):
+                    if not user.phone:
+                        error = (
+                            "Su cuenta requiere verificación por SMS "
+                            "pero no tiene teléfono registrado. "
+                            "Contacte al administrador."
+                        )
+                    else:
+                        ip = _get_client_ip(request)
+                        try:
+                            SMSOTPService.send_otp(user, ip_address=ip)
+                            request.session["pending_sms_otp_user_id"] = user.pk
+                            request.session["pending_sms_otp_remember"] = remember_me
+                            masked_phone = _mask_phone(user.phone)
+
+                            context = {
+                                "form": SMSOTPVerifyForm(),
+                                "masked_phone": masked_phone,
+                                "resend_wait": SMSOTPService.RESEND_COOLDOWN_SECONDS,
+                            }
+
+                            if request.htmx:
+                                return render(
+                                    request,
+                                    "accounts/partials/sms_otp_form.html",
+                                    context,
+                                )
+                            return redirect("accounts:verify_sms_otp")
+                        except ValueError as e:
+                            error = str(e)
+
+                # Check if user has TOTP 2FA enabled
+                elif user_has_2fa(user):
                     request.session["pending_2fa_user_id"] = user.pk
                     request.session["pending_2fa_remember"] = remember_me
 
@@ -70,20 +102,23 @@ def login_view(request):
                         return render(request, "accounts/partials/2fa_form.html")
                     return redirect("accounts:verify_2fa")
 
-                # No 2FA, log in directly
-                login(request, user)
+                # No verification needed, log in directly
+                else:
+                    login(request, user)
 
-                if not remember_me:
-                    request.session.set_expiry(0)
+                    if not remember_me:
+                        request.session.set_expiry(0)
 
-                next_url = request.GET.get("next", "accounts:dashboard")
+                    next_url = request.GET.get("next", "accounts:dashboard")
 
-                if request.htmx:
-                    response = HttpResponse()
-                    response["HX-Redirect"] = reverse(next_url) if ":" in next_url else next_url
-                    return response
+                    if request.htmx:
+                        response = HttpResponse()
+                        response["HX-Redirect"] = (
+                            reverse(next_url) if ":" in next_url else next_url
+                        )
+                        return response
 
-                return redirect(next_url)
+                    return redirect(next_url)
             else:
                 error = "Credenciales inválidas. Por favor, intente de nuevo."
                 logger.warning(f"Failed login attempt for: {username}")
@@ -138,6 +173,105 @@ def verify_2fa_view(request):
         return render(request, "accounts/partials/2fa_verify_form.html", context)
 
     return render(request, "accounts/verify_2fa.html", context)
+
+
+@require_http_methods(["GET", "POST"])
+def verify_sms_otp_view(request):
+    """Verify SMS OTP code during login."""
+    user_id = request.session.get("pending_sms_otp_user_id")
+    if not user_id:
+        return redirect("accounts:login")
+
+    user = get_object_or_404(User, pk=user_id)
+    form = SMSOTPVerifyForm(request.POST or None)
+    error = None
+    masked_phone = _mask_phone(user.phone)
+
+    if request.method == "POST" and form.is_valid():
+        code = form.cleaned_data["code"]
+        is_valid, error_msg = SMSOTPService.verify_code(user, code)
+
+        if is_valid:
+            # Check if user also has TOTP 2FA
+            if user_has_2fa(user):
+                remember = request.session.get("pending_sms_otp_remember", False)
+                request.session["pending_2fa_user_id"] = user.pk
+                request.session["pending_2fa_remember"] = remember
+                request.session.pop("pending_sms_otp_user_id", None)
+                request.session.pop("pending_sms_otp_remember", None)
+
+                if request.htmx:
+                    return render(
+                        request,
+                        "accounts/partials/2fa_verify_form.html",
+                        {"form": TwoFactorVerifyForm()},
+                    )
+                return redirect("accounts:verify_2fa")
+
+            # No TOTP, complete login
+            login(request, user)
+            remember = request.session.pop("pending_sms_otp_remember", False)
+            request.session.pop("pending_sms_otp_user_id", None)
+
+            if not remember:
+                request.session.set_expiry(0)
+
+            if request.htmx:
+                response = HttpResponse()
+                response["HX-Redirect"] = reverse("accounts:dashboard")
+                return response
+            return redirect("accounts:dashboard")
+        else:
+            error = error_msg
+
+    context = {
+        "form": form,
+        "error": error,
+        "masked_phone": masked_phone,
+        "resend_wait": SMSOTPService.get_resend_wait_seconds(user),
+    }
+
+    if request.htmx:
+        return render(request, "accounts/partials/sms_otp_form.html", context)
+    return render(request, "accounts/verify_sms_otp.html", context)
+
+
+@require_POST
+def resend_sms_otp_view(request):
+    """Resend SMS OTP code (rate-limited)."""
+    user_id = request.session.get("pending_sms_otp_user_id")
+    if not user_id:
+        if request.htmx:
+            return HttpResponse(
+                '<div class="alert alert-error">'
+                "Sesión expirada. Inicie sesión nuevamente."
+                "</div>",
+                status=400,
+            )
+        return redirect("accounts:login")
+
+    user = get_object_or_404(User, pk=user_id)
+    ip = _get_client_ip(request)
+
+    try:
+        SMSOTPService.send_otp(user, ip_address=ip)
+        context = {
+            "form": SMSOTPVerifyForm(),
+            "masked_phone": _mask_phone(user.phone),
+            "resend_wait": SMSOTPService.RESEND_COOLDOWN_SECONDS,
+            "resend_success": True,
+        }
+    except ValueError as e:
+        context = {
+            "form": SMSOTPVerifyForm(),
+            "masked_phone": _mask_phone(user.phone),
+            "error": str(e),
+            "resend_wait": SMSOTPService.get_resend_wait_seconds(user),
+        }
+
+    if request.htmx:
+        return render(request, "accounts/partials/sms_otp_form.html", context)
+    return redirect("accounts:verify_sms_otp")
 
 
 @login_required
@@ -361,6 +495,23 @@ def disable_2fa(request):
 def user_has_2fa(user):
     """Check if user has any confirmed 2FA devices."""
     return TOTPDevice.objects.filter(user=user, confirmed=True).exists()
+
+
+def _get_client_ip(request) -> str:
+    """Extract client IP from request."""
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded_for:
+        return x_forwarded_for.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR", "")
+
+
+def _mask_phone(phone: str) -> str:
+    """Mask phone number for display: +57 300****567"""
+    if not phone:
+        return ""
+    if len(phone) <= 4:
+        return "****"
+    return phone[:6] + "****" + phone[-3:]
 
 
 # ==================== Lockout View ====================
@@ -663,3 +814,22 @@ def export_pending_users(request):
     )
     response["Content-Disposition"] = 'attachment; filename="usuarios_pendientes.xlsx"'
     return response
+
+
+# =============================================================================
+# Help / User Manual
+# =============================================================================
+
+
+@login_required
+@require_GET
+def help_admin(request):
+    """Admin user manual page."""
+    return render(request, "help/admin_manual.html")
+
+
+@login_required
+@require_GET
+def help_worker(request):
+    """Worker user manual page."""
+    return render(request, "help/worker_manual.html")

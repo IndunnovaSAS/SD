@@ -15,6 +15,9 @@ urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("verify-2fa/", views.verify_2fa_view, name="verify_2fa"),
+    # SMS OTP verification
+    path("verify-sms-otp/", views.verify_sms_otp_view, name="verify_sms_otp"),
+    path("resend-sms-otp/", views.resend_sms_otp_view, name="resend_sms_otp"),
     # Password management
     path("password/change/", views.change_password, name="change_password"),
     path("password/reset/", views.password_reset_request, name="password_reset"),
@@ -47,4 +50,7 @@ urlpatterns = [
     path("users/bulk-upload/template/", views.download_template, name="download_template"),
     # Export
     path("users/export/pending/", views.export_pending_users, name="export_pending_users"),
+    # Help / User Manual
+    path("help/admin/", views.help_admin, name="help_admin"),
+    path("help/worker/", views.help_worker, name="help_worker"),
 ]

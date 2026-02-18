@@ -1,9 +1,17 @@
-<div class="challenge-joined text-center">
-    <i class="fa-solid fa-check-circle text-success fa-3x mb-3"></i>
-    <h4>Te has unido al desafio</h4>
-    <p>{{ participation.challenge.name }}</p>
-    <div class="progress mt-3">
-        <div class="progress-bar" style="width: 0%"></div>
+<div class="card bg-base-100 shadow-xl">
+    <div class="card-body items-center text-center">
+        <div class="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mb-3">
+            <svg class="w-10 h-10 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+        <h4 class="text-lg font-bold">Te has unido al desafío</h4>
+        <p class="text-base-content/70">{{ participation.challenge.name }}</p>
+        <div class="w-full mt-4">
+            <div class="flex items-center gap-3">
+                <progress class="progress progress-primary flex-1" value="0" max="100"></progress>
+                <span class="text-sm font-medium text-base-content/70">0/{{ participation.challenge.target_value }}</span>
+            </div>
+        </div>
     </div>
-    <span>0/{{ participation.challenge.target_value }}</span>
 </div>

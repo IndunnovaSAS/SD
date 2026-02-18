@@ -1,41 +1,65 @@
-<div class="reward-detail">
-    <h3>{{ reward.name }}</h3>
-    <p>{{ reward.description }}</p>
+<div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+        <h3 class="card-title text-xl">{{ reward.name }}</h3>
+        <p class="text-base-content/70">{{ reward.description }}</p>
 
-    <div class="reward-info">
-        <div class="info-row">
-            <span>Costo:</span>
-            <span class="points-cost">{{ reward.points_cost }} puntos</span>
+        <!-- Reward Info -->
+        <div class="grid grid-cols-2 gap-4 mt-4">
+            <div>
+                <span class="text-sm text-base-content/60">Costo</span>
+                <p class="font-bold text-primary text-lg">{{ reward.points_cost }} puntos</p>
+            </div>
+            <div>
+                <span class="text-sm text-base-content/60">Tipo</span>
+                <p class="font-medium">{{ reward.get_reward_type_display }}</p>
+            </div>
+            {% if reward.quantity_available %}
+            <div>
+                <span class="text-sm text-base-content/60">Disponibles</span>
+                <p class="font-medium">{{ reward.quantity_available }}</p>
+            </div>
+            {% endif %}
+            {% if reward.min_level %}
+            <div>
+                <span class="text-sm text-base-content/60">Nivel requerido</span>
+                <p class="font-medium">{{ reward.min_level.name }}</p>
+            </div>
+            {% endif %}
         </div>
-        <div class="info-row">
-            <span>Tipo:</span>
-            <span>{{ reward.get_reward_type_display }}</span>
-        </div>
-        {% if reward.quantity_available %}
-        <div class="info-row">
-            <span>Disponibles:</span>
-            <span>{{ reward.quantity_available|add:"-"|add:reward.quantity_redeemed }}</span>
-        </div>
-        {% endif %}
-        {% if reward.min_level %}
-        <div class="info-row">
-            <span>Nivel requerido:</span>
-            <span>{{ reward.min_level.name }}</span>
-        </div>
-        {% endif %}
-    </div>
 
-    <div class="user-status mt-3">
-        <p>Tus puntos disponibles: {{ available_points }}</p>
-        {% if can_afford and level_ok %}
-        <form method="post" action="{% url 'gamification:redeem-reward' reward.id %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-primary">Canjear Recompensa</button>
-        </form>
-        {% elif not can_afford %}
-        <p class="text-danger">No tienes suficientes puntos</p>
-        {% elif not level_ok %}
-        <p class="text-warning">Necesitas alcanzar el nivel {{ reward.min_level.name }}</p>
-        {% endif %}
+        <!-- User Status -->
+        <div class="mt-6 p-4 bg-base-200 rounded-lg">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-sm text-base-content/60">Tus puntos disponibles</span>
+                <span class="font-bold text-lg">{{ available_points }}</span>
+            </div>
+
+            {% if can_afford and level_ok %}
+            <button class="btn btn-primary w-full"
+                    hx-post="{% url 'gamification:redeem-reward' reward.id %}"
+                    hx-target="closest .card"
+                    hx-swap="outerHTML"
+                    hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Canjear Recompensa
+            </button>
+            {% elif not can_afford %}
+            <div class="alert alert-error">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>No tienes suficientes puntos (faltan {{ reward.points_cost|add:"-available_points" }})</span>
+            </div>
+            {% elif not level_ok %}
+            <div class="alert alert-warning">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <span>Necesitas alcanzar el nivel {{ reward.min_level.name }}</span>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>

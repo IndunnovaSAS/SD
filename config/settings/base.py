@@ -355,3 +355,12 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
 # Email configuration (override in production)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@sd-lms.com")
+
+# SMS OTP Configuration
+SMS_OTP_ENABLED = config("SMS_OTP_ENABLED", default=True, cast=bool)
+SMS_OTP_NO_PHONE_FALLBACK = config("SMS_OTP_NO_PHONE_FALLBACK", default="skip")
+
+# Twilio SMS Configuration
+TWILIO_ACCOUNT_SID = config("TWILIO_ACCOUNT_SID", default="")
+TWILIO_AUTH_TOKEN = config("TWILIO_AUTH_TOKEN", default="")
+TWILIO_PHONE_NUMBER = config("TWILIO_PHONE_NUMBER", default="")

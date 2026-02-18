@@ -72,6 +72,16 @@
                     </details>
                 </li>
 
+                <!-- Gamificacion -->
+                <li>
+                    <a href="{% url 'gamification:dashboard' %}" class="hover:bg-primary-100 dark:hover:bg-primary-900/30">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                        </svg>
+                        Gamificación
+                    </a>
+                </li>
+
                 <!-- Reportes y Notificaciones -->
                 <li>
                     <details>
@@ -88,6 +98,12 @@
                             {% endif %}
                             <li><a href="{% url 'reports:dashboard' %}">📊 Reportes y Analytics</a></li>
                             <li><a href="{% url 'notifications:list' %}">🔔 Notificaciones</a></li>
+                            <li class="border-t dark:border-gray-600 my-1"></li>
+                            {% if user.is_staff %}
+                            <li><a href="{% url 'accounts:help_admin' %}">📖 Manual de Administrador</a></li>
+                            {% else %}
+                            <li><a href="{% url 'accounts:help_worker' %}">📖 Manual del Trabajador</a></li>
+                            {% endif %}
                         </ul>
                     </details>
                 </li>
@@ -184,6 +200,10 @@
             <a href="{% url 'preop_talks:list' %}" class="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">💬 Charlas Pre-Op</a>
             <a href="{% url 'lessons_learned:list' %}" class="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">💡 Lecciones Aprendidas</a>
 
+            <!-- Gamificacion -->
+            <div class="px-3 pt-3 pb-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gamificación</div>
+            <a href="{% url 'gamification:dashboard' %}" class="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">⭐ Gamificación</a>
+
             <!-- Sistema -->
             <div class="px-3 pt-3 pb-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sistema</div>
             {% if user.is_staff %}
@@ -192,6 +212,11 @@
             {% endif %}
             <a href="{% url 'reports:dashboard' %}" class="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">📊 Reportes</a>
             <a href="{% url 'notifications:list' %}" class="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">🔔 Notificaciones</a>
+            {% if user.is_staff %}
+            <a href="{% url 'accounts:help_admin' %}" class="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">📖 Manual de Administrador</a>
+            {% else %}
+            <a href="{% url 'accounts:help_worker' %}" class="block px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">📖 Manual del Trabajador</a>
+            {% endif %}
 
             <!-- Cuenta -->
             <div class="border-t dark:border-gray-700 my-2"></div>

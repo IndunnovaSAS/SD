@@ -168,6 +168,32 @@ class TwoFactorVerifyForm(forms.Form):
         return token
 
 
+class SMSOTPVerifyForm(forms.Form):
+    """Form for verifying SMS OTP code during login."""
+
+    code = forms.CharField(
+        label=_("Código de verificación SMS"),
+        max_length=6,
+        min_length=6,
+        widget=forms.TextInput(
+            attrs={
+                "class": "input input-bordered w-full text-center text-2xl tracking-widest",
+                "placeholder": "000000",
+                "autocomplete": "one-time-code",
+                "inputmode": "numeric",
+                "pattern": "[0-9]*",
+                "autofocus": True,
+            }
+        ),
+    )
+
+    def clean_code(self):
+        code = self.cleaned_data.get("code")
+        if code and not code.isdigit():
+            raise forms.ValidationError(_("El código debe contener solo números."))
+        return code
+
+
 class TwoFactorSetupForm(forms.Form):
     """Form for setting up 2FA."""
 

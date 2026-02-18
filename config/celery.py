@@ -49,6 +49,7 @@ app.conf.task_queues = {
 # Task routing
 app.conf.task_routes = {
     "apps.notifications.tasks.*": {"queue": "notifications"},
+    "apps.accounts.tasks.*": {"queue": "notifications"},
     "apps.reports.tasks.*": {"queue": "reports"},
     "apps.courses.tasks.process_*": {"queue": "media"},
     "apps.sync.tasks.*": {"queue": "sync"},

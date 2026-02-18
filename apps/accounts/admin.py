@@ -7,7 +7,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .models import Contract, JobHistory, Role, User, UserContract, UserRole
+from .models import Contract, JobHistory, Role, SMSOTPCode, User, UserContract, UserRole
 
 
 class JobHistoryInline(admin.TabularInline):
@@ -211,3 +211,42 @@ class JobHistoryAdmin(admin.ModelAdmin):
     date_hierarchy = "change_date"
     readonly_fields = ("created_at",)
     autocomplete_fields = ["user", "changed_by"]
+
+
+@admin.register(SMSOTPCode)
+class SMSOTPCodeAdmin(admin.ModelAdmin):
+    """Admin configuration for SMS OTP codes (read-only, audit purposes)."""
+
+    list_display = (
+        "user",
+        "code",
+        "created_at",
+        "expires_at",
+        "is_used",
+        "attempts",
+        "ip_address",
+    )
+    list_filter = ("is_used", "created_at")
+    search_fields = (
+        "user__first_name",
+        "user__last_name",
+        "user__document_number",
+        "ip_address",
+    )
+    readonly_fields = (
+        "user",
+        "code",
+        "created_at",
+        "expires_at",
+        "is_used",
+        "used_at",
+        "attempts",
+        "ip_address",
+    )
+    date_hierarchy = "created_at"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

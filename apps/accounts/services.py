@@ -1,13 +1,16 @@
 """
-Services for accounts app - password generation, bulk upload, and export.
+Services for accounts app - password generation, bulk upload, export, and SMS OTP.
 """
 
 import io
 import logging
-from datetime import date
+import secrets
+from datetime import date, timedelta
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -395,3 +398,198 @@ class ExportService:
         output = io.BytesIO()
         wb.save(output)
         return output.getvalue()
+
+
+class SMSOTPService:
+    """Service for SMS OTP code generation, sending, and verification."""
+
+    OTP_LENGTH = 6
+    OTP_EXPIRY_MINUTES = 5
+    MAX_RESEND_PER_HOUR = 5
+    MAX_VERIFY_ATTEMPTS = 5
+    RESEND_COOLDOWN_SECONDS = 60
+
+    @staticmethod
+    def generate_code() -> str:
+        """Generate a cryptographically secure 6-digit OTP code."""
+        code = secrets.randbelow(10**SMSOTPService.OTP_LENGTH)
+        return str(code).zfill(SMSOTPService.OTP_LENGTH)
+
+    @staticmethod
+    def create_otp(user, ip_address: str = None):
+        """Create a new OTP code, invalidating all previous unused codes."""
+        from .models import SMSOTPCode
+
+        SMSOTPCode.objects.filter(user=user, is_used=False).update(is_used=True)
+
+        code = SMSOTPService.generate_code()
+        expires_at = timezone.now() + timedelta(minutes=SMSOTPService.OTP_EXPIRY_MINUTES)
+
+        otp = SMSOTPCode.objects.create(
+            user=user,
+            code=code,
+            expires_at=expires_at,
+            ip_address=ip_address,
+        )
+        logger.info(f"OTP created for user {user.document_number} (expires at {expires_at})")
+        return otp
+
+    @staticmethod
+    def send_otp(user, ip_address: str = None):
+        """
+        Create an OTP and send it via SMS.
+        Returns (otp_instance, sent_successfully).
+        Raises ValueError if rate limit exceeded or user has no phone.
+        """
+        if not user.phone:
+            raise ValueError("El usuario no tiene número de teléfono registrado.")
+
+        if not SMSOTPService.can_resend(user):
+            raise ValueError(
+                "Ha excedido el límite de envíos. "
+                "Por favor, espere antes de solicitar otro código."
+            )
+
+        otp = SMSOTPService.create_otp(user, ip_address)
+        sent = SMSOTPService._dispatch_sms(user, otp.code)
+        return otp, sent
+
+    @staticmethod
+    def _dispatch_sms(user, code: str) -> bool:
+        """Dispatch SMS: async via Celery in production, sync in dev."""
+        phone = user.phone
+        message = (
+            f"SD LMS: Su código de verificación es {code}. "
+            f"Válido por {SMSOTPService.OTP_EXPIRY_MINUTES} minutos. "
+            f"No comparta este código."
+        )
+
+        if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+            return SMSOTPService._send_sms_sync(phone, message)
+        else:
+            from .tasks import send_sms_otp_task
+
+            send_sms_otp_task.delay(phone, message)
+            return True
+
+    @staticmethod
+    def _send_sms_sync(phone: str, message: str) -> bool:
+        """Send SMS via Twilio. Falls back to console in dev without credentials."""
+        twilio_sid = getattr(settings, "TWILIO_ACCOUNT_SID", None)
+        twilio_token = getattr(settings, "TWILIO_AUTH_TOKEN", None)
+        twilio_from = getattr(settings, "TWILIO_PHONE_NUMBER", None)
+
+        if not all([twilio_sid, twilio_token, twilio_from]):
+            logger.warning(f"[SMS DEV MODE] To: {phone} | Message: {message}")
+            print(f"\n{'=' * 50}")
+            print("SMS OTP (DEV MODE)")
+            print(f"To: {phone}")
+            print(f"Message: {message}")
+            print(f"{'=' * 50}\n")
+            return True
+
+        try:
+            from twilio.rest import Client
+
+            client = Client(twilio_sid, twilio_token)
+            client.messages.create(body=message, from_=twilio_from, to=phone)
+            logger.info(f"SMS OTP sent to {phone}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send SMS OTP to {phone}: {e}")
+            return False
+
+    @staticmethod
+    def verify_code(user, code: str) -> tuple[bool, str]:
+        """
+        Verify an OTP code for a user.
+        Returns (is_valid, error_message).
+        """
+        from .models import SMSOTPCode
+
+        try:
+            otp = SMSOTPCode.objects.filter(user=user, is_used=False).latest("created_at")
+        except SMSOTPCode.DoesNotExist:
+            return False, "No hay código OTP pendiente. Solicite uno nuevo."
+
+        if otp.is_expired:
+            return False, "El código ha expirado. Solicite uno nuevo."
+
+        if otp.attempts >= SMSOTPService.MAX_VERIFY_ATTEMPTS:
+            otp.mark_used()
+            return False, "Demasiados intentos fallidos. Solicite un nuevo código."
+
+        if not secrets.compare_digest(otp.code, code.strip()):
+            otp.increment_attempts()
+            remaining = SMSOTPService.MAX_VERIFY_ATTEMPTS - otp.attempts
+            return False, f"Código incorrecto. Le quedan {remaining} intento(s)."
+
+        otp.mark_used()
+        logger.info(f"OTP verified for user {user.document_number}")
+        return True, ""
+
+    @staticmethod
+    def can_resend(user) -> bool:
+        """Check rate limiting: max 5 OTPs per hour, 60s cooldown between sends."""
+        from .models import SMSOTPCode
+
+        now = timezone.now()
+        one_hour_ago = now - timedelta(hours=1)
+        recent_codes = SMSOTPCode.objects.filter(user=user, created_at__gte=one_hour_ago)
+
+        if recent_codes.count() >= SMSOTPService.MAX_RESEND_PER_HOUR:
+            return False
+
+        last_code = recent_codes.order_by("-created_at").first()
+        if last_code:
+            cooldown = timedelta(seconds=SMSOTPService.RESEND_COOLDOWN_SECONDS)
+            if now - last_code.created_at < cooldown:
+                return False
+
+        return True
+
+    @staticmethod
+    def get_resend_wait_seconds(user) -> int:
+        """Get seconds until user can resend. Returns 0 if ready."""
+        from .models import SMSOTPCode
+
+        now = timezone.now()
+        one_hour_ago = now - timedelta(hours=1)
+        last_code = (
+            SMSOTPCode.objects.filter(user=user, created_at__gte=one_hour_ago)
+            .order_by("-created_at")
+            .first()
+        )
+
+        if not last_code:
+            return 0
+
+        cooldown = timedelta(seconds=SMSOTPService.RESEND_COOLDOWN_SECONDS)
+        elapsed = now - last_code.created_at
+        if elapsed >= cooldown:
+            return 0
+
+        return int((cooldown - elapsed).total_seconds())
+
+    @staticmethod
+    def cleanup_expired_codes(days: int = 7) -> int:
+        """Delete OTP codes older than N days."""
+        from .models import SMSOTPCode
+
+        cutoff = timezone.now() - timedelta(days=days)
+        deleted, _ = SMSOTPCode.objects.filter(created_at__lt=cutoff).delete()
+        if deleted:
+            logger.info(f"Cleaned up {deleted} expired OTP codes")
+        return deleted
+
+    @staticmethod
+    def user_requires_sms_otp(user) -> bool:
+        """Determine if a user requires SMS OTP verification at login."""
+        if not getattr(settings, "SMS_OTP_ENABLED", True):
+            return False
+
+        if not user.phone:
+            fallback = getattr(settings, "SMS_OTP_NO_PHONE_FALLBACK", "skip")
+            return fallback == "block"
+
+        return True

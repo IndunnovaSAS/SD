@@ -417,3 +417,59 @@ class JobHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.previous_position} → {self.new_position}"
+
+
+class SMSOTPCode(models.Model):
+    """
+    SMS OTP code for login verification.
+    Ensures the person logging in has access to the registered phone number.
+    """
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="sms_otp_codes",
+        verbose_name=_("Usuario"),
+    )
+    code = models.CharField(_("Código OTP"), max_length=6)
+    created_at = models.DateTimeField(_("Fecha de creación"), auto_now_add=True)
+    expires_at = models.DateTimeField(_("Fecha de expiración"))
+    is_used = models.BooleanField(_("Usado"), default=False)
+    used_at = models.DateTimeField(_("Fecha de uso"), null=True, blank=True)
+    attempts = models.PositiveIntegerField(_("Intentos de verificación"), default=0)
+    ip_address = models.GenericIPAddressField(_("Dirección IP"), null=True, blank=True)
+
+    class Meta:
+        db_table = "sms_otp_codes"
+        verbose_name = _("Código OTP SMS")
+        verbose_name_plural = _("Códigos OTP SMS")
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-created_at"]),
+            models.Index(fields=["code", "user", "is_used"]),
+        ]
+
+    def __str__(self):
+        status = "usado" if self.is_used else "pendiente"
+        return f"OTP {self.code} para {self.user} ({status})"
+
+    @property
+    def is_expired(self):
+        from django.utils import timezone
+
+        return timezone.now() > self.expires_at
+
+    @property
+    def is_valid(self):
+        return not self.is_used and not self.is_expired and self.attempts < 5
+
+    def mark_used(self):
+        from django.utils import timezone
+
+        self.is_used = True
+        self.used_at = timezone.now()
+        self.save(update_fields=["is_used", "used_at"])
+
+    def increment_attempts(self):
+        self.attempts += 1
+        self.save(update_fields=["attempts"])
