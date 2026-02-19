@@ -186,6 +186,10 @@ class PreopTalk(models.Model):
     def attendee_count(self):
         return self.attendees.count()
 
+    @property
+    def signed_attendees_count(self):
+        return self.attendees.filter(signed_at__isnull=False).count()
+
 
 class TalkAttendee(models.Model):
     """
