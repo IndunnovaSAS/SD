@@ -63,7 +63,7 @@ jobs:
             --max-retries 0 --task-timeout 300 --quiet
           gcloud run jobs execute sd-lms-migrate --region ${{ env.REGION }} --wait
 
-      - name: Ensure Admin User
+      - name: Ensure Admin User and Reset Axes Lockouts
         run: |
           gcloud run jobs deploy sd-lms-ensure-admin \
             --image ${{ env.IMAGE }}:${{ github.sha }} \
@@ -71,9 +71,18 @@ jobs:
             --set-cloudsql-instances ${{ env.CLOUDSQL }} \
             --set-env-vars "DJANGO_SETTINGS_MODULE=config.settings.cloudrun,DB_NAME=sd_lms,DB_USER=postgres,DB_HOST=/cloudsql/${{ env.CLOUDSQL }}" \
             --set-secrets "SECRET_KEY=sd-lms-secret-key:latest,DB_PASSWORD=sd-lms-db-password:latest" \
-            --command "python" --args "manage.py,ensure_admin" \
+            --command "python" --args "manage.py,ensure_admin,--reset-password" \
             --max-retries 0 --task-timeout 300 --quiet
           gcloud run jobs execute sd-lms-ensure-admin --region ${{ env.REGION }} --wait
+          gcloud run jobs deploy sd-lms-axes-reset \
+            --image ${{ env.IMAGE }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --set-cloudsql-instances ${{ env.CLOUDSQL }} \
+            --set-env-vars "DJANGO_SETTINGS_MODULE=config.settings.cloudrun,DB_NAME=sd_lms,DB_USER=postgres,DB_HOST=/cloudsql/${{ env.CLOUDSQL }}" \
+            --set-secrets "SECRET_KEY=sd-lms-secret-key:latest,DB_PASSWORD=sd-lms-db-password:latest" \
+            --command "python" --args "manage.py,axes_reset" \
+            --max-retries 0 --task-timeout 300 --quiet
+          gcloud run jobs execute sd-lms-axes-reset --region ${{ env.REGION }} --wait
 
       - name: Clear Existing Courses
         run: |

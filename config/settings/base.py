@@ -275,7 +275,7 @@ AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = timedelta(hours=1)
 AXES_LOCKOUT_TEMPLATE = "accounts/lockout.html"
 AXES_RESET_ON_SUCCESS = True
-AXES_USERNAME_FORM_FIELD = "email"
+AXES_USERNAME_FORM_FIELD = "username"
 AXES_LOCKOUT_PARAMETERS = ["username", "ip_address"]
 
 # CORS Configuration
