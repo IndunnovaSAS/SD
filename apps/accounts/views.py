@@ -101,9 +101,7 @@ def login_view(request):
 
                     if request.htmx:
                         response = HttpResponse()
-                        response["HX-Redirect"] = (
-                            reverse(next_url) if ":" in next_url else next_url
-                        )
+                        response["HX-Redirect"] = reverse(next_url) if ":" in next_url else next_url
                         return response
 
                     return redirect(next_url)
@@ -422,7 +420,9 @@ def enroll_totp_view(request):
 
             return redirect("accounts:dashboard")
         else:
-            form.add_error("token", "Código inválido. Verifique que ingresó el código correcto de su app.")
+            form.add_error(
+                "token", "Código inválido. Verifique que ingresó el código correcto de su app."
+            )
 
     # Generate QR code
     totp_url = device.config_url

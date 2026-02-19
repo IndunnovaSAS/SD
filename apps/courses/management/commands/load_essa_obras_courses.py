@@ -1334,9 +1334,7 @@ class Command(BaseCommand):
             if not user:
                 user = User.objects.first()
             if not user:
-                self.stderr.write(
-                    self.style.ERROR("No se encontró ningún usuario en la BD")
-                )
+                self.stderr.write(self.style.ERROR("No se encontró ningún usuario en la BD"))
                 return
 
         self.stdout.write(f"Usuario: {user.email}\n")
@@ -1363,9 +1361,7 @@ class Command(BaseCommand):
                 status = "CREADA" if created else "YA EXISTÍA"
                 self.stdout.write(f"  [{status}] {cat.name}")
 
-        self.stdout.write(
-            self.style.SUCCESS(f"\n  Total categorías: {len(CATEGORIES)}\n")
-        )
+        self.stdout.write(self.style.SUCCESS(f"\n  Total categorías: {len(CATEGORIES)}\n"))
 
         # Create courses
         self.stdout.write(self.style.MIGRATE_HEADING("Creando cursos..."))
@@ -1383,9 +1379,7 @@ class Command(BaseCommand):
 
             # Check if course already exists
             if Course.objects.filter(code=code).exists():
-                self.stdout.write(
-                    self.style.WARNING(f"  [EXISTE] {code} - {title}")
-                )
+                self.stdout.write(self.style.WARNING(f"  [EXISTE] {code} - {title}"))
                 skipped_count += 1
                 continue
 
@@ -1446,9 +1440,7 @@ class Command(BaseCommand):
 
         if dry_run:
             self.stdout.write(
-                self.style.WARNING(
-                    "\nModo DRY RUN: no se realizaron cambios en la base de datos"
-                )
+                self.style.WARNING("\nModo DRY RUN: no se realizaron cambios en la base de datos")
             )
         elif publish:
             self.stdout.write(

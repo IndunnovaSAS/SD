@@ -384,9 +384,7 @@ class LessonBuilderForm(forms.ModelForm):
                     "placeholder": "Nombre de la leccion",
                 }
             ),
-            "lesson_type": forms.Select(
-                attrs={"class": "select select-bordered w-full"}
-            ),
+            "lesson_type": forms.Select(attrs={"class": "select select-bordered w-full"}),
             "description": forms.Textarea(
                 attrs={
                     "class": "textarea textarea-bordered w-full",
@@ -417,9 +415,7 @@ class LessonBuilderForm(forms.ModelForm):
                     "placeholder": "Minutos",
                 }
             ),
-            "is_mandatory": forms.CheckboxInput(
-                attrs={"class": "checkbox checkbox-primary"}
-            ),
+            "is_mandatory": forms.CheckboxInput(attrs={"class": "checkbox checkbox-primary"}),
         }
 
 
@@ -466,8 +462,6 @@ class QuickAssessmentForm(forms.Form):
         label=_("Intentos maximos"),
         initial=3,
         min_value=0,
-        widget=forms.NumberInput(
-            attrs={"class": "input input-bordered w-full", "min": "0"}
-        ),
+        widget=forms.NumberInput(attrs={"class": "input input-bordered w-full", "min": "0"}),
         help_text=_("0 = intentos ilimitados"),
     )

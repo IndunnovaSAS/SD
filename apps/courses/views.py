@@ -258,7 +258,9 @@ def course_create(request):
         course = form.save(commit=False)
         course.created_by = request.user
         course.save()
-        messages.success(request, f"Curso '{course.title}' creado exitosamente. Agregue modulos y lecciones.")
+        messages.success(
+            request, f"Curso '{course.title}' creado exitosamente. Agregue modulos y lecciones."
+        )
         return redirect("courses:course_builder", course_id=course.id)
 
     context = {"form": form}

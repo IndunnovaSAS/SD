@@ -38,6 +38,4 @@ class Command(BaseCommand):
         deleted = Course.objects.all().delete()
         Category.objects.all().delete()
 
-        self.stdout.write(
-            self.style.SUCCESS(f"Deleted {deleted[0]} objects (cascade).")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Deleted {deleted[0]} objects (cascade)."))

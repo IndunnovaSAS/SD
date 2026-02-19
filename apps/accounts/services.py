@@ -446,8 +446,7 @@ class SMSOTPService:
 
         if not SMSOTPService.can_resend(user):
             raise ValueError(
-                "Ha excedido el límite de envíos. "
-                "Por favor, espere antes de solicitar otro código."
+                "Ha excedido el límite de envíos. Por favor, espere antes de solicitar otro código."
             )
 
         otp = SMSOTPService.create_otp(user, ip_address)
