@@ -51,7 +51,7 @@ class TalkTemplateAPITests(TestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         self.assertEqual(len(results), 1)
 
     def test_create_template(self):
@@ -77,7 +77,7 @@ class TalkTemplateAPITests(TestCase):
         response = self.client.get(url, {"type": "daily"})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         self.assertEqual(len(results), 1)
 
 
@@ -140,7 +140,7 @@ class PreopTalkAPITests(TestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         self.assertEqual(len(results), 1)
 
     def test_create_talk(self):
