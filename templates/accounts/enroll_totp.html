@@ -1,0 +1,10 @@
+{% extends "accounts/base_auth.html" %}
+{% load widget_tweaks %}
+
+{% block title %}Configurar Autenticador - SD LMS{% endblock %}
+
+{% block auth_content %}
+<div id="totp-enroll-container">
+    {% include "accounts/partials/totp_enroll_form.html" %}
+</div>
+{% endblock %}

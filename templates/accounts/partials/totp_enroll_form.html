@@ -1,0 +1,56 @@
+{% load widget_tweaks %}
+
+<h2 class="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
+    Configurar Autenticador
+</h2>
+<p class="text-gray-600 dark:text-gray-400 text-center mb-6">
+    Escanee el c&oacute;digo QR con su aplicaci&oacute;n autenticadora (Google Authenticator, Authy, etc.)
+</p>
+
+<!-- QR Code -->
+<div class="flex justify-center mb-4">
+    <div class="bg-white p-3 rounded-lg shadow-sm">
+        <img src="data:image/png;base64,{{ qr_base64 }}" alt="C&oacute;digo QR para configurar autenticador" class="w-48 h-48">
+    </div>
+</div>
+
+<!-- Manual key -->
+<div class="text-center mb-6">
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">O ingrese esta clave manualmente:</p>
+    <div class="flex items-center justify-center gap-2">
+        <code class="text-sm font-mono bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded select-all">{{ secret_key }}</code>
+    </div>
+</div>
+
+{% if form.token.errors %}
+<div class="alert alert-error mb-4" role="alert" aria-live="assertive">
+    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <span>{{ form.token.errors.0 }}</span>
+</div>
+{% endif %}
+
+<form method="post"
+      hx-post="{% url 'accounts:enroll_totp' %}"
+      hx-target="#totp-enroll-container"
+      hx-swap="innerHTML"
+      hx-indicator="#totp-indicator">
+    {% csrf_token %}
+
+    <div class="form-control mb-6">
+        <label class="label" for="id_token">
+            <span class="label-text font-medium">C&oacute;digo de verificaci&oacute;n</span>
+        </label>
+        {{ form.token }}
+    </div>
+
+    <button type="submit" class="btn btn-primary w-full mb-4">
+        <span id="totp-indicator" class="loading loading-spinner loading-sm htmx-indicator"></span>
+        Activar Autenticador
+    </button>
+</form>
+
+<a href="{% url 'accounts:login' %}" class="btn btn-ghost w-full">
+    Cancelar
+</a>
