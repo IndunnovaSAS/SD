@@ -70,4 +70,65 @@ urlpatterns = [
     path(
         "categories/<int:category_id>/toggle/", views.category_toggle_active, name="category_toggle"
     ),
+    # Course Builder
+    path(
+        "admin-courses/<int:course_id>/builder/",
+        views.course_builder,
+        name="course_builder",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/update-info/",
+        views.builder_update_course_info,
+        name="builder_update_course_info",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/modules/add/",
+        views.builder_add_module,
+        name="builder_add_module",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/modules/<int:module_id>/edit/",
+        views.builder_edit_module,
+        name="builder_edit_module",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/modules/<int:module_id>/delete/",
+        views.builder_delete_module,
+        name="builder_delete_module",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/modules/reorder/",
+        views.builder_reorder_modules,
+        name="builder_reorder_modules",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/modules/<int:module_id>/lessons/add/",
+        views.builder_add_lesson,
+        name="builder_add_lesson",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/modules/<int:module_id>/lessons/<int:lesson_id>/edit/",
+        views.builder_edit_lesson,
+        name="builder_edit_lesson",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/modules/<int:module_id>/lessons/<int:lesson_id>/delete/",
+        views.builder_delete_lesson,
+        name="builder_delete_lesson",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/modules/<int:module_id>/lessons/reorder/",
+        views.builder_reorder_lessons,
+        name="builder_reorder_lessons",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/modules/<int:module_id>/lessons/<int:lesson_id>/assign-quiz/",
+        views.builder_assign_quiz,
+        name="builder_assign_quiz",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/quiz/create/",
+        views.builder_create_quiz,
+        name="builder_create_quiz",
+    ),
 ]

@@ -4,8 +4,9 @@ Web views for courses app.
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import models
 from django.db.models import Count, Q
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
@@ -15,8 +16,11 @@ from .forms import (
     CourseEditParamsForm,
     CourseFullEditForm,
     JobProfileTypeForm,
+    LessonBuilderForm,
+    ModuleBuilderForm,
+    QuickAssessmentForm,
 )
-from .models import Category, Course, Enrollment, JobProfileType, Lesson, LessonProgress
+from .models import Category, Course, Enrollment, JobProfileType, Lesson, LessonProgress, Module
 from .services import EnrollmentService
 
 
@@ -254,8 +258,8 @@ def course_create(request):
         course = form.save(commit=False)
         course.created_by = request.user
         course.save()
-        messages.success(request, f"Curso '{course.title}' creado exitosamente.")
-        return redirect("courses:detail", course_id=course.id)
+        messages.success(request, f"Curso '{course.title}' creado exitosamente. Agregue modulos y lecciones.")
+        return redirect("courses:course_builder", course_id=course.id)
 
     context = {"form": form}
     return render(request, "courses/course_create.html", context)
@@ -700,3 +704,373 @@ def profile_type_toggle_active(request, profile_id):
             {"profile": profile},
         )
     return redirect("courses:parametrizacion")
+
+
+# =============================================================================
+# Course Builder Views
+# =============================================================================
+
+
+def _staff_required(request):
+    """Check if user is staff, return error response or None."""
+    if not request.user.is_staff:
+        if request.headers.get("HX-Request"):
+            return JsonResponse({"error": "No autorizado"}, status=403)
+        messages.error(request, "No tiene permisos para acceder a esta pagina.")
+        return redirect("courses:list")
+    return None
+
+
+def _get_available_assessments(course):
+    """Get assessments available for assignment in this course."""
+    from apps.assessments.models import Assessment
+
+    return Assessment.objects.filter(
+        Q(course=course) | Q(course__isnull=True, lesson__isnull=True)
+    ).order_by("title")
+
+
+def _get_builder_context(course):
+    """Get common context for builder templates."""
+    modules = course.modules.prefetch_related("lessons__assessments").order_by("order")
+    available_assessments = _get_available_assessments(course)
+
+    return {
+        "course": course,
+        "modules": modules,
+        "module_form": ModuleBuilderForm(),
+        "lesson_form": LessonBuilderForm(),
+        "quiz_form": QuickAssessmentForm(),
+        "available_assessments": available_assessments,
+    }
+
+
+@login_required
+@require_http_methods(["GET"])
+def course_builder(request, course_id):
+    """Main course builder page."""
+    if err := _staff_required(request):
+        return err
+
+    course = get_object_or_404(Course, id=course_id)
+    context = _get_builder_context(course)
+    return render(request, "courses/course_builder.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_update_course_info(request, course_id):
+    """Update course basic info from builder."""
+    if err := _staff_required(request):
+        return err
+
+    course = get_object_or_404(Course, id=course_id)
+    form = CourseEditParamsForm(request.POST, instance=course)
+
+    if form.is_valid():
+        form.save()
+
+    context = _get_builder_context(course)
+    if request.headers.get("HX-Request"):
+        return render(request, "courses/partials/builder/course_info_card.html", context)
+    return redirect("courses:course_builder", course_id=course.id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_add_module(request, course_id):
+    """Add a new module to the course."""
+    if err := _staff_required(request):
+        return err
+
+    course = get_object_or_404(Course, id=course_id)
+    form = ModuleBuilderForm(request.POST)
+
+    if form.is_valid():
+        module = form.save(commit=False)
+        module.course = course
+        max_order = course.modules.aggregate(max_order=models.Max("order"))["max_order"]
+        module.order = (max_order or -1) + 1
+        module.save()
+
+        if request.headers.get("HX-Request"):
+            return render(
+                request,
+                "courses/partials/builder/module_card.html",
+                {
+                    "module": module,
+                    "course": course,
+                    "lesson_form": LessonBuilderForm(),
+                    "available_assessments": _get_available_assessments(course),
+                },
+            )
+
+    context = _get_builder_context(course)
+    return render(request, "courses/course_builder.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_edit_module(request, course_id, module_id):
+    """Edit an existing module."""
+    if err := _staff_required(request):
+        return err
+
+    course = get_object_or_404(Course, id=course_id)
+    module = get_object_or_404(Module, id=module_id, course=course)
+    form = ModuleBuilderForm(request.POST, instance=module)
+
+    if form.is_valid():
+        form.save()
+
+    if request.headers.get("HX-Request"):
+        module.refresh_from_db()
+        return render(
+            request,
+            "courses/partials/builder/module_card.html",
+            {
+                "module": module,
+                "course": course,
+                "lesson_form": LessonBuilderForm(),
+                "available_assessments": _get_available_assessments(course),
+            },
+        )
+
+    return redirect("courses:course_builder", course_id=course.id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_delete_module(request, course_id, module_id):
+    """Delete a module and its lessons."""
+    if err := _staff_required(request):
+        return err
+
+    course = get_object_or_404(Course, id=course_id)
+    module = get_object_or_404(Module, id=module_id, course=course)
+    module.delete()
+
+    if request.headers.get("HX-Request"):
+        return HttpResponse("")
+
+    return redirect("courses:course_builder", course_id=course.id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_reorder_modules(request, course_id):
+    """Reorder modules via drag & drop."""
+    import json
+
+    from django.db import transaction
+
+    if err := _staff_required(request):
+        return err
+
+    course = get_object_or_404(Course, id=course_id)
+
+    try:
+        data = json.loads(request.body)
+        module_ids = data.get("order", [])
+    except (json.JSONDecodeError, KeyError):
+        return JsonResponse({"error": "Datos invalidos"}, status=400)
+
+    with transaction.atomic():
+        # Step 1: Set all to negative to avoid unique_together violation
+        for i, mid in enumerate(module_ids):
+            Module.objects.filter(id=mid, course=course).update(order=-(i + 1))
+        # Step 2: Set final order
+        for i, mid in enumerate(module_ids):
+            Module.objects.filter(id=mid, course=course).update(order=i)
+
+    return JsonResponse({"status": "ok"})
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_add_lesson(request, course_id, module_id):
+    """Add a lesson to a module."""
+    if err := _staff_required(request):
+        return err
+
+    course = get_object_or_404(Course, id=course_id)
+    module = get_object_or_404(Module, id=module_id, course=course)
+    form = LessonBuilderForm(request.POST, request.FILES)
+
+    if form.is_valid():
+        lesson = form.save(commit=False)
+        lesson.module = module
+        max_order = module.lessons.aggregate(max_order=models.Max("order"))["max_order"]
+        lesson.order = (max_order or -1) + 1
+        lesson.save()
+
+        if request.headers.get("HX-Request"):
+            return render(
+                request,
+                "courses/partials/builder/lesson_item.html",
+                {
+                    "lesson": lesson,
+                    "course": course,
+                    "module": module,
+                    "available_assessments": _get_available_assessments(course),
+                },
+            )
+
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "courses/partials/builder/lesson_form.html",
+            {"lesson_form": form, "course": course, "module": module},
+        )
+
+    return redirect("courses:course_builder", course_id=course.id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_edit_lesson(request, course_id, module_id, lesson_id):
+    """Edit a lesson."""
+    if err := _staff_required(request):
+        return err
+
+    course = get_object_or_404(Course, id=course_id)
+    module = get_object_or_404(Module, id=module_id, course=course)
+    lesson = get_object_or_404(Lesson, id=lesson_id, module=module)
+    form = LessonBuilderForm(request.POST, request.FILES, instance=lesson)
+
+    if form.is_valid():
+        form.save()
+
+    if request.headers.get("HX-Request"):
+        lesson.refresh_from_db()
+        return render(
+            request,
+            "courses/partials/builder/lesson_item.html",
+            {
+                "lesson": lesson,
+                "course": course,
+                "module": module,
+                "available_assessments": _get_available_assessments(course),
+            },
+        )
+
+    return redirect("courses:course_builder", course_id=course.id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_delete_lesson(request, course_id, module_id, lesson_id):
+    """Delete a lesson."""
+    if err := _staff_required(request):
+        return err
+
+    course = get_object_or_404(Course, id=course_id)
+    module = get_object_or_404(Module, id=module_id, course=course)
+    lesson = get_object_or_404(Lesson, id=lesson_id, module=module)
+    lesson.delete()
+
+    if request.headers.get("HX-Request"):
+        return HttpResponse("")
+
+    return redirect("courses:course_builder", course_id=course.id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_reorder_lessons(request, course_id, module_id):
+    """Reorder lessons within a module."""
+    import json
+
+    if err := _staff_required(request):
+        return err
+
+    course = get_object_or_404(Course, id=course_id)
+    module = get_object_or_404(Module, id=module_id, course=course)
+
+    try:
+        data = json.loads(request.body)
+        lesson_ids = data.get("order", [])
+    except (json.JSONDecodeError, KeyError):
+        return JsonResponse({"error": "Datos invalidos"}, status=400)
+
+    for i, lid in enumerate(lesson_ids):
+        Lesson.objects.filter(id=lid, module=module).update(order=i)
+
+    return JsonResponse({"status": "ok"})
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_assign_quiz(request, course_id, module_id, lesson_id):
+    """Assign an existing assessment to a lesson."""
+    if err := _staff_required(request):
+        return err
+
+    from apps.assessments.models import Assessment
+
+    course = get_object_or_404(Course, id=course_id)
+    module = get_object_or_404(Module, id=module_id, course=course)
+    lesson = get_object_or_404(Lesson, id=lesson_id, module=module)
+
+    assessment_id = request.POST.get("assessment_id")
+
+    if assessment_id:
+        assessment = get_object_or_404(Assessment, id=assessment_id)
+        assessment.course = course
+        assessment.lesson = lesson
+        assessment.save(update_fields=["course", "lesson"])
+    else:
+        # Unassign: remove lesson link from any assessment assigned to this lesson
+        Assessment.objects.filter(lesson=lesson).update(lesson=None)
+
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "courses/partials/builder/lesson_item.html",
+            {
+                "lesson": lesson,
+                "course": course,
+                "module": module,
+                "available_assessments": _get_available_assessments(course),
+            },
+        )
+
+    return redirect("courses:course_builder", course_id=course.id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_create_quiz(request, course_id):
+    """Create a new assessment from the builder."""
+    if err := _staff_required(request):
+        return err
+
+    from apps.assessments.models import Assessment
+
+    course = get_object_or_404(Course, id=course_id)
+    form = QuickAssessmentForm(request.POST)
+
+    if form.is_valid():
+        assessment = Assessment.objects.create(
+            title=form.cleaned_data["title"],
+            assessment_type=form.cleaned_data["assessment_type"],
+            passing_score=form.cleaned_data["passing_score"],
+            time_limit=form.cleaned_data.get("time_limit"),
+            max_attempts=form.cleaned_data["max_attempts"],
+            course=course,
+            created_by=request.user,
+            status="draft",
+        )
+
+        if request.headers.get("HX-Request"):
+            return render(
+                request,
+                "courses/partials/builder/quiz_selector.html",
+                {
+                    "course": course,
+                    "available_assessments": _get_available_assessments(course),
+                    "new_assessment": assessment,
+                },
+            )
+
+    return redirect("courses:course_builder", course_id=course.id)

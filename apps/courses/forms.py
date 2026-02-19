@@ -6,7 +6,7 @@ from django import forms
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
-from .models import Category, Course, JobProfileType
+from .models import Category, Course, JobProfileType, Lesson, Module
 
 
 def get_profile_choices():
@@ -332,3 +332,142 @@ class JobProfileTypeForm(forms.ModelForm):
         if qs.exists():
             raise forms.ValidationError(_("Ya existe un perfil con este codigo."))
         return code
+
+
+# =============================================================================
+# Course Builder Forms
+# =============================================================================
+
+
+class ModuleBuilderForm(forms.ModelForm):
+    """Form for creating/editing modules in the course builder."""
+
+    class Meta:
+        model = Module
+        fields = ["title", "description"]
+        widgets = {
+            "title": forms.TextInput(
+                attrs={
+                    "class": "input input-bordered w-full",
+                    "placeholder": "Nombre del modulo",
+                }
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "class": "textarea textarea-bordered w-full",
+                    "rows": 2,
+                    "placeholder": "Descripcion del modulo (opcional)",
+                }
+            ),
+        }
+
+
+class LessonBuilderForm(forms.ModelForm):
+    """Form for creating/editing lessons in the course builder."""
+
+    class Meta:
+        model = Lesson
+        fields = [
+            "title",
+            "lesson_type",
+            "description",
+            "content",
+            "content_file",
+            "video_url",
+            "duration",
+            "is_mandatory",
+        ]
+        widgets = {
+            "title": forms.TextInput(
+                attrs={
+                    "class": "input input-bordered w-full",
+                    "placeholder": "Nombre de la leccion",
+                }
+            ),
+            "lesson_type": forms.Select(
+                attrs={"class": "select select-bordered w-full"}
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "class": "textarea textarea-bordered w-full",
+                    "rows": 2,
+                    "placeholder": "Descripcion (opcional)",
+                }
+            ),
+            "content": forms.Textarea(
+                attrs={
+                    "class": "textarea textarea-bordered w-full",
+                    "rows": 4,
+                    "placeholder": "Contenido de texto o HTML",
+                }
+            ),
+            "content_file": forms.ClearableFileInput(
+                attrs={"class": "file-input file-input-bordered w-full"}
+            ),
+            "video_url": forms.URLInput(
+                attrs={
+                    "class": "input input-bordered w-full",
+                    "placeholder": "https://...",
+                }
+            ),
+            "duration": forms.NumberInput(
+                attrs={
+                    "class": "input input-bordered w-full",
+                    "min": "0",
+                    "placeholder": "Minutos",
+                }
+            ),
+            "is_mandatory": forms.CheckboxInput(
+                attrs={"class": "checkbox checkbox-primary"}
+            ),
+        }
+
+
+class QuickAssessmentForm(forms.Form):
+    """Form for quickly creating an assessment from the course builder."""
+
+    title = forms.CharField(
+        label=_("Titulo"),
+        max_length=200,
+        widget=forms.TextInput(
+            attrs={
+                "class": "input input-bordered w-full",
+                "placeholder": "Titulo de la evaluacion",
+            }
+        ),
+    )
+    assessment_type = forms.ChoiceField(
+        label=_("Tipo"),
+        choices=[
+            ("quiz", _("Quiz")),
+            ("exam", _("Examen")),
+            ("practice", _("Practica")),
+        ],
+        widget=forms.Select(attrs={"class": "select select-bordered w-full"}),
+    )
+    passing_score = forms.IntegerField(
+        label=_("Puntaje minimo (%)"),
+        initial=80,
+        min_value=0,
+        max_value=100,
+        widget=forms.NumberInput(
+            attrs={"class": "input input-bordered w-full", "min": "0", "max": "100"}
+        ),
+    )
+    time_limit = forms.IntegerField(
+        label=_("Tiempo limite (minutos)"),
+        required=False,
+        min_value=1,
+        widget=forms.NumberInput(
+            attrs={"class": "input input-bordered w-full", "min": "1", "placeholder": "Sin limite"}
+        ),
+    )
+    max_attempts = forms.IntegerField(
+        label=_("Intentos maximos"),
+        initial=3,
+        min_value=0,
+        widget=forms.NumberInput(
+            attrs={"class": "input input-bordered w-full", "min": "0"}
+        ),
+        help_text=_("0 = intentos ilimitados"),
+    )
