@@ -74,6 +74,8 @@ STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 # Media files - use local storage
 DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
 
-# SMS OTP: enabled in tests, sync mode via CELERY_TASK_ALWAYS_EAGER
-SMS_OTP_ENABLED = True
-SMS_OTP_NO_PHONE_FALLBACK = "skip"
+# TOTP 2FA: enabled in tests
+TOTP_2FA_REQUIRED = True
+
+# SMS OTP: disabled in tests (using TOTP instead)
+SMS_OTP_ENABLED = False

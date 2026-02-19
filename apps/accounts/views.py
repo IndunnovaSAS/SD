@@ -2,7 +2,12 @@
 Web views for accounts app (HTMX-powered).
 """
 
+import base64
+import io
 import logging
+
+import qrcode
+import qrcode.constants
 
 from django.conf import settings
 from django.contrib import messages
@@ -30,14 +35,13 @@ from .forms import (
     PasswordResetConfirmForm,
     PasswordResetRequestForm,
     ProfileForm,
-    SMSOTPVerifyForm,
     TwoFactorSetupForm,
     TwoFactorVerifyForm,
     UserCreateForm,
     UserEditForm,
 )
 from .models import JobHistory
-from .services import BulkUploadService, ExportService, PasswordService, SMSOTPService
+from .services import BulkUploadService, ExportService, PasswordService
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -61,46 +65,31 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
 
             if user is not None:
-                # Check if SMS OTP verification is required
-                if SMSOTPService.user_requires_sms_otp(user):
-                    if not user.phone:
-                        error = (
-                            "Su cuenta requiere verificación por SMS "
-                            "pero no tiene teléfono registrado. "
-                            "Contacte al administrador."
-                        )
-                    else:
-                        ip = _get_client_ip(request)
-                        try:
-                            SMSOTPService.send_otp(user, ip_address=ip)
-                            request.session["pending_sms_otp_user_id"] = user.pk
-                            request.session["pending_sms_otp_remember"] = remember_me
-                            masked_phone = _mask_phone(user.phone)
+                totp_required = getattr(settings, "TOTP_2FA_REQUIRED", False)
 
-                            context = {
-                                "form": SMSOTPVerifyForm(),
-                                "masked_phone": masked_phone,
-                                "resend_wait": SMSOTPService.RESEND_COOLDOWN_SECONDS,
-                            }
-
-                            if request.htmx:
-                                return render(
-                                    request,
-                                    "accounts/partials/sms_otp_form.html",
-                                    context,
-                                )
-                            return redirect("accounts:verify_sms_otp")
-                        except ValueError as e:
-                            error = str(e)
-
-                # Check if user has TOTP 2FA enabled
-                elif user_has_2fa(user):
+                # Check if user has TOTP 2FA enabled → verify
+                if user_has_2fa(user):
                     request.session["pending_2fa_user_id"] = user.pk
                     request.session["pending_2fa_remember"] = remember_me
 
                     if request.htmx:
-                        return render(request, "accounts/partials/2fa_form.html")
+                        return render(
+                            request,
+                            "accounts/partials/2fa_verify_form.html",
+                            {"form": TwoFactorVerifyForm()},
+                        )
                     return redirect("accounts:verify_2fa")
+
+                # TOTP required but not set up → force enrollment
+                elif totp_required:
+                    request.session["pending_totp_setup_user_id"] = user.pk
+                    request.session["pending_totp_setup_remember"] = remember_me
+
+                    if request.htmx:
+                        response = HttpResponse()
+                        response["HX-Redirect"] = reverse("accounts:enroll_totp")
+                        return response
+                    return redirect("accounts:enroll_totp")
 
                 # No verification needed, log in directly
                 else:
@@ -173,109 +162,6 @@ def verify_2fa_view(request):
         return render(request, "accounts/partials/2fa_verify_form.html", context)
 
     return render(request, "accounts/verify_2fa.html", context)
-
-
-@require_http_methods(["GET", "POST"])
-def verify_sms_otp_view(request):
-    """Verify SMS OTP code during login."""
-    user_id = request.session.get("pending_sms_otp_user_id")
-    if not user_id:
-        return redirect("accounts:login")
-
-    user = get_object_or_404(User, pk=user_id)
-    form = SMSOTPVerifyForm(request.POST or None)
-    error = None
-    masked_phone = _mask_phone(user.phone)
-
-    if request.method == "POST" and form.is_valid():
-        code = form.cleaned_data["code"]
-        is_valid, error_msg = SMSOTPService.verify_code(user, code)
-
-        if is_valid:
-            # Check if user also has TOTP 2FA
-            if user_has_2fa(user):
-                remember = request.session.get("pending_sms_otp_remember", False)
-                request.session["pending_2fa_user_id"] = user.pk
-                request.session["pending_2fa_remember"] = remember
-                request.session.pop("pending_sms_otp_user_id", None)
-                request.session.pop("pending_sms_otp_remember", None)
-
-                if request.htmx:
-                    return render(
-                        request,
-                        "accounts/partials/2fa_verify_form.html",
-                        {"form": TwoFactorVerifyForm()},
-                    )
-                return redirect("accounts:verify_2fa")
-
-            # No TOTP, complete login
-            login(
-                request,
-                user,
-                backend="django.contrib.auth.backends.ModelBackend",
-            )
-            remember = request.session.pop("pending_sms_otp_remember", False)
-            request.session.pop("pending_sms_otp_user_id", None)
-
-            if not remember:
-                request.session.set_expiry(0)
-
-            if request.htmx:
-                response = HttpResponse()
-                response["HX-Redirect"] = reverse("accounts:dashboard")
-                return response
-            return redirect("accounts:dashboard")
-        else:
-            error = error_msg
-
-    context = {
-        "form": form,
-        "error": error,
-        "masked_phone": masked_phone,
-        "resend_wait": SMSOTPService.get_resend_wait_seconds(user),
-    }
-
-    if request.htmx:
-        return render(request, "accounts/partials/sms_otp_form.html", context)
-    return render(request, "accounts/verify_sms_otp.html", context)
-
-
-@require_POST
-def resend_sms_otp_view(request):
-    """Resend SMS OTP code (rate-limited)."""
-    user_id = request.session.get("pending_sms_otp_user_id")
-    if not user_id:
-        if request.htmx:
-            return HttpResponse(
-                '<div class="alert alert-error">'
-                "Sesión expirada. Inicie sesión nuevamente."
-                "</div>",
-                status=400,
-            )
-        return redirect("accounts:login")
-
-    user = get_object_or_404(User, pk=user_id)
-    ip = _get_client_ip(request)
-
-    try:
-        SMSOTPService.send_otp(user, ip_address=ip)
-        context = {
-            "form": SMSOTPVerifyForm(),
-            "masked_phone": _mask_phone(user.phone),
-            "resend_wait": SMSOTPService.RESEND_COOLDOWN_SECONDS,
-            "resend_success": True,
-        }
-    except ValueError as e:
-        context = {
-            "form": SMSOTPVerifyForm(),
-            "masked_phone": _mask_phone(user.phone),
-            "error": str(e),
-            "resend_wait": SMSOTPService.get_resend_wait_seconds(user),
-        }
-
-    if request.htmx:
-        return render(request, "accounts/partials/sms_otp_form.html", context)
-    return redirect("accounts:verify_sms_otp")
 
 
 @login_required
@@ -468,12 +354,13 @@ def setup_2fa(request):
     else:
         form = TwoFactorSetupForm()
 
-    # Generate QR code URL
+    # Generate QR code
     totp_url = device.config_url
+    qr_base64 = _generate_qr_base64(totp_url)
 
     context = {
         "form": form,
-        "totp_url": totp_url,
+        "qr_base64": qr_base64,
         "secret_key": device.key,
     }
 
@@ -493,6 +380,68 @@ def disable_2fa(request):
     return redirect("accounts:profile")
 
 
+# ==================== TOTP Enrollment (Login Flow) ====================
+
+
+@require_http_methods(["GET", "POST"])
+def enroll_totp_view(request):
+    """Force TOTP enrollment during login (user not yet logged in)."""
+    user_id = request.session.get("pending_totp_setup_user_id")
+    if not user_id:
+        return redirect("accounts:login")
+
+    user = get_object_or_404(User, pk=user_id)
+
+    # Get or create an unconfirmed TOTP device
+    device, created = TOTPDevice.objects.get_or_create(
+        user=user,
+        confirmed=False,
+        defaults={"name": "Autenticador"},
+    )
+
+    form = TwoFactorSetupForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        token = form.cleaned_data["token"]
+        if device.verify_token(token):
+            device.confirmed = True
+            device.save()
+
+            # Complete login
+            remember = request.session.pop("pending_totp_setup_remember", False)
+            request.session.pop("pending_totp_setup_user_id", None)
+
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+
+            if not remember:
+                request.session.set_expiry(0)
+
+            if request.htmx:
+                response = HttpResponse()
+                response["HX-Redirect"] = reverse("accounts:dashboard")
+                return response
+
+            return redirect("accounts:dashboard")
+        else:
+            form.add_error("token", "Código inválido. Verifique que ingresó el código correcto de su app.")
+
+    # Generate QR code
+    totp_url = device.config_url
+    qr_base64 = _generate_qr_base64(totp_url)
+
+    context = {
+        "form": form,
+        "qr_base64": qr_base64,
+        "secret_key": device.key,
+        "user_name": user.get_full_name() or user.document_number,
+    }
+
+    if request.htmx:
+        return render(request, "accounts/partials/totp_enroll_form.html", context)
+
+    return render(request, "accounts/enroll_totp.html", context)
+
+
 # ==================== Helper Functions ====================
 
 
@@ -501,21 +450,21 @@ def user_has_2fa(user):
     return TOTPDevice.objects.filter(user=user, confirmed=True).exists()
 
 
-def _get_client_ip(request) -> str:
-    """Extract client IP from request."""
-    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-    if x_forwarded_for:
-        return x_forwarded_for.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR", "")
+def _generate_qr_base64(data: str) -> str:
+    """Generate a QR code as base64-encoded PNG."""
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=8,
+        border=4,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
 
-
-def _mask_phone(phone: str) -> str:
-    """Mask phone number for display: +57 300****567"""
-    if not phone:
-        return ""
-    if len(phone) <= 4:
-        return "****"
-    return phone[:6] + "****" + phone[-3:]
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 
 # ==================== Lockout View ====================

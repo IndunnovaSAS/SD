@@ -57,6 +57,8 @@ AXES_ENABLED = False
 # Allow all CORS origins in development
 CORS_ALLOW_ALL_ORIGINS = True
 
-# SMS OTP: enabled but uses console fallback (no Twilio credentials needed)
-SMS_OTP_ENABLED = True
-SMS_OTP_NO_PHONE_FALLBACK = "skip"
+# TOTP 2FA: required for all users
+TOTP_2FA_REQUIRED = True
+
+# SMS OTP: disabled (use TOTP instead - free, no Twilio needed)
+SMS_OTP_ENABLED = False
