@@ -103,7 +103,7 @@ class TestSyncLogList:
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 2
 
     def test_list_sync_logs_unauthenticated(self, api_client):
@@ -126,7 +126,7 @@ class TestSyncLogList:
         response = admin_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 3
 
     def test_filter_by_status(self, authenticated_client, user):
@@ -139,7 +139,7 @@ class TestSyncLogList:
         response = authenticated_client.get(url, {"status": "completed"})
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
         assert results[0]["status"] == "completed"
 
@@ -152,7 +152,7 @@ class TestSyncLogList:
         response = authenticated_client.get(url, {"direction": "upload"})
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
         assert results[0]["direction"] == "upload"
 
@@ -165,7 +165,7 @@ class TestSyncLogList:
         response = authenticated_client.get(url, {"device": "device-001"})
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
         assert results[0]["device_id"] == "device-001"
 
@@ -187,7 +187,7 @@ class TestSyncLogList:
         )
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
 
 
@@ -487,7 +487,7 @@ class TestSyncConflictList:
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 2
 
     def test_list_conflicts_staff_sees_all(self, admin_client, admin_user):
@@ -501,7 +501,7 @@ class TestSyncConflictList:
         response = admin_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 2
 
     def test_filter_by_resolution(self, authenticated_client, user):
@@ -514,7 +514,7 @@ class TestSyncConflictList:
         response = authenticated_client.get(url, {"resolution": "pending"})
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
         assert results[0]["resolution"] == "pending"
 
@@ -528,7 +528,7 @@ class TestSyncConflictList:
         response = authenticated_client.get(url, {"model": "Course"})
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
         assert results[0]["model_name"] == "Course"
 
@@ -676,7 +676,7 @@ class TestOfflinePackageList:
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         # Regular user only sees ready packages
         assert len(results) == 1
 
@@ -690,7 +690,7 @@ class TestOfflinePackageList:
         response = admin_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 3
 
     def test_filter_by_status(self, admin_client, admin_user, course):
@@ -702,7 +702,7 @@ class TestOfflinePackageList:
         response = admin_client.get(url, {"status": "ready"})
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
         assert results[0]["status"] == "ready"
 
@@ -717,7 +717,7 @@ class TestOfflinePackageList:
         response = admin_client.get(url, {"course": course1.id})
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
 
     def test_search_packages(self, admin_client, admin_user):
@@ -729,7 +729,7 @@ class TestOfflinePackageList:
         response = admin_client.get(url, {"search": "Safety"})
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
 
 
@@ -872,7 +872,7 @@ class TestPackageDownloadList:
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 2
 
     def test_filter_by_package(self, authenticated_client, user):
@@ -886,7 +886,7 @@ class TestPackageDownloadList:
         response = authenticated_client.get(url, {"package": package1.id})
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
 
     def test_filter_by_device(self, authenticated_client, user):
@@ -899,7 +899,7 @@ class TestPackageDownloadList:
         response = authenticated_client.get(url, {"device": "device-1"})
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
 
     def test_filter_by_completed(self, authenticated_client, user):
@@ -912,7 +912,7 @@ class TestPackageDownloadList:
         response = authenticated_client.get(url, {"completed": "true"})
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
         assert results[0]["download_completed"] is True
 

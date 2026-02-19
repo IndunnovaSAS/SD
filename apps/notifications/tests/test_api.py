@@ -106,7 +106,7 @@ class TestNotificationList:
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 0
 
     def test_list_own_notifications(self, authenticated_client, user):
@@ -120,7 +120,7 @@ class TestNotificationList:
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 2
 
     def test_list_notifications_ordered_by_created_at(self, authenticated_client, user):
@@ -131,7 +131,7 @@ class TestNotificationList:
         url = reverse("notifications_api:notification-list")
         response = authenticated_client.get(url)
 
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert results[0]["id"] == new_notification.id
         assert results[1]["id"] == old_notification.id
 
@@ -144,7 +144,7 @@ class TestNotificationList:
         url = reverse("notifications_api:notification-list")
         response = authenticated_client.get(url, {"status": "sent"})
 
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 2
         for result in results:
             assert result["status"] == "sent"
@@ -158,7 +158,7 @@ class TestNotificationList:
         url = reverse("notifications_api:notification-list")
         response = authenticated_client.get(url, {"channel": "email"})
 
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 2
 
     def test_list_notifications_filter_unread(self, authenticated_client, user):
@@ -169,7 +169,7 @@ class TestNotificationList:
         url = reverse("notifications_api:notification-list")
         response = authenticated_client.get(url, {"unread": "true"})
 
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
 
     def test_list_notifications_filter_by_priority(self, authenticated_client, user):
@@ -180,7 +180,7 @@ class TestNotificationList:
         url = reverse("notifications_api:notification-list")
         response = authenticated_client.get(url, {"priority": "high"})
 
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
         assert results[0]["priority"] == "high"
 
@@ -195,7 +195,7 @@ class TestNotificationList:
         url = reverse("notifications_api:notification-list")
         response = staff_client.get(url, {"user": user1.id})
 
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 2
 
 
@@ -536,7 +536,7 @@ class TestNotificationTemplateList:
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 2
 
     def test_list_templates_filter_by_channel(self, authenticated_client):
@@ -548,7 +548,7 @@ class TestNotificationTemplateList:
         url = reverse("notifications_api:template-list")
         response = authenticated_client.get(url, {"channel": "email"})
 
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 2
 
     def test_list_templates_filter_active(self, authenticated_client):
@@ -559,7 +559,7 @@ class TestNotificationTemplateList:
         url = reverse("notifications_api:template-list")
         response = authenticated_client.get(url, {"active": "true"})
 
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
 
     def test_list_templates_search(self, authenticated_client):
@@ -570,7 +570,7 @@ class TestNotificationTemplateList:
         url = reverse("notifications_api:template-list")
         response = authenticated_client.get(url, {"search": "Welcome"})
 
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 1
         assert "Welcome" in results[0]["name"]
 
@@ -806,7 +806,7 @@ class TestPushSubscriptionList:
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 2
 
 
@@ -998,7 +998,7 @@ class TestNotificationPermissions:
         url = reverse("notifications_api:notification-list")
         response = staff_client.get(url)
 
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         assert len(results) == 2
 
 
@@ -1018,7 +1018,7 @@ class TestNotificationSerializer:
         url = reverse("notifications_api:notification-list")
         response = authenticated_client.get(url)
 
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         notification = results[0]
 
         expected_fields = [
@@ -1076,7 +1076,7 @@ class TestTemplateSerializer:
         url = reverse("notifications_api:template-list")
         response = authenticated_client.get(url)
 
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         template = results[0]
 
         expected_fields = [
@@ -1137,7 +1137,7 @@ class TestPushSubscriptionSerializer:
         url = reverse("notifications_api:push-subscription-list")
         response = authenticated_client.get(url)
 
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         subscription = results[0]
 
         expected_fields = [

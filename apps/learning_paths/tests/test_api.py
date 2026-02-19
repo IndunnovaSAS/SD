@@ -79,7 +79,7 @@ class LearningPathAPITests(TestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         self.assertEqual(len(results), 1)
 
     def test_filter_paths_by_profile(self):
@@ -88,7 +88,7 @@ class LearningPathAPITests(TestCase):
         response = self.client.get(url, {"profile": "LINIERO"})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         self.assertEqual(len(results), 1)
 
     def test_filter_paths_mandatory(self):
@@ -97,7 +97,7 @@ class LearningPathAPITests(TestCase):
         response = self.client.get(url, {"mandatory": "true"})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data.get("results", response.data)
+        results = response.data["results"] if isinstance(response.data, dict) else response.data
         self.assertEqual(len(results), 1)
 
     def test_get_path_detail(self):
