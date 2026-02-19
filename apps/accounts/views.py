@@ -6,9 +6,6 @@ import base64
 import io
 import logging
 
-import qrcode
-import qrcode.constants
-
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout
@@ -25,6 +22,8 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+import qrcode
+import qrcode.constants
 from django_otp import devices_for_user
 from django_otp.plugins.otp_totp.models import TOTPDevice
 

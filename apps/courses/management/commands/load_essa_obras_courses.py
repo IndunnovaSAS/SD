@@ -11,11 +11,9 @@ Usage:
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
-from django.utils.text import slugify
 
 from apps.accounts.models import User
-from apps.courses.models import Category, Course, JobProfileType, Lesson, Module
-
+from apps.courses.models import Category, Course, Lesson, Module
 
 # All profiles for "Todos los trabajadores"
 ALL_PROFILES = [
