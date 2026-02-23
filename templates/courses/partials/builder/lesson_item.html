@@ -1,6 +1,6 @@
 <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-base-200 group transition-colors"
      data-lesson-id="{{ lesson.id }}"
-     x-data="{ editingLesson: false, showQuizAssign: false }">
+     x-data="{ editingLesson: false, showQuizAssign: false, showQuestionEditor: false }">
 
     <!-- Drag Handle -->
     <div class="lesson-drag-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -54,6 +54,7 @@
                 {% with quiz=lesson.assessments.first %}
                     {% if quiz %}
                     <span class="badge badge-xs badge-primary">{{ quiz.title }}</span>
+                    <span class="badge badge-xs badge-ghost">{{ quiz.total_questions }} preg.</span>
                     {% else %}
                     <span class="badge badge-xs badge-error">Sin quiz asignado</span>
                     {% endif %}
@@ -65,6 +66,17 @@
     <!-- Actions (view mode) -->
     <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" x-show="!editingLesson">
         {% if lesson.lesson_type == 'quiz' %}
+            {% with quiz=lesson.assessments.first %}
+            {% if quiz %}
+            <button class="btn btn-ghost btn-xs text-primary"
+                    @click="showQuestionEditor = !showQuestionEditor; if(showQuestionEditor) htmx.ajax('GET', '{% url 'courses:builder_assessment_editor' course.id quiz.id %}', {target: '#question-editor-{{ lesson.id }}', swap: 'innerHTML'})"
+                    title="Editar Preguntas">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </button>
+            {% endif %}
+            {% endwith %}
         <button class="btn btn-ghost btn-xs" @click="showQuizAssign = !showQuizAssign" title="Asignar Quiz">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -99,6 +111,10 @@
     {% if lesson.lesson_type == 'quiz' %}
     <div x-show="showQuizAssign" x-cloak x-transition class="w-full mt-2">
         {% include "courses/partials/builder/quiz_selector.html" with lesson=lesson course=course module=module %}
+    </div>
+
+    <!-- Question Editor (loaded via HTMX) -->
+    <div x-show="showQuestionEditor" x-cloak x-transition class="w-full" id="question-editor-{{ lesson.id }}">
     </div>
     {% endif %}
 </div>

@@ -93,6 +93,62 @@
                         </label>
                         {% endfor %}
 
+                        {% elif question.question_type == 'matching' %}
+                        <div x-data="{
+                            pairs: [
+                                {% for answer in question.answers.all %}
+                                { left: '{{ answer.text|escapejs }}', right: '', options: [] },
+                                {% endfor %}
+                            ],
+                            rightOptions: [
+                                {% for answer in question.answers.all %}
+                                '{{ answer.feedback|escapejs }}',
+                                {% endfor %}
+                            ],
+                            init() {
+                                // Shuffle right options
+                                this.rightOptions = this.rightOptions.sort(() => Math.random() - 0.5);
+                                // Restore saved answers
+                                {% if answered %}
+                                    {% with current=answered|get_item:question.id %}
+                                        {% if current and current.text %}
+                                        try {
+                                            const saved = JSON.parse('{{ current.text|escapejs }}');
+                                            saved.forEach(s => {
+                                                const p = this.pairs.find(p => p.left === s.left);
+                                                if (p) p.right = s.right;
+                                            });
+                                        } catch(e) {}
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+                            },
+                            getMatchingJson() {
+                                return JSON.stringify(this.pairs.map(p => ({ left: p.left, right: p.right })));
+                            }
+                        }">
+                            <div class="space-y-3">
+                                <template x-for="(pair, index) in pairs" :key="index">
+                                    <div class="flex items-center gap-3 p-3 rounded-lg border dark:border-gray-700">
+                                        <span class="flex-1 text-gray-900 dark:text-white font-medium" x-text="pair.left"></span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                        </svg>
+                                        <select x-model="pair.right"
+                                                @change="$nextTick(() => { document.getElementById('matching_{{ question.id }}').value = getMatchingJson(); })"
+                                                class="select select-bordered select-sm flex-1 dark:bg-gray-700 dark:text-white">
+                                            <option value="">-- Seleccionar --</option>
+                                            <template x-for="opt in rightOptions" :key="opt">
+                                                <option :value="opt" x-text="opt" :selected="pair.right === opt"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </template>
+                            </div>
+                            <input type="hidden" name="matching_{{ question.id }}" id="matching_{{ question.id }}"
+                                   :value="getMatchingJson()">
+                        </div>
+
                         {% elif question.question_type == 'short_answer' or question.question_type == 'essay' %}
                         <textarea name="text_answer_{{ question.id }}"
                                   rows="{% if question.question_type == 'essay' %}6{% else %}2{% endif %}"

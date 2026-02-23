@@ -173,6 +173,7 @@ def save_answer(request, attempt_id):
     question_id = request.POST.get("question_id")
     selected_ids = request.POST.getlist("selected_answers")
     text_answer = request.POST.get("text_answer", "")
+    matching_data = request.POST.get("matching_data", "")
 
     try:
         question = Question.objects.get(
@@ -186,11 +187,14 @@ def save_answer(request, attempt_id):
     attempt_answer, created = AttemptAnswer.objects.get_or_create(
         attempt=attempt,
         question=question,
-        defaults={"text_answer": text_answer},
+        defaults={"text_answer": text_answer or matching_data},
     )
 
     if not created:
-        attempt_answer.text_answer = text_answer
+        if matching_data:
+            attempt_answer.text_answer = matching_data
+        elif text_answer:
+            attempt_answer.text_answer = text_answer
         attempt_answer.save()
 
     # Set selected answers
@@ -213,10 +217,16 @@ def submit_attempt(request, attempt_id):
         status=AssessmentAttempt.Status.IN_PROGRESS,
     )
 
+    import json as json_module
+
     # Save any remaining answers
+    processed_questions = set()
     for key, _value in request.POST.items():
         if key.startswith("question_"):
             question_id = key.replace("question_", "")
+            if question_id in processed_questions:
+                continue
+            processed_questions.add(question_id)
             selected_ids = request.POST.getlist(key)
 
             try:
@@ -235,6 +245,41 @@ def submit_attempt(request, attempt_id):
                         Answer.objects.filter(pk__in=selected_ids, question=question)
                     )
             except Question.DoesNotExist:
+                continue
+
+        elif key.startswith("text_answer_"):
+            question_id = key.replace("text_answer_", "")
+            text_val = request.POST.get(key, "")
+            try:
+                question = Question.objects.get(
+                    pk=question_id,
+                    assessment=attempt.assessment,
+                )
+                attempt_answer, created = AttemptAnswer.objects.get_or_create(
+                    attempt=attempt,
+                    question=question,
+                )
+                attempt_answer.text_answer = text_val
+                attempt_answer.save()
+            except Question.DoesNotExist:
+                continue
+
+        elif key.startswith("matching_"):
+            # matching_{question_id} contains JSON with user's matching pairs
+            question_id = key.replace("matching_", "")
+            matching_json = request.POST.get(key, "[]")
+            try:
+                question = Question.objects.get(
+                    pk=question_id,
+                    assessment=attempt.assessment,
+                )
+                attempt_answer, created = AttemptAnswer.objects.get_or_create(
+                    attempt=attempt,
+                    question=question,
+                )
+                attempt_answer.text_answer = matching_json
+                attempt_answer.save()
+            except (Question.DoesNotExist, json_module.JSONDecodeError):
                 continue
 
     # Update attempt

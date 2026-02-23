@@ -102,6 +102,23 @@
 
                 <!-- Answers -->
                 <div class="pl-9 space-y-2">
+                    {% if question.question_type == 'matching' %}
+                    <!-- Matching: show pairs with correct answers -->
+                    <div class="space-y-2">
+                        {% for answer in question.answers.all %}
+                        <div class="flex items-center gap-2 p-2 rounded bg-success/10">
+                            <span class="font-medium text-gray-900 dark:text-white">{{ answer.text }}</span>
+                            <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                            <span class="text-success font-medium">{{ answer.feedback }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if user_answer and not user_answer.is_correct %}
+                    <p class="text-sm text-error mt-2">Tu respuesta no fue correcta.</p>
+                    {% endif %}
+                    {% else %}
                     {% for answer in question.answers.all %}
                     <div class="flex items-center gap-2 p-2 rounded
                         {% if answer.is_correct %}bg-success/10 text-success
@@ -121,6 +138,7 @@
                         <span>{{ answer.text }}</span>
                     </div>
                     {% endfor %}
+                    {% endif %}
                 </div>
 
                 <!-- Explanation -->

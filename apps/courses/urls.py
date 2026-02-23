@@ -27,6 +27,11 @@ urlpatterns = [
         views.update_progress,
         name="update_progress",
     ),
+    path(
+        "<int:course_id>/lessons/<int:lesson_id>/video-progress/",
+        views.update_video_progress,
+        name="update_video_progress",
+    ),
     # Parametrizacion hub
     path("parametrizacion/", views.parametrizacion_hub, name="parametrizacion"),
     # Course admin management (Parametrizacion)
@@ -130,5 +135,31 @@ urlpatterns = [
         "admin-courses/<int:course_id>/builder/quiz/create/",
         views.builder_create_quiz,
         name="builder_create_quiz",
+    ),
+    # Assessment Question Editor (Builder)
+    path(
+        "admin-courses/<int:course_id>/builder/quiz/<int:assessment_id>/",
+        views.builder_assessment_editor,
+        name="builder_assessment_editor",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/quiz/<int:assessment_id>/questions/add/",
+        views.builder_add_question,
+        name="builder_add_question",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/quiz/<int:assessment_id>/questions/<int:question_id>/edit/",
+        views.builder_edit_question,
+        name="builder_edit_question",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/quiz/<int:assessment_id>/questions/<int:question_id>/delete/",
+        views.builder_delete_question,
+        name="builder_delete_question",
+    ),
+    path(
+        "admin-courses/<int:course_id>/builder/quiz/<int:assessment_id>/questions/reorder/",
+        views.builder_reorder_questions,
+        name="builder_reorder_questions",
     ),
 ]

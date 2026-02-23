@@ -300,6 +300,78 @@ class EnrollmentService:
     # Alias for backward compatibility
     _update_enrollment_progress = update_enrollment_progress
 
+    @staticmethod
+    def is_lesson_accessible(enrollment, lesson):
+        """
+        Check if a lesson is accessible based on sequential completion.
+        A lesson is accessible if it's the first lesson or all previous
+        mandatory lessons are completed.
+        Returns: (is_accessible, blocking_lesson or None)
+        """
+        all_lessons = list(
+            Lesson.objects.filter(module__course=enrollment.course).order_by(
+                "module__order", "order"
+            )
+        )
+
+        lesson_index = None
+        for i, l in enumerate(all_lessons):
+            if l.id == lesson.id:
+                lesson_index = i
+                break
+
+        if lesson_index is None:
+            return False, None
+
+        if lesson_index == 0:
+            return True, None
+
+        completed_ids = set(
+            LessonProgress.objects.filter(
+                enrollment=enrollment,
+                is_completed=True,
+            ).values_list("lesson_id", flat=True)
+        )
+
+        for prev_lesson in all_lessons[:lesson_index]:
+            if prev_lesson.is_mandatory and prev_lesson.id not in completed_ids:
+                return False, prev_lesson
+
+        return True, None
+
+    @staticmethod
+    def get_lesson_accessibility_map(enrollment):
+        """
+        Get a dict mapping lesson_id -> {is_accessible, is_completed}
+        for all lessons in the course. Used for rendering locked/unlocked states.
+        """
+        all_lessons = list(
+            Lesson.objects.filter(module__course=enrollment.course).order_by(
+                "module__order", "order"
+            )
+        )
+
+        completed_ids = set(
+            LessonProgress.objects.filter(
+                enrollment=enrollment,
+                is_completed=True,
+            ).values_list("lesson_id", flat=True)
+        )
+
+        accessibility = {}
+        all_previous_mandatory_done = True
+
+        for lesson in all_lessons:
+            is_completed = lesson.id in completed_ids
+            accessibility[lesson.id] = {
+                "is_accessible": all_previous_mandatory_done,
+                "is_completed": is_completed,
+            }
+            if lesson.is_mandatory and not is_completed:
+                all_previous_mandatory_done = False
+
+        return accessibility
+
 
 class MediaService:
     """Service for media asset management."""

@@ -8,6 +8,7 @@ from django.db import models
 from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from .forms import (
@@ -99,16 +100,19 @@ def course_detail(request, course_id):
     # Check if user is enrolled
     enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
 
-    # Get lesson progress if enrolled
+    # Get lesson progress and accessibility if enrolled
     lesson_progress = {}
+    lesson_accessibility = {}
     if enrollment:
         progress_qs = LessonProgress.objects.filter(enrollment=enrollment)
         lesson_progress = {lp.lesson_id: lp for lp in progress_qs}
+        lesson_accessibility = EnrollmentService.get_lesson_accessibility_map(enrollment)
 
     context = {
         "course": course,
         "enrollment": enrollment,
         "lesson_progress": lesson_progress,
+        "lesson_accessibility": lesson_accessibility,
     }
     return render(request, "courses/course_detail.html", context)
 
@@ -160,6 +164,15 @@ def lesson_view(request, course_id, lesson_id):
     # Get or create enrollment
     enrollment = get_object_or_404(Enrollment, user=request.user, course=course)
 
+    # Check lesson accessibility (sequential locking)
+    is_accessible, blocking_lesson = EnrollmentService.is_lesson_accessible(enrollment, lesson)
+    if not is_accessible:
+        messages.warning(
+            request,
+            f'Debes completar la leccion "{blocking_lesson.title}" primero.',
+        )
+        return redirect("courses:detail", course_id=course_id)
+
     # Get or create lesson progress
     progress, _ = LessonProgress.objects.get_or_create(
         enrollment=enrollment,
@@ -174,12 +187,19 @@ def lesson_view(request, course_id, lesson_id):
     prev_lesson = all_lessons[current_index - 1] if current_index > 0 else None
     next_lesson = all_lessons[current_index + 1] if current_index < len(all_lessons) - 1 else None
 
+    # Check if next lesson is accessible
+    next_lesson_accessible = True
+    if next_lesson:
+        accessible, _ = EnrollmentService.is_lesson_accessible(enrollment, next_lesson)
+        next_lesson_accessible = accessible
+
     context = {
         "course": course,
         "lesson": lesson,
         "progress": progress,
         "prev_lesson": prev_lesson,
         "next_lesson": next_lesson,
+        "next_lesson_accessible": next_lesson_accessible,
         "enrollment": enrollment,
     }
     return render(request, "courses/lesson_view.html", context)
@@ -221,6 +241,64 @@ def update_progress(request, course_id, lesson_id):
         )
 
     return JsonResponse({"status": "ok", "progress": float(progress.progress_percent)})
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_video_progress(request, course_id, lesson_id):
+    """Update video progress from the player (AJAX)."""
+    import json
+
+    course = get_object_or_404(Course, id=course_id)
+    lesson = get_object_or_404(Lesson, id=lesson_id, module__course=course)
+    enrollment = get_object_or_404(Enrollment, user=request.user, course=course)
+
+    progress, _ = LessonProgress.objects.get_or_create(
+        enrollment=enrollment,
+        lesson=lesson,
+    )
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Datos invalidos"}, status=400)
+
+    current_time = float(data.get("current_time", 0))
+    max_reached = float(data.get("max_reached", 0))
+    duration = float(data.get("duration", 0))
+    completed = data.get("completed", False)
+
+    # Anti-cheat: max_reached can only increase
+    saved_max = (progress.last_position or {}).get("max_reached", 0)
+    max_reached = max(max_reached, saved_max)
+
+    # Update progress
+    progress.last_position = {
+        "video_seconds": current_time,
+        "max_reached": max_reached,
+        "duration": duration,
+    }
+
+    if duration > 0:
+        progress.progress_percent = min((max_reached / duration) * 100, 100)
+
+    progress.time_spent = int(max_reached)
+
+    if completed or (duration > 0 and max_reached / duration >= 0.95):
+        if not progress.is_completed:
+            progress.is_completed = True
+            progress.completed_at = timezone.now()
+
+    progress.save()
+    EnrollmentService.update_enrollment_progress(enrollment)
+
+    return JsonResponse(
+        {
+            "status": "ok",
+            "progress_percent": float(progress.progress_percent),
+            "is_completed": progress.is_completed,
+        }
+    )
 
 
 @login_required
@@ -1076,3 +1154,218 @@ def builder_create_quiz(request, course_id):
             )
 
     return redirect("courses:course_builder", course_id=course.id)
+
+
+# =============================================================================
+# Assessment Question Editor Views (Builder)
+# =============================================================================
+
+
+@login_required
+@require_http_methods(["GET"])
+def builder_assessment_editor(request, course_id, assessment_id):
+    """Return the assessment question editor partial."""
+    if err := _staff_required(request):
+        return err
+
+    from apps.assessments.models import Assessment
+
+    course = get_object_or_404(Course, id=course_id)
+    assessment = get_object_or_404(Assessment, id=assessment_id, course=course)
+    questions = assessment.questions.prefetch_related("answers").order_by("order")
+
+    context = {
+        "course": course,
+        "assessment": assessment,
+        "questions": questions,
+    }
+    return render(request, "courses/partials/builder/assessment_editor.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_add_question(request, course_id, assessment_id):
+    """Add a question to an assessment from the builder."""
+    if err := _staff_required(request):
+        return err
+
+    from apps.assessments.models import Answer, Assessment, Question
+
+    course = get_object_or_404(Course, id=course_id)
+    assessment = get_object_or_404(Assessment, id=assessment_id, course=course)
+
+    question_type = request.POST.get("question_type", "single_choice")
+    text = request.POST.get("text", "").strip()
+    explanation = request.POST.get("explanation", "").strip()
+    points = int(request.POST.get("points", 1))
+
+    if not text:
+        return JsonResponse({"error": "La pregunta es requerida"}, status=400)
+
+    max_order = assessment.questions.aggregate(max_order=models.Max("order"))["max_order"]
+    question = Question.objects.create(
+        assessment=assessment,
+        question_type=question_type,
+        text=text,
+        explanation=explanation,
+        points=points,
+        order=(max_order or -1) + 1,
+    )
+
+    # Create answers based on question type
+    if question_type in ("single_choice", "multiple_choice"):
+        answer_texts = request.POST.getlist("answer_text")
+        correct_answers = request.POST.getlist("correct_answer")
+        for i, a_text in enumerate(answer_texts):
+            a_text = a_text.strip()
+            if a_text:
+                Answer.objects.create(
+                    question=question,
+                    text=a_text,
+                    is_correct=str(i) in correct_answers,
+                    order=i,
+                )
+
+    elif question_type == "true_false":
+        correct = request.POST.get("correct_answer", "true")
+        Answer.objects.create(question=question, text="Verdadero", is_correct=(correct == "true"), order=0)
+        Answer.objects.create(question=question, text="Falso", is_correct=(correct == "false"), order=1)
+
+    elif question_type == "matching":
+        left_items = request.POST.getlist("match_left")
+        right_items = request.POST.getlist("match_right")
+        pairs = []
+        for i, (left, right) in enumerate(zip(left_items, right_items)):
+            left, right = left.strip(), right.strip()
+            if left and right:
+                pairs.append({"left": left, "right": right})
+                Answer.objects.create(question=question, text=left, feedback=right, order=i)
+        question.metadata = {"match_pairs": pairs}
+        question.save(update_fields=["metadata"])
+
+    if request.headers.get("HX-Request"):
+        question = Question.objects.prefetch_related("answers").get(id=question.id)
+        return render(
+            request,
+            "courses/partials/builder/question_item.html",
+            {"question": question, "course": course, "assessment": assessment},
+        )
+
+    return redirect("courses:course_builder", course_id=course_id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_edit_question(request, course_id, assessment_id, question_id):
+    """Edit a question in an assessment."""
+    if err := _staff_required(request):
+        return err
+
+    from apps.assessments.models import Answer, Assessment, Question
+
+    course = get_object_or_404(Course, id=course_id)
+    assessment = get_object_or_404(Assessment, id=assessment_id, course=course)
+    question = get_object_or_404(Question, id=question_id, assessment=assessment)
+
+    question_type = request.POST.get("question_type", question.question_type)
+    text = request.POST.get("text", "").strip()
+    explanation = request.POST.get("explanation", "").strip()
+    points = int(request.POST.get("points", 1))
+
+    if not text:
+        return JsonResponse({"error": "La pregunta es requerida"}, status=400)
+
+    question.question_type = question_type
+    question.text = text
+    question.explanation = explanation
+    question.points = points
+    question.save(update_fields=["question_type", "text", "explanation", "points"])
+
+    # Re-create answers
+    question.answers.all().delete()
+
+    if question_type in ("single_choice", "multiple_choice"):
+        answer_texts = request.POST.getlist("answer_text")
+        correct_answers = request.POST.getlist("correct_answer")
+        for i, a_text in enumerate(answer_texts):
+            a_text = a_text.strip()
+            if a_text:
+                Answer.objects.create(
+                    question=question,
+                    text=a_text,
+                    is_correct=str(i) in correct_answers,
+                    order=i,
+                )
+
+    elif question_type == "true_false":
+        correct = request.POST.get("correct_answer", "true")
+        Answer.objects.create(question=question, text="Verdadero", is_correct=(correct == "true"), order=0)
+        Answer.objects.create(question=question, text="Falso", is_correct=(correct == "false"), order=1)
+
+    elif question_type == "matching":
+        left_items = request.POST.getlist("match_left")
+        right_items = request.POST.getlist("match_right")
+        pairs = []
+        for i, (left, right) in enumerate(zip(left_items, right_items)):
+            left, right = left.strip(), right.strip()
+            if left and right:
+                pairs.append({"left": left, "right": right})
+                Answer.objects.create(question=question, text=left, feedback=right, order=i)
+        question.metadata = {"match_pairs": pairs}
+        question.save(update_fields=["metadata"])
+
+    if request.headers.get("HX-Request"):
+        question = Question.objects.prefetch_related("answers").get(id=question.id)
+        return render(
+            request,
+            "courses/partials/builder/question_item.html",
+            {"question": question, "course": course, "assessment": assessment},
+        )
+
+    return redirect("courses:course_builder", course_id=course_id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_delete_question(request, course_id, assessment_id, question_id):
+    """Delete a question from an assessment."""
+    if err := _staff_required(request):
+        return err
+
+    from apps.assessments.models import Assessment, Question
+
+    course = get_object_or_404(Course, id=course_id)
+    assessment = get_object_or_404(Assessment, id=assessment_id, course=course)
+    question = get_object_or_404(Question, id=question_id, assessment=assessment)
+    question.delete()
+
+    if request.headers.get("HX-Request"):
+        return HttpResponse("")
+
+    return redirect("courses:course_builder", course_id=course_id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def builder_reorder_questions(request, course_id, assessment_id):
+    """Reorder questions within an assessment."""
+    import json as json_module
+
+    if err := _staff_required(request):
+        return err
+
+    from apps.assessments.models import Assessment, Question
+
+    course = get_object_or_404(Course, id=course_id)
+    assessment = get_object_or_404(Assessment, id=assessment_id, course=course)
+
+    try:
+        data = json_module.loads(request.body)
+        question_ids = data.get("order", [])
+    except (json_module.JSONDecodeError, KeyError):
+        return JsonResponse({"error": "Datos invalidos"}, status=400)
+
+    for i, qid in enumerate(question_ids):
+        Question.objects.filter(id=qid, assessment=assessment).update(order=i)
+
+    return JsonResponse({"status": "ok"})

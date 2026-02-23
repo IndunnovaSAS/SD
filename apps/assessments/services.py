@@ -199,6 +199,7 @@ class AssessmentService:
             Question.Type.SINGLE_CHOICE,
             Question.Type.MULTIPLE_CHOICE,
             Question.Type.TRUE_FALSE,
+            Question.Type.MATCHING,
         ]:
             AssessmentService._grade_objective_answer(attempt_answer)
 
@@ -209,21 +210,34 @@ class AssessmentService:
         """
         Grade an objective (auto-gradable) answer.
         """
+        import json as json_module
+
         question = attempt_answer.question
-        correct_answers = set(question.answers.filter(is_correct=True).values_list("id", flat=True))
-        selected_answers = set(attempt_answer.selected_answers.values_list("id", flat=True))
 
-        if question.question_type == Question.Type.SINGLE_CHOICE:
-            # Single choice: must match exactly
-            attempt_answer.is_correct = correct_answers == selected_answers
+        if question.question_type == Question.Type.MATCHING:
+            # Matching: compare user pairs against correct pairs from metadata
+            correct_pairs = question.metadata.get("match_pairs", [])
+            correct_map = {p["left"].strip().lower(): p["right"].strip().lower() for p in correct_pairs}
 
-        elif question.question_type == Question.Type.MULTIPLE_CHOICE:
-            # Multiple choice: must match exactly
-            attempt_answer.is_correct = correct_answers == selected_answers
+            try:
+                user_pairs = json_module.loads(attempt_answer.text_answer) if attempt_answer.text_answer else []
+            except (json_module.JSONDecodeError, TypeError):
+                user_pairs = []
 
-        elif question.question_type == Question.Type.TRUE_FALSE:
-            # True/False: must match exactly
-            attempt_answer.is_correct = correct_answers == selected_answers
+            user_map = {p["left"].strip().lower(): p["right"].strip().lower() for p in user_pairs}
+            attempt_answer.is_correct = correct_map == user_map
+        else:
+            correct_answers = set(question.answers.filter(is_correct=True).values_list("id", flat=True))
+            selected_answers = set(attempt_answer.selected_answers.values_list("id", flat=True))
+
+            if question.question_type == Question.Type.SINGLE_CHOICE:
+                attempt_answer.is_correct = correct_answers == selected_answers
+
+            elif question.question_type == Question.Type.MULTIPLE_CHOICE:
+                attempt_answer.is_correct = correct_answers == selected_answers
+
+            elif question.question_type == Question.Type.TRUE_FALSE:
+                attempt_answer.is_correct = correct_answers == selected_answers
 
         # Award points
         if attempt_answer.is_correct:
@@ -254,6 +268,7 @@ class AssessmentService:
             if question.question_type in [
                 Question.Type.SHORT_ANSWER,
                 Question.Type.ESSAY,
+                Question.Type.ORDERING,
             ]:
                 all_auto_graded = False
                 break
@@ -523,19 +538,26 @@ class AssessmentService:
                 Question.Type.SINGLE_CHOICE,
                 Question.Type.MULTIPLE_CHOICE,
                 Question.Type.TRUE_FALSE,
+                Question.Type.MATCHING,
             ]:
-                # Get correct answers
-                correct_answers = set(
-                    question.answers.filter(is_correct=True).values_list("id", flat=True)
-                )
-                selected_answers = set(attempt_answer.selected_answers.values_list("id", flat=True))
+                if question.question_type == Question.Type.MATCHING:
+                    # Use the unified grading method for matching
+                    AssessmentService._grade_objective_answer(attempt_answer)
+                    is_correct = attempt_answer.is_correct
+                    points_awarded = int(attempt_answer.points_awarded or 0)
+                else:
+                    # Get correct answers
+                    correct_answers = set(
+                        question.answers.filter(is_correct=True).values_list("id", flat=True)
+                    )
+                    selected_answers = set(attempt_answer.selected_answers.values_list("id", flat=True))
 
-                is_correct = correct_answers == selected_answers
-                points_awarded = question.points if is_correct else 0
+                    is_correct = correct_answers == selected_answers
+                    points_awarded = question.points if is_correct else 0
 
-                attempt_answer.is_correct = is_correct
-                attempt_answer.points_awarded = points_awarded
-                attempt_answer.save()
+                    attempt_answer.is_correct = is_correct
+                    attempt_answer.points_awarded = points_awarded
+                    attempt_answer.save()
 
                 total_points += question.points
                 earned_points += points_awarded
@@ -554,6 +576,7 @@ class AssessmentService:
                 Question.Type.SINGLE_CHOICE,
                 Question.Type.MULTIPLE_CHOICE,
                 Question.Type.TRUE_FALSE,
+                Question.Type.MATCHING,
             ]:
                 # Create empty answer marked as wrong
                 AttemptAnswer.objects.create(
