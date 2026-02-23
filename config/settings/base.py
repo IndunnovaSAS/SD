@@ -353,4 +353,3 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
 # Email configuration (override in production)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@sd-lms.com")
-

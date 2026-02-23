@@ -211,5 +211,3 @@ class JobHistoryAdmin(admin.ModelAdmin):
     date_hierarchy = "change_date"
     readonly_fields = ("created_at",)
     autocomplete_fields = ["user", "changed_by"]
-
-

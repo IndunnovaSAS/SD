@@ -37,9 +37,7 @@ class Command(BaseCommand):
                 job_profile="ADMINISTRADOR",
                 hire_date=date.today(),
             )
-            self.stdout.write(self.style.SUCCESS(
-                f"Superuser created: {document_number} / {email}"
-            ))
+            self.stdout.write(self.style.SUCCESS(f"Superuser created: {document_number} / {email}"))
         else:
             # Ensure user is superuser and active
             changed = False
