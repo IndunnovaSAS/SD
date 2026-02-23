@@ -19,6 +19,9 @@ class EmailOrDocumentBackend(ModelBackend):
     """
 
     def authenticate(self, request, username=None, password=None, **kwargs):
+        # SimpleJWT sends document_number instead of username (from USERNAME_FIELD)
+        if username is None:
+            username = kwargs.get("document_number")
         if username is None or password is None:
             return None
 
