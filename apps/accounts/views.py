@@ -2,8 +2,6 @@
 Web views for accounts app (HTMX-powered).
 """
 
-import base64
-import io
 import logging
 
 from django.conf import settings
@@ -22,11 +20,6 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-import qrcode
-import qrcode.constants
-from django_otp import devices_for_user
-from django_otp.plugins.otp_totp.models import TOTPDevice
-
 from .forms import (
     BulkUploadForm,
     LoginForm,
@@ -34,8 +27,6 @@ from .forms import (
     PasswordResetConfirmForm,
     PasswordResetRequestForm,
     ProfileForm,
-    TwoFactorSetupForm,
-    TwoFactorVerifyForm,
     UserCreateForm,
     UserEditForm,
 )
@@ -64,47 +55,19 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
 
             if user is not None:
-                totp_required = getattr(settings, "TOTP_2FA_REQUIRED", False)
+                login(request, user)
 
-                # Check if user has TOTP 2FA enabled → verify
-                if user_has_2fa(user):
-                    request.session["pending_2fa_user_id"] = user.pk
-                    request.session["pending_2fa_remember"] = remember_me
+                if not remember_me:
+                    request.session.set_expiry(0)
 
-                    if request.htmx:
-                        return render(
-                            request,
-                            "accounts/partials/2fa_verify_form.html",
-                            {"form": TwoFactorVerifyForm()},
-                        )
-                    return redirect("accounts:verify_2fa")
+                next_url = request.GET.get("next", "accounts:dashboard")
 
-                # TOTP required but not set up → force enrollment
-                elif totp_required:
-                    request.session["pending_totp_setup_user_id"] = user.pk
-                    request.session["pending_totp_setup_remember"] = remember_me
+                if request.htmx:
+                    response = HttpResponse()
+                    response["HX-Redirect"] = reverse(next_url) if ":" in next_url else next_url
+                    return response
 
-                    if request.htmx:
-                        response = HttpResponse()
-                        response["HX-Redirect"] = reverse("accounts:enroll_totp")
-                        return response
-                    return redirect("accounts:enroll_totp")
-
-                # No verification needed, log in directly
-                else:
-                    login(request, user)
-
-                    if not remember_me:
-                        request.session.set_expiry(0)
-
-                    next_url = request.GET.get("next", "accounts:dashboard")
-
-                    if request.htmx:
-                        response = HttpResponse()
-                        response["HX-Redirect"] = reverse(next_url) if ":" in next_url else next_url
-                        return response
-
-                    return redirect(next_url)
+                return redirect(next_url)
             else:
                 error = "Credenciales inválidas. Por favor, intente de nuevo."
                 logger.warning(f"Failed login attempt for: {username}")
@@ -118,47 +81,6 @@ def login_view(request):
         return render(request, "accounts/partials/login_form.html", context)
 
     return render(request, "accounts/login.html", context)
-
-
-def verify_2fa_view(request):
-    """Verify 2FA code during login."""
-    user_id = request.session.get("pending_2fa_user_id")
-    if not user_id:
-        return redirect("accounts:login")
-
-    user = get_object_or_404(User, pk=user_id)
-    form = TwoFactorVerifyForm(request.POST or None)
-    error = None
-
-    if request.method == "POST" and form.is_valid():
-        token = form.cleaned_data["token"]
-
-        # Verify the token against user's TOTP devices
-        for device in devices_for_user(user, confirmed=True):
-            if device.verify_token(token):
-                login(request, user)
-
-                remember = request.session.pop("pending_2fa_remember", False)
-                request.session.pop("pending_2fa_user_id", None)
-
-                if not remember:
-                    request.session.set_expiry(0)
-
-                if request.htmx:
-                    response = HttpResponse()
-                    response["HX-Redirect"] = reverse("accounts:dashboard")
-                    return response
-
-                return redirect("accounts:dashboard")
-
-        error = "Código inválido. Por favor, intente de nuevo."
-
-    context = {"form": form, "error": error}
-
-    if request.htmx:
-        return render(request, "accounts/partials/2fa_verify_form.html", context)
-
-    return render(request, "accounts/verify_2fa.html", context)
 
 
 @login_required
@@ -194,7 +116,6 @@ def profile(request):
     """User profile page."""
     context = {
         "user": request.user,
-        "has_2fa": user_has_2fa(request.user),
     }
     return render(request, "accounts/profile.html", context)
 
@@ -317,155 +238,6 @@ def password_reset_confirm(request, uidb64, token):
     return render(request, "accounts/password_reset_confirm.html", context)
 
 
-# ==================== 2FA Views ====================
-
-
-@login_required
-def setup_2fa(request):
-    """Set up 2FA for user account."""
-    user = request.user
-
-    # Check if user already has a confirmed device
-    if user_has_2fa(user):
-        messages.info(request, "Ya tiene la autenticación de dos factores activada.")
-        return redirect("accounts:profile")
-
-    # Get or create an unconfirmed TOTP device
-    device, created = TOTPDevice.objects.get_or_create(
-        user=user,
-        confirmed=False,
-        defaults={"name": "Autenticador"},
-    )
-
-    if request.method == "POST":
-        form = TwoFactorSetupForm(request.POST)
-        if form.is_valid():
-            token = form.cleaned_data["token"]
-            if device.verify_token(token):
-                device.confirmed = True
-                device.save()
-                messages.success(request, "Autenticación de dos factores activada correctamente.")
-                return redirect("accounts:profile")
-            else:
-                form.add_error("token", "Código inválido. Por favor, intente de nuevo.")
-    else:
-        form = TwoFactorSetupForm()
-
-    # Generate QR code
-    totp_url = device.config_url
-    qr_base64 = _generate_qr_base64(totp_url)
-
-    context = {
-        "form": form,
-        "qr_base64": qr_base64,
-        "secret_key": device.key,
-    }
-
-    return render(request, "accounts/setup_2fa.html", context)
-
-
-@login_required
-@require_POST
-def disable_2fa(request):
-    """Disable 2FA for user account."""
-    user = request.user
-
-    # Delete all TOTP devices for user
-    TOTPDevice.objects.filter(user=user).delete()
-
-    messages.success(request, "Autenticación de dos factores desactivada.")
-    return redirect("accounts:profile")
-
-
-# ==================== TOTP Enrollment (Login Flow) ====================
-
-
-@require_http_methods(["GET", "POST"])
-def enroll_totp_view(request):
-    """Force TOTP enrollment during login (user not yet logged in)."""
-    user_id = request.session.get("pending_totp_setup_user_id")
-    if not user_id:
-        return redirect("accounts:login")
-
-    user = get_object_or_404(User, pk=user_id)
-
-    # Get or create an unconfirmed TOTP device
-    device, created = TOTPDevice.objects.get_or_create(
-        user=user,
-        confirmed=False,
-        defaults={"name": "Autenticador"},
-    )
-
-    form = TwoFactorSetupForm(request.POST or None)
-
-    if request.method == "POST" and form.is_valid():
-        token = form.cleaned_data["token"]
-        if device.verify_token(token):
-            device.confirmed = True
-            device.save()
-
-            # Complete login
-            remember = request.session.pop("pending_totp_setup_remember", False)
-            request.session.pop("pending_totp_setup_user_id", None)
-
-            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-
-            if not remember:
-                request.session.set_expiry(0)
-
-            if request.htmx:
-                response = HttpResponse()
-                response["HX-Redirect"] = reverse("accounts:dashboard")
-                return response
-
-            return redirect("accounts:dashboard")
-        else:
-            form.add_error(
-                "token", "Código inválido. Verifique que ingresó el código correcto de su app."
-            )
-
-    # Generate QR code
-    totp_url = device.config_url
-    qr_base64 = _generate_qr_base64(totp_url)
-
-    context = {
-        "form": form,
-        "qr_base64": qr_base64,
-        "secret_key": device.key,
-        "user_name": user.get_full_name() or user.document_number,
-    }
-
-    if request.htmx:
-        return render(request, "accounts/partials/totp_enroll_form.html", context)
-
-    return render(request, "accounts/enroll_totp.html", context)
-
-
-# ==================== Helper Functions ====================
-
-
-def user_has_2fa(user):
-    """Check if user has any confirmed 2FA devices."""
-    return TOTPDevice.objects.filter(user=user, confirmed=True).exists()
-
-
-def _generate_qr_base64(data: str) -> str:
-    """Generate a QR code as base64-encoded PNG."""
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=8,
-        border=4,
-    )
-    qr.add_data(data)
-    qr.make(fit=True)
-
-    img = qr.make_image(fill_color="black", back_color="white")
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    return base64.b64encode(buffer.getvalue()).decode("utf-8")
-
-
 # ==================== Lockout View ====================
 
 
@@ -568,7 +340,6 @@ def user_detail(request, user_id):
 
     context = {
         "user_obj": user,
-        "has_2fa": user_has_2fa(user),
     }
 
     if request.htmx:

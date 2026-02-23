@@ -119,21 +119,6 @@
                 <h3 class="card-title text-lg mb-4">Seguridad</h3>
 
                 <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="font-medium">Autenticación de dos factores (2FA)</p>
-                            <p class="text-gray-500 text-sm">
-                                {% if has_2fa %}
-                                <span class="text-success">Activada</span>
-                                {% else %}
-                                <span class="text-warning">No activada</span>
-                                {% endif %}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="divider"></div>
-
                     <div>
                         <label class="text-gray-500 text-sm">Cuenta creada</label>
                         <p class="font-medium">{{ user_obj.created_at|date:"d/m/Y H:i" }}</p>

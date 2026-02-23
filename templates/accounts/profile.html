@@ -105,33 +105,6 @@
                                 </a>
                             </div>
 
-                            <div class="divider"></div>
-
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="font-medium">Autenticación de dos factores (2FA)</p>
-                                    <p class="text-gray-500 text-sm">
-                                        {% if has_2fa %}
-                                        <span class="text-success">Activada</span>
-                                        {% else %}
-                                        <span class="text-warning">No activada</span>
-                                        {% endif %}
-                                    </p>
-                                </div>
-                                {% if has_2fa %}
-                                <form method="post" action="{% url 'accounts:disable_2fa' %}">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline btn-error btn-sm"
-                                            onclick="return confirm('¿Está seguro de desactivar 2FA?')">
-                                        Desactivar
-                                    </button>
-                                </form>
-                                {% else %}
-                                <a href="{% url 'accounts:setup_2fa' %}" class="btn btn-outline btn-success btn-sm">
-                                    Activar
-                                </a>
-                                {% endif %}
-                            </div>
                         </div>
                     </div>
                 </div>

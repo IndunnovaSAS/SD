@@ -34,13 +34,12 @@ class LoginViewTests(TestCase):
         self.assertTemplateUsed(response, "accounts/login.html")
 
     def test_login_with_valid_credentials(self):
-        """Test login with valid credentials redirects (dashboard or 2FA enroll)."""
+        """Test login with valid credentials redirects to dashboard."""
         response = self.client.post(
             self.login_url,
             {"username": "12345678", "password": "testpassword123"},
         )
-        # After TOTP 2FA, login redirects to enroll if user has no device
-        self.assertIn(response.status_code, [200, 302])
+        self.assertEqual(response.status_code, 302)
 
     def test_login_with_invalid_credentials(self):
         """Test login with invalid credentials shows error."""
