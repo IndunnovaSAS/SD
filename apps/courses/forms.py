@@ -38,19 +38,13 @@ class CategoryForm(forms.ModelForm):
 
     class Meta:
         model = Category
-        fields = ["name", "description", "parent", "icon", "color", "order", "is_active"]
+        fields = ["name", "description", "icon", "color", "order", "is_active"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "input input-bordered w-full"}),
             "description": forms.Textarea(
                 attrs={"class": "textarea textarea-bordered w-full", "rows": 3}
             ),
-            "parent": forms.Select(attrs={"class": "select select-bordered w-full"}),
-            "icon": forms.TextInput(
-                attrs={
-                    "class": "input input-bordered w-full",
-                    "placeholder": "ej: book, graduation-cap",
-                }
-            ),
+            "icon": forms.HiddenInput(attrs={"id": "id_icon"}),
             "color": forms.TextInput(
                 attrs={"class": "input input-bordered w-full", "type": "color"}
             ),
@@ -60,26 +54,21 @@ class CategoryForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Exclude current category from parent choices to prevent circular reference
         if self.instance.pk:
-            self.fields["parent"].queryset = Category.objects.exclude(pk=self.instance.pk)
             # Pre-populate subcategories field with existing children
             children = self.instance.children.order_by("order", "name")
             if children.exists():
                 self.initial["subcategories_text"] = "\n".join(child.name for child in children)
-        self.fields["parent"].empty_label = "Sin categoria padre (raiz)"
-        self.fields["parent"].required = False
 
     def clean_name(self):
         name = self.cleaned_data.get("name")
-        # Check for duplicate name at same level
-        parent = self.cleaned_data.get("parent")
-        qs = Category.objects.filter(name=name, parent=parent)
+        # Check for duplicate name at root level
+        qs = Category.objects.filter(name=name, parent__isnull=True)
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
             raise forms.ValidationError(
-                _("Ya existe una categoria con este nombre en el mismo nivel.")
+                _("Ya existe una categoria con este nombre.")
             )
         return name
 
