@@ -315,8 +315,8 @@ class EnrollmentService:
         )
 
         lesson_index = None
-        for i, l in enumerate(all_lessons):
-            if l.id == lesson.id:
+        for i, current_lesson in enumerate(all_lessons):
+            if current_lesson.id == lesson.id:
                 lesson_index = i
                 break
 

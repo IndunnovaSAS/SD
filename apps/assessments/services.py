@@ -230,13 +230,11 @@ class AssessmentService:
             correct_answers = set(question.answers.filter(is_correct=True).values_list("id", flat=True))
             selected_answers = set(attempt_answer.selected_answers.values_list("id", flat=True))
 
-            if question.question_type == Question.Type.SINGLE_CHOICE:
-                attempt_answer.is_correct = correct_answers == selected_answers
-
-            elif question.question_type == Question.Type.MULTIPLE_CHOICE:
-                attempt_answer.is_correct = correct_answers == selected_answers
-
-            elif question.question_type == Question.Type.TRUE_FALSE:
+            if question.question_type in (
+                Question.Type.SINGLE_CHOICE,
+                Question.Type.MULTIPLE_CHOICE,
+                Question.Type.TRUE_FALSE,
+            ):
                 attempt_answer.is_correct = correct_answers == selected_answers
 
         # Award points
