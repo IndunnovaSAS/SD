@@ -217,17 +217,25 @@ class AssessmentService:
         if question.question_type == Question.Type.MATCHING:
             # Matching: compare user pairs against correct pairs from metadata
             correct_pairs = question.metadata.get("match_pairs", [])
-            correct_map = {p["left"].strip().lower(): p["right"].strip().lower() for p in correct_pairs}
+            correct_map = {
+                p["left"].strip().lower(): p["right"].strip().lower() for p in correct_pairs
+            }
 
             try:
-                user_pairs = json_module.loads(attempt_answer.text_answer) if attempt_answer.text_answer else []
+                user_pairs = (
+                    json_module.loads(attempt_answer.text_answer)
+                    if attempt_answer.text_answer
+                    else []
+                )
             except (json_module.JSONDecodeError, TypeError):
                 user_pairs = []
 
             user_map = {p["left"].strip().lower(): p["right"].strip().lower() for p in user_pairs}
             attempt_answer.is_correct = correct_map == user_map
         else:
-            correct_answers = set(question.answers.filter(is_correct=True).values_list("id", flat=True))
+            correct_answers = set(
+                question.answers.filter(is_correct=True).values_list("id", flat=True)
+            )
             selected_answers = set(attempt_answer.selected_answers.values_list("id", flat=True))
 
             if question.question_type in (
@@ -548,7 +556,9 @@ class AssessmentService:
                     correct_answers = set(
                         question.answers.filter(is_correct=True).values_list("id", flat=True)
                     )
-                    selected_answers = set(attempt_answer.selected_answers.values_list("id", flat=True))
+                    selected_answers = set(
+                        attempt_answer.selected_answers.values_list("id", flat=True)
+                    )
 
                     is_correct = correct_answers == selected_answers
                     points_awarded = question.points if is_correct else 0

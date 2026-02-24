@@ -67,9 +67,7 @@ class CategoryForm(forms.ModelForm):
         if self.instance.pk:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
-            raise forms.ValidationError(
-                _("Ya existe una categoria con este nombre.")
-            )
+            raise forms.ValidationError(_("Ya existe una categoria con este nombre."))
         return name
 
     def save(self, commit=True):

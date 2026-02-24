@@ -1228,8 +1228,12 @@ def builder_add_question(request, course_id, assessment_id):
 
     elif question_type == "true_false":
         correct = request.POST.get("correct_answer", "true")
-        Answer.objects.create(question=question, text="Verdadero", is_correct=(correct == "true"), order=0)
-        Answer.objects.create(question=question, text="Falso", is_correct=(correct == "false"), order=1)
+        Answer.objects.create(
+            question=question, text="Verdadero", is_correct=(correct == "true"), order=0
+        )
+        Answer.objects.create(
+            question=question, text="Falso", is_correct=(correct == "false"), order=1
+        )
 
     elif question_type == "matching":
         left_items = request.POST.getlist("match_left")
@@ -1299,8 +1303,12 @@ def builder_edit_question(request, course_id, assessment_id, question_id):
 
     elif question_type == "true_false":
         correct = request.POST.get("correct_answer", "true")
-        Answer.objects.create(question=question, text="Verdadero", is_correct=(correct == "true"), order=0)
-        Answer.objects.create(question=question, text="Falso", is_correct=(correct == "false"), order=1)
+        Answer.objects.create(
+            question=question, text="Verdadero", is_correct=(correct == "true"), order=0
+        )
+        Answer.objects.create(
+            question=question, text="Falso", is_correct=(correct == "false"), order=1
+        )
 
     elif question_type == "matching":
         left_items = request.POST.getlist("match_left")
