@@ -1026,11 +1026,14 @@ def builder_add_lesson(request, course_id, module_id):
             )
 
     if request.headers.get("HX-Request"):
-        return render(
+        response = render(
             request,
             "courses/partials/builder/lesson_form.html",
-            {"lesson_form": form, "course": course, "module": module},
+            {"lesson_form": form, "course": course, "module": module, "is_new": True},
         )
+        response["HX-Retarget"] = "closest form"
+        response["HX-Reswap"] = "outerHTML"
+        return response
 
     return redirect("courses:course_builder", course_id=course.id)
 

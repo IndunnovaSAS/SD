@@ -6,7 +6,7 @@ Context: lesson_form (for new), lesson (for edit), course, module, is_new
 
 <form {% if is_new %}
         hx-post="{% url 'courses:builder_add_lesson' course.id module.id %}"
-        hx-target="closest [data-lesson-list]"
+        hx-target="previous [data-lesson-list]"
         hx-swap="beforeend"
         @htmx:after-request="if(event.detail.successful) { showAddLesson = false; }"
       {% else %}
@@ -17,6 +17,18 @@ Context: lesson_form (for new), lesson (for edit), course, module, is_new
       x-data="{ lessonType: '{% if is_new %}video{% else %}{{ lesson.lesson_type }}{% endif %}' }"
       enctype="multipart/form-data">
     {% csrf_token %}
+
+    {% if lesson_form.errors %}
+    <div class="alert alert-error text-xs mb-3 py-2">
+        <ul class="list-disc pl-4">
+        {% for field, errors in lesson_form.errors.items %}
+            {% for error in errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <!-- Title -->
