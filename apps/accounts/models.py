@@ -150,6 +150,12 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.get_full_name()} ({self.document_number})"
 
+    def save(self, *args, **kwargs):
+        """Auto-assign is_staff=True for ADMINISTRADOR profile."""
+        if self.job_profile == self.JobProfile.ADMINISTRADOR:
+            self.is_staff = True
+        super().save(*args, **kwargs)
+
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
 
