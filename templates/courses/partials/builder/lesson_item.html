@@ -1,6 +1,6 @@
 <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-base-200 group transition-colors"
      data-lesson-id="{{ lesson.id }}"
-     x-data="{ editingLesson: false, showQuizAssign: false, showQuestionEditor: false }">
+     x-data="{ editingLesson: false, showQuizAssign: false, showQuestionEditor: {% if auto_show_editor %}true{% else %}false{% endif %} }">
 
     <!-- Drag Handle -->
     <div class="lesson-drag-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -113,8 +113,11 @@
         {% include "courses/partials/builder/quiz_selector.html" with lesson=lesson course=course module=module %}
     </div>
 
-    <!-- Question Editor (loaded via HTMX) -->
+    <!-- Question Editor (loaded via HTMX or pre-rendered for new quizzes) -->
     <div x-show="showQuestionEditor" x-cloak x-transition class="w-full" id="question-editor-{{ lesson.id }}">
+        {% if auto_show_editor and auto_assessment %}
+            {% include "courses/partials/builder/assessment_editor.html" with course=course assessment=auto_assessment questions=auto_questions %}
+        {% endif %}
     </div>
     {% endif %}
 </div>

@@ -984,16 +984,39 @@ def builder_add_lesson(request, course_id, module_id):
         lesson.order = (max_order or -1) + 1
         lesson.save()
 
+        # Auto-create assessment for quiz-type lessons
+        auto_show_editor = False
+        if lesson.lesson_type == "quiz":
+            from apps.assessments.models import Assessment
+
+            assessment = Assessment.objects.create(
+                title=lesson.title,
+                assessment_type="quiz",
+                passing_score=80,
+                max_attempts=3,
+                course=course,
+                lesson=lesson,
+                created_by=request.user,
+                status="draft",
+            )
+            auto_show_editor = True
+
         if request.headers.get("HX-Request"):
+            context = {
+                "lesson": lesson,
+                "course": course,
+                "module": module,
+                "available_assessments": _get_available_assessments(course),
+                "auto_show_editor": auto_show_editor,
+            }
+            # For quiz lessons, also include the assessment editor data
+            if auto_show_editor:
+                context["auto_assessment"] = assessment
+                context["auto_questions"] = []
             return render(
                 request,
                 "courses/partials/builder/lesson_item.html",
-                {
-                    "lesson": lesson,
-                    "course": course,
-                    "module": module,
-                    "available_assessments": _get_available_assessments(course),
-                },
+                context,
             )
 
     if request.headers.get("HX-Request"):
