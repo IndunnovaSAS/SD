@@ -1,5 +1,5 @@
 <div data-lesson-id="{{ lesson.id }}"
-     x-data="{ editingLesson: false, showQuizAssign: false, showQuestionEditor: {% if auto_show_editor %}true{% else %}false{% endif %} }">
+     x-data="{ editingLesson: false, showQuizAssign: false, showQuestionEditor: false }">
 
     <!-- Lesson row -->
     <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-base-200 group transition-colors">
@@ -116,11 +116,8 @@
         {% include "courses/partials/builder/quiz_selector.html" with lesson=lesson course=course module=module %}
     </div>
 
-    <!-- Question Editor (loaded via HTMX or pre-rendered for new quizzes) -->
+    <!-- Question Editor (loaded via HTMX) -->
     <div x-show="showQuestionEditor" x-cloak x-transition class="ml-8 mt-1" id="question-editor-{{ lesson.id }}">
-        {% if auto_show_editor and auto_assessment %}
-            {% include "courses/partials/builder/assessment_editor.html" with course=course assessment=auto_assessment questions=auto_questions %}
-        {% endif %}
     </div>
     {% endif %}
 </div>

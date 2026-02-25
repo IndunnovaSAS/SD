@@ -984,45 +984,76 @@ def builder_add_lesson(request, course_id, module_id):
         lesson.order = (max_order or -1) + 1
         lesson.save()
 
-        # Auto-create assessment for quiz-type lessons
-        auto_show_editor = False
+        # Auto-create assessment + questions for quiz-type lessons
         if lesson.lesson_type == "quiz":
-            from apps.assessments.models import Assessment
-
-            passing_score = int(request.POST.get("quiz_passing_score") or 80)
-            max_attempts = int(request.POST.get("quiz_max_attempts") or 3)
-            time_limit = request.POST.get("quiz_time_limit")
-            time_limit = int(time_limit) if time_limit else None
+            from apps.assessments.models import Answer, Assessment, Question
 
             assessment = Assessment.objects.create(
                 title=lesson.title,
                 assessment_type="quiz",
-                passing_score=passing_score,
-                max_attempts=max_attempts,
-                time_limit=time_limit,
+                passing_score=80,
+                max_attempts=3,
                 course=course,
                 lesson=lesson,
                 created_by=request.user,
                 status="draft",
             )
-            auto_show_editor = True
+
+            # Parse inline quiz questions from JSON
+            import json
+
+            quiz_questions_json = request.POST.get("quiz_questions", "[]")
+            try:
+                quiz_questions = json.loads(quiz_questions_json)
+            except (json.JSONDecodeError, TypeError):
+                quiz_questions = []
+
+            for i, qdata in enumerate(quiz_questions):
+                question = Question.objects.create(
+                    assessment=assessment,
+                    question_type=qdata.get("type", "single_choice"),
+                    text=qdata.get("text", ""),
+                    explanation=qdata.get("explanation", ""),
+                    points=int(qdata.get("points", 1)),
+                    order=i,
+                )
+                q_type = qdata.get("type", "single_choice")
+                if q_type in ("single_choice", "multiple_choice"):
+                    for j, adata in enumerate(qdata.get("answers", [])):
+                        Answer.objects.create(
+                            question=question,
+                            text=adata.get("text", ""),
+                            is_correct=adata.get("is_correct", False),
+                            order=j,
+                        )
+                elif q_type == "true_false":
+                    is_true = qdata.get("trueFalseCorrect", "true") == "true"
+                    Answer.objects.create(
+                        question=question, text="Verdadero", is_correct=is_true, order=0
+                    )
+                    Answer.objects.create(
+                        question=question, text="Falso", is_correct=not is_true, order=1
+                    )
+                elif q_type == "matching":
+                    for j, pair in enumerate(qdata.get("matchPairs", [])):
+                        Answer.objects.create(
+                            question=question,
+                            text=pair.get("left", ""),
+                            feedback=pair.get("right", ""),
+                            is_correct=True,
+                            order=j,
+                        )
 
         if request.headers.get("HX-Request"):
-            context = {
-                "lesson": lesson,
-                "course": course,
-                "module": module,
-                "available_assessments": _get_available_assessments(course),
-                "auto_show_editor": auto_show_editor,
-            }
-            # For quiz lessons, also include the assessment editor data
-            if auto_show_editor:
-                context["auto_assessment"] = assessment
-                context["auto_questions"] = []
             return render(
                 request,
                 "courses/partials/builder/lesson_item.html",
-                context,
+                {
+                    "lesson": lesson,
+                    "course": course,
+                    "module": module,
+                    "available_assessments": _get_available_assessments(course),
+                },
             )
 
     if request.headers.get("HX-Request"):
