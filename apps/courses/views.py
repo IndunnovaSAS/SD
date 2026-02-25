@@ -989,11 +989,17 @@ def builder_add_lesson(request, course_id, module_id):
         if lesson.lesson_type == "quiz":
             from apps.assessments.models import Assessment
 
+            passing_score = int(request.POST.get("quiz_passing_score") or 80)
+            max_attempts = int(request.POST.get("quiz_max_attempts") or 3)
+            time_limit = request.POST.get("quiz_time_limit")
+            time_limit = int(time_limit) if time_limit else None
+
             assessment = Assessment.objects.create(
                 title=lesson.title,
                 assessment_type="quiz",
-                passing_score=80,
-                max_attempts=3,
+                passing_score=passing_score,
+                max_attempts=max_attempts,
+                time_limit=time_limit,
                 course=course,
                 lesson=lesson,
                 created_by=request.user,
