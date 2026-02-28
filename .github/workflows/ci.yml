@@ -24,7 +24,7 @@ jobs:
   # ---------------------------------------------------------------------------
   lint:
     name: Lint & Type Check
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -54,7 +54,7 @@ jobs:
   # ---------------------------------------------------------------------------
   test:
     name: Test (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: lint
     strategy:
       fail-fast: false
@@ -136,7 +136,7 @@ jobs:
   # ---------------------------------------------------------------------------
   security:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: lint
     steps:
       - name: Checkout code
@@ -163,7 +163,7 @@ jobs:
   # ---------------------------------------------------------------------------
   build:
     name: Build Docker Image
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [test, security]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
