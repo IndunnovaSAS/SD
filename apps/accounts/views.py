@@ -444,6 +444,40 @@ def user_toggle_status(request, user_id):
 
 @login_required
 @require_POST
+def user_delete(request, user_id):
+    """Delete a user permanently (admin/staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para realizar esta acción.")
+        return redirect("accounts:dashboard")
+
+    user = get_object_or_404(User, pk=user_id)
+
+    # Prevent self-deletion
+    if user.pk == request.user.pk:
+        messages.error(request, "No puede eliminar su propia cuenta.")
+        if request.htmx:
+            response = HttpResponse()
+            response["HX-Redirect"] = reverse("accounts:user_list")
+            return response
+        return redirect("accounts:user_list")
+
+    full_name = user.get_full_name()
+    document = user.document_number
+    user.delete()
+
+    messages.success(request, f"Usuario {full_name} eliminado permanentemente.")
+    logger.info(f"User {document} deleted by {request.user.document_number}")
+
+    if request.htmx:
+        response = HttpResponse()
+        response["HX-Redirect"] = reverse("accounts:user_list")
+        return response
+
+    return redirect("accounts:user_list")
+
+
+@login_required
+@require_POST
 def admin_reset_password(request, user_id):
     """Reset user password to parameterized default (admin/staff only)."""
     if not request.user.is_staff:
