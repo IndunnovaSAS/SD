@@ -1,3 +1,4 @@
+{% load account_tags %}
 {% if users %}
 <div class="overflow-x-auto">
     <table class="table table-zebra w-full">
@@ -6,6 +7,7 @@
                 <th>Usuario</th>
                 <th>Documento</th>
                 <th>Cargo / Perfil</th>
+                <th>Contraseña</th>
                 <th>Estado</th>
                 <th>Activo</th>
                 <th>Fecha Ingreso</th>
@@ -39,6 +41,20 @@
                 <td>
                     <div class="text-sm">{{ user.job_position|default:"No asignado" }}</div>
                     <div class="text-xs opacity-50">{{ user.job_profile|default:"No asignado" }}</div>
+                </td>
+                <td>
+                    {% default_password user as pwd %}
+                    <div class="flex items-center gap-1">
+                        <span class="text-sm font-mono password-hidden" id="pwd-{{ user.pk }}">••••••••</span>
+                        <span class="text-sm font-mono password-visible hidden" id="pwd-show-{{ user.pk }}">{{ pwd }}</span>
+                        <button type="button" class="btn btn-ghost btn-xs" title="Mostrar/ocultar contraseña"
+                                onclick="var h=document.getElementById('pwd-{{ user.pk }}'),s=document.getElementById('pwd-show-{{ user.pk }}');h.classList.toggle('hidden');s.classList.toggle('hidden');">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
                 </td>
                 <td>
                     <span class="badge
