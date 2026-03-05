@@ -57,6 +57,15 @@ def track_job_profile_changes(sender, instance, **kwargs):
         )
 
 
+def _calculate_due_date(course):
+    """Calculate due_date from course.validity_months."""
+    from dateutil.relativedelta import relativedelta
+
+    if course.validity_months:
+        return (date.today() + relativedelta(months=course.validity_months))
+    return None
+
+
 def _auto_enroll_by_profile(user):
     """Auto-enroll user in all published courses matching their job_profile."""
     if not user.job_profile:
@@ -71,7 +80,8 @@ def _auto_enroll_by_profile(user):
 
         for course in courses:
             try:
-                EnrollmentService.enroll_user(user=user, course=course)
+                due_date = _calculate_due_date(course)
+                EnrollmentService.enroll_user(user=user, course=course, due_date=due_date)
                 enrolled_count += 1
             except ValueError:
                 # Prerequisites not met, skip this course
@@ -89,6 +99,84 @@ def _auto_enroll_by_profile(user):
         logger.debug("Courses app not available, skipping auto-enrollment")
     except Exception as e:
         logger.warning(f"Error during auto-enrollment for {user.document_number}: {e}")
+
+
+def _reset_and_reenroll_by_profile(user):
+    """Reset all enrollments to ENROLLED and re-assign profile courses (used on reactivation)."""
+    if not user.job_profile:
+        return
+
+    try:
+        from apps.courses.models import CompletionRecord, Course, Enrollment, LessonProgress
+
+        # Save completion records before resetting (permanent audit trail)
+        completed_enrollments = Enrollment.objects.filter(
+            user=user,
+            status__in=[Enrollment.Status.COMPLETED, Enrollment.Status.IN_PROGRESS],
+        ).select_related("course")
+
+        records_to_create = []
+        for enrollment in completed_enrollments:
+            records_to_create.append(
+                CompletionRecord(
+                    user=user,
+                    course=enrollment.course,
+                    completed_at=enrollment.completed_at or enrollment.updated_at,
+                    progress=enrollment.progress,
+                    reset_reason="Reactivación de usuario",
+                )
+            )
+        if records_to_create:
+            CompletionRecord.objects.bulk_create(records_to_create)
+            logger.info(
+                f"Saved {len(records_to_create)} completion record(s) for {user.document_number}"
+            )
+
+        # Reset all enrollments back to ENROLLED so user must redo them
+        reset_count = Enrollment.objects.filter(user=user).exclude(
+            status=Enrollment.Status.ENROLLED
+        ).update(
+            status=Enrollment.Status.ENROLLED,
+            progress=0,
+            started_at=None,
+            completed_at=None,
+        )
+        if reset_count:
+            logger.info(
+                f"Reset {reset_count} enrollment(s) for reactivated user {user.document_number}"
+            )
+
+        # Also reset lesson progress
+        LessonProgress.objects.filter(enrollment__user=user).update(
+            is_completed=False,
+            progress_percent=0,
+            time_spent=0,
+            completed_at=None,
+        )
+
+        # Enroll in any new courses for the profile
+        courses = Course.objects.published().for_profile(user.job_profile)
+        new_count = 0
+        for course in courses:
+            try:
+                _, created = Enrollment.objects.get_or_create(
+                    user=user,
+                    course=course,
+                    defaults={"status": Enrollment.Status.ENROLLED},
+                )
+                if created:
+                    new_count += 1
+            except Exception:
+                pass
+
+        if new_count:
+            logger.info(
+                f"Added {new_count} new enrollment(s) for reactivated user {user.document_number}"
+            )
+    except ImportError:
+        logger.debug("Courses app not available, skipping re-enrollment")
+    except Exception as e:
+        logger.warning(f"Error during re-enrollment for {user.document_number}: {e}")
 
 
 @receiver(post_save, sender=User)

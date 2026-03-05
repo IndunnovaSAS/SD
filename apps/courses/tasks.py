@@ -504,3 +504,95 @@ def calculate_course_statistics(course_id: int):
     cache.set(f"course_stats_{course_id}", stats, timeout=3600)
 
     return stats
+
+
+@shared_task
+def check_enrollment_deadlines():
+    """
+    Check enrollment deadlines daily:
+    - Mark overdue enrollments as expired
+    - Send notifications to users and admins
+    - Alert for enrollments expiring in 1 or 3 days
+    """
+    from django.contrib.auth import get_user_model
+
+    from apps.courses.models import Enrollment
+
+    User = get_user_model()
+    today = timezone.now().date()
+    admin_users = User.objects.filter(is_staff=True, is_active=True)
+
+    # 1. Mark overdue enrollments as expired
+    overdue = Enrollment.objects.filter(
+        due_date__lt=today,
+        status__in=[Enrollment.Status.ENROLLED, Enrollment.Status.IN_PROGRESS],
+    ).select_related("user", "course")
+
+    for enrollment in overdue:
+        enrollment.status = Enrollment.Status.EXPIRED
+        enrollment.save(update_fields=["status", "updated_at"])
+
+        # Notify user
+        _send_deadline_notification(
+            user=enrollment.user,
+            title="Curso vencido",
+            message=f"Tu curso '{enrollment.course.title}' ha vencido. Puedes habilitarlo de nuevo desde Mis Cursos.",
+            priority="high",
+        )
+
+        # Notify admins
+        for admin in admin_users:
+            _send_deadline_notification(
+                user=admin,
+                title="Curso vencido - Usuario",
+                message=(
+                    f"El curso '{enrollment.course.title}' del usuario "
+                    f"{enrollment.user.get_full_name()} ({enrollment.user.document_number}) ha vencido."
+                ),
+                priority="normal",
+            )
+
+    if overdue.exists():
+        logger.info(f"Marked {overdue.count()} enrollment(s) as expired")
+
+    # 2. Alert for enrollments expiring soon (3 days and 1 day)
+    for days_left in [3, 1]:
+        target_date = today + timezone.timedelta(days=days_left)
+        expiring = Enrollment.objects.filter(
+            due_date=target_date,
+            status__in=[Enrollment.Status.ENROLLED, Enrollment.Status.IN_PROGRESS],
+        ).select_related("user", "course")
+
+        for enrollment in expiring:
+            priority = "urgent" if days_left == 1 else "high"
+            _send_deadline_notification(
+                user=enrollment.user,
+                title=f"Curso por vencer en {days_left} día{'s' if days_left > 1 else ''}",
+                message=(
+                    f"Tu curso '{enrollment.course.title}' vence el "
+                    f"{enrollment.due_date.strftime('%d/%m/%Y')}. "
+                    f"Quedan {days_left} día{'s' if days_left > 1 else ''}."
+                ),
+                priority=priority,
+            )
+
+        if expiring.exists():
+            logger.info(f"Sent {expiring.count()} reminder(s) for enrollments expiring in {days_left} day(s)")
+
+
+def _send_deadline_notification(user, title, message, priority="normal"):
+    """Helper to create in-app notification for deadline alerts."""
+    try:
+        from apps.notifications.models import Notification
+
+        Notification.objects.create(
+            user=user,
+            title=title,
+            message=message,
+            channel="in_app",
+            priority=priority,
+            status="delivered",
+            delivered_at=timezone.now(),
+        )
+    except Exception as e:
+        logger.warning(f"Failed to create notification for {user}: {e}")

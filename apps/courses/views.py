@@ -9,7 +9,7 @@ from django.db.models import Count, Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 
 from .forms import (
     CategoryForm,
@@ -320,6 +320,67 @@ def my_courses(request):
         "current_status": status_filter,
     }
     return render(request, "courses/my_courses.html", context)
+
+
+@login_required
+@require_POST
+def reenable_course(request, enrollment_id):
+    """Re-enable an expired course with 5 days less than original duration."""
+    from datetime import date, timedelta
+
+    from dateutil.relativedelta import relativedelta
+
+    from apps.courses.models import CompletionRecord
+
+    enrollment = get_object_or_404(
+        Enrollment.objects.select_related("course"),
+        pk=enrollment_id,
+        user=request.user,
+    )
+
+    if enrollment.status != Enrollment.Status.EXPIRED:
+        messages.error(request, "Solo se pueden re-habilitar cursos vencidos.")
+        return redirect("courses:my_courses")
+
+    # Save completion record before reset
+    if enrollment.progress > 0:
+        CompletionRecord.objects.create(
+            user=request.user,
+            course=enrollment.course,
+            completed_at=enrollment.completed_at or enrollment.updated_at,
+            progress=enrollment.progress,
+            reset_reason="Re-habilitación por vencimiento",
+        )
+
+    # Calculate new due_date with 5 days penalty
+    course = enrollment.course
+    if course.validity_months:
+        new_due_date = date.today() + relativedelta(months=course.validity_months) - timedelta(days=5)
+    else:
+        new_due_date = date.today() + timedelta(days=25)  # 30 - 5 = 25
+
+    # Reset enrollment
+    enrollment.status = Enrollment.Status.ENROLLED
+    enrollment.progress = 0
+    enrollment.started_at = None
+    enrollment.completed_at = None
+    enrollment.due_date = new_due_date
+    enrollment.save()
+
+    # Reset lesson progress
+    LessonProgress.objects.filter(enrollment=enrollment).update(
+        is_completed=False,
+        progress_percent=0,
+        time_spent=0,
+        completed_at=None,
+    )
+
+    messages.success(
+        request,
+        f"Curso '{course.title}' habilitado de nuevo. "
+        f"Nueva fecha límite: {new_due_date.strftime('%d/%m/%Y')}."
+    )
+    return redirect("courses:my_courses")
 
 
 @login_required

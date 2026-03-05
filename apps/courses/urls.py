@@ -14,6 +14,11 @@ urlpatterns = [
     # Web views
     path("", views.course_list, name="list"),
     path("my-courses/", views.my_courses, name="my_courses"),
+    path(
+        "enrollment/<int:enrollment_id>/reenable/",
+        views.reenable_course,
+        name="reenable_course",
+    ),
     path("create/", views.course_create, name="create"),
     path("<int:course_id>/", views.course_detail, name="detail"),
     path("<int:course_id>/enroll/", views.enroll_course, name="enroll"),

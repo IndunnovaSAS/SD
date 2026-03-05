@@ -434,12 +434,67 @@ def user_toggle_status(request, user_id):
     messages.success(request, f"Usuario {user.get_full_name()} {action} exitosamente.")
     logger.info(f"User {user.document_number} {action} by {request.user.document_number}")
 
+    # Reset and re-assign all profile courses when reactivated
+    if user.is_active and user.job_profile:
+        from .signals import _reset_and_reenroll_by_profile
+
+        _reset_and_reenroll_by_profile(user)
+        messages.info(request, f"Cursos reiniciados y reasignados según perfil: {user.get_job_profile_display()}")
+
     if request.htmx:
         response = HttpResponse()
         response["HX-Redirect"] = reverse("accounts:user_list")
         return response
 
     return redirect("accounts:user_list")
+
+
+@login_required
+def user_learning_history(request, user_id):
+    """View a user's learning history (admin/staff only)."""
+    if not request.user.is_staff:
+        messages.error(request, "No tiene permisos para realizar esta acción.")
+        return redirect("accounts:dashboard")
+
+    from apps.courses.models import CompletionRecord, Enrollment
+
+    user = get_object_or_404(User, pk=user_id)
+    enrollments = (
+        Enrollment.objects.filter(user=user)
+        .select_related("course", "course__category")
+        .order_by("-updated_at")
+    )
+
+    # Filter by status
+    status_filter = request.GET.get("status")
+    if status_filter:
+        enrollments = enrollments.filter(status=status_filter)
+
+    # Past completion records (permanent history)
+    completion_records = (
+        CompletionRecord.objects.filter(user=user)
+        .select_related("course", "course__category")
+        .order_by("-completed_at")
+    )
+
+    # Stats counts (unfiltered)
+    all_enrollments = Enrollment.objects.filter(user=user)
+    context = {
+        "user_obj": user,
+        "enrollments": enrollments,
+        "completion_records": completion_records,
+        "current_status": status_filter,
+        "status_choices": Enrollment.Status.choices,
+        "completed_count": all_enrollments.filter(status="completed").count(),
+        "in_progress_count": all_enrollments.filter(status="in_progress").count(),
+        "pending_count": all_enrollments.filter(status="enrolled").count(),
+        "past_completions_count": completion_records.count(),
+    }
+
+    if request.htmx:
+        return render(request, "accounts/partials/learning_history_table.html", context)
+
+    return render(request, "accounts/user_learning_history.html", context)
 
 
 @login_required

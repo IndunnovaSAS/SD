@@ -798,6 +798,22 @@ class Enrollment(models.Model):
             models.Index(fields=["course", "status"]),
         ]
 
+    @property
+    def days_until_due(self):
+        """Return number of days until due_date, or None if no due_date."""
+        if not self.due_date:
+            return None
+        from datetime import date
+        return (self.due_date - date.today()).days
+
+    @property
+    def is_expiring_soon(self):
+        """True if due_date is within 3 days and not completed/expired."""
+        days = self.days_until_due
+        if days is None:
+            return False
+        return 0 <= days <= 3 and self.status not in (self.Status.COMPLETED, self.Status.EXPIRED)
+
     def __str__(self):
         return f"{self.user} - {self.course}"
 
@@ -852,6 +868,54 @@ class LessonProgress(models.Model):
 
     def __str__(self):
         return f"{self.enrollment.user} - {self.lesson}"
+
+
+class CompletionRecord(models.Model):
+    """
+    Permanent record of course completions.
+
+    Enrollments can be reset (e.g., when a user is reactivated),
+    but this table preserves a permanent audit trail of every
+    time a user completed a course.
+    """
+
+    user = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="completion_records",
+        verbose_name=_("Usuario"),
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="completion_records",
+        verbose_name=_("Curso"),
+    )
+    completed_at = models.DateTimeField(_("Fecha de completado"))
+    progress = models.DecimalField(
+        _("Progreso alcanzado (%)"),
+        max_digits=5,
+        decimal_places=2,
+        default=100,
+    )
+    reset_reason = models.CharField(
+        _("Motivo del reinicio"),
+        max_length=100,
+        default="Reactivación de usuario",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "completion_records"
+        verbose_name = _("Registro de completación")
+        verbose_name_plural = _("Registros de completación")
+        ordering = ["-completed_at"]
+        indexes = [
+            models.Index(fields=["user", "course"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} - {self.course} ({self.completed_at:%d/%m/%Y})"
 
 
 class LessonEvidence(models.Model):
