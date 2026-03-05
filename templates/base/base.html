@@ -199,6 +199,22 @@
     </div>
     {% endif %}
 
+    <!-- Inactivity warning modal -->
+    {% if user.is_authenticated %}
+    <dialog id="inactivity-modal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg text-warning">Sesión a punto de expirar</h3>
+            <p class="py-4">Su sesión se cerrará en menos de 1 minuto por inactividad. Mueva el mouse o presione una tecla para continuar.</p>
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn btn-primary">Continuar trabajando</button>
+                </form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    </dialog>
+    {% endif %}
+
     <!-- Loading Overlay -->
     <div id="loading-overlay"
          class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden"
@@ -230,6 +246,41 @@
             evt.detail.headers['X-CSRFToken'] = document.querySelector('meta[name="csrf-token"]').content;
         });
     </script>
+
+    <!-- Client-side inactivity timeout (10 min) -->
+    {% if user.is_authenticated %}
+    <script nonce="{{ request.csp_nonce }}">
+    (function() {
+        var TIMEOUT = 10 * 60 * 1000; // 10 minutes in ms
+        var WARNING = 60 * 1000; // warn 1 minute before
+        var timer, warnTimer;
+
+        function resetTimer() {
+            clearTimeout(timer);
+            clearTimeout(warnTimer);
+            // Close any open warning modal
+            var modal = document.getElementById('inactivity-modal');
+            if (modal) modal.close();
+
+            warnTimer = setTimeout(function() {
+                var modal = document.getElementById('inactivity-modal');
+                if (modal) modal.showModal();
+            }, TIMEOUT - WARNING);
+
+            timer = setTimeout(function() {
+                window.location.href = "{% url 'accounts:login' %}?timeout=1";
+            }, TIMEOUT);
+        }
+
+        ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart', 'click'].forEach(function(evt) {
+            document.addEventListener(evt, resetTimer, { passive: true });
+        });
+        document.body.addEventListener('htmx:afterRequest', resetTimer);
+
+        resetTimer();
+    })();
+    </script>
+    {% endif %}
 
     {% block extra_js %}{% endblock %}
 </body>

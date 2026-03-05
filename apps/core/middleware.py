@@ -7,6 +7,7 @@ import time
 from django.conf import settings
 from django.contrib.auth import logout
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils.deprecation import MiddlewareMixin
 
 
@@ -28,7 +29,8 @@ class SessionInactivityMiddleware(MiddlewareMixin):
 
         if last_activity and (now - last_activity) > timeout:
             logout(request)
-            return redirect(f"{settings.LOGIN_URL}?timeout=1")
+            login_url = reverse(settings.LOGIN_URL)
+            return redirect(f"{login_url}?timeout=1")
 
         request.session["_last_activity"] = now
         return None
