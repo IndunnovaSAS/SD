@@ -710,7 +710,7 @@ def course_full_edit(request, course_id):
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, f"Curso '{course.title}' actualizado exitosamente.")
-        return redirect("courses:parametrizacion")
+        return redirect("courses:course_admin_list")
 
     # Include builder context for modules/lessons editing
     builder_ctx = _get_builder_context(course)
@@ -927,7 +927,7 @@ def builder_add_module(request, course_id):
         return err
 
     course = get_object_or_404(Course, id=course_id)
-    form = ModuleBuilderForm(request.POST)
+    form = ModuleBuilderForm(request.POST, request.FILES)
 
     if form.is_valid():
         module = form.save(commit=False)
@@ -961,7 +961,7 @@ def builder_edit_module(request, course_id, module_id):
 
     course = get_object_or_404(Course, id=course_id)
     module = get_object_or_404(Module, id=module_id, course=course)
-    form = ModuleBuilderForm(request.POST, instance=module)
+    form = ModuleBuilderForm(request.POST, request.FILES, instance=module)
 
     if form.is_valid():
         form.save()

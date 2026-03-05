@@ -14,13 +14,19 @@
             <!-- Module Info (View Mode) -->
             <div class="flex-1" x-show="!editing">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <h4 class="font-semibold text-base">{{ module.title }}</h4>
-                        {% if module.description %}
-                        <p class="text-sm text-gray-500 mt-1">{{ module.description }}</p>
+                    <div class="flex items-center gap-3">
+                        {% if module.cover_image %}
+                        <img src="{{ module.cover_image.url }}" alt="{{ module.title }}"
+                             class="w-16 h-16 rounded-lg object-cover flex-shrink-0">
                         {% endif %}
-                        <div class="flex gap-2 mt-1">
-                            <span class="text-xs text-gray-400">{{ module.lessons.count }} leccion{{ module.lessons.count|pluralize:"es" }}</span>
+                        <div>
+                            <h4 class="font-semibold text-base">{{ module.title }}</h4>
+                            {% if module.description %}
+                            <p class="text-sm text-gray-500 mt-1">{{ module.description }}</p>
+                            {% endif %}
+                            <div class="flex gap-2 mt-1">
+                                <span class="text-xs text-gray-400">{{ module.lessons.count }} leccion{{ module.lessons.count|pluralize:"es" }}</span>
+                            </div>
                         </div>
                     </div>
                     <div class="flex gap-1">
@@ -47,7 +53,8 @@
             <div class="flex-1" x-show="editing" x-cloak>
                 <form hx-post="{% url 'courses:builder_edit_module' course.id module.id %}"
                       hx-target="closest [data-module-id]"
-                      hx-swap="outerHTML">
+                      hx-swap="outerHTML"
+                      hx-encoding="multipart/form-data">
                     {% csrf_token %}
                     <div class="form-control mb-2">
                         <input type="text" name="title" value="{{ module.title }}"
@@ -56,6 +63,17 @@
                     <div class="form-control mb-2">
                         <textarea name="description" class="textarea textarea-bordered textarea-sm w-full"
                                   rows="2">{{ module.description }}</textarea>
+                    </div>
+                    <div class="form-control mb-2">
+                        <label class="label py-0">
+                            <span class="label-text text-xs">Imagen de portada</span>
+                        </label>
+                        <input type="file" name="cover_image"
+                               class="file-input file-input-bordered file-input-xs w-full"
+                               accept="image/*">
+                        {% if module.cover_image %}
+                        <span class="text-xs text-gray-400 mt-1">Imagen actual: {{ module.cover_image.name|truncatewords:3 }}</span>
+                        {% endif %}
                     </div>
                     <div class="flex gap-2 justify-end">
                         <button type="button" class="btn btn-ghost btn-xs" @click="editing = false">Cancelar</button>

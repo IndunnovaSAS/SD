@@ -248,6 +248,8 @@ class CourseFullEditForm(forms.ModelForm):
             "objectives",
             "course_type",
             "thumbnail",
+            "banner_image",
+            "theme_color",
             "category",
             "target_profiles",
             "validity_months",
@@ -268,6 +270,12 @@ class CourseFullEditForm(forms.ModelForm):
             "status": forms.Select(attrs={"class": "select select-bordered w-full"}),
             "thumbnail": forms.ClearableFileInput(
                 attrs={"class": "file-input file-input-bordered w-full"}
+            ),
+            "banner_image": forms.ClearableFileInput(
+                attrs={"class": "file-input file-input-bordered w-full"}
+            ),
+            "theme_color": forms.TextInput(
+                attrs={"class": "input input-bordered w-full", "type": "color"}
             ),
         }
 
@@ -331,7 +339,7 @@ class ModuleBuilderForm(forms.ModelForm):
 
     class Meta:
         model = Module
-        fields = ["title", "description"]
+        fields = ["title", "description", "cover_image"]
         widgets = {
             "title": forms.TextInput(
                 attrs={
@@ -345,6 +353,9 @@ class ModuleBuilderForm(forms.ModelForm):
                     "rows": 2,
                     "placeholder": "Descripcion del modulo (opcional)",
                 }
+            ),
+            "cover_image": forms.ClearableFileInput(
+                attrs={"class": "file-input file-input-bordered file-input-sm w-full"}
             ),
         }
 

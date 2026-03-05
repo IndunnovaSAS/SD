@@ -67,7 +67,8 @@
             <form hx-post="{% url 'courses:builder_add_module' course.id %}"
                   hx-target="#module-list"
                   hx-swap="beforeend"
-                  @htmx:after-request="if(event.detail.successful) { showAddModule = false; $refs.moduleTitle.value = ''; $refs.moduleDesc.value = ''; }">
+                  hx-encoding="multipart/form-data"
+                  @htmx:after-request="if(event.detail.successful) { showAddModule = false; $refs.moduleTitle.value = ''; $refs.moduleDesc.value = ''; $refs.moduleCover.value = ''; }">
                 {% csrf_token %}
                 <div class="form-control mb-3">
                     <input type="text" name="title" x-ref="moduleTitle"
@@ -78,6 +79,14 @@
                     <textarea name="description" x-ref="moduleDesc"
                               class="textarea textarea-bordered w-full" rows="2"
                               placeholder="Descripcion del modulo (opcional)"></textarea>
+                </div>
+                <div class="form-control mb-3">
+                    <label class="label py-1">
+                        <span class="label-text text-sm">Imagen de portada del modulo (opcional)</span>
+                    </label>
+                    <input type="file" name="cover_image" x-ref="moduleCover"
+                           class="file-input file-input-bordered file-input-sm w-full"
+                           accept="image/*">
                 </div>
                 <div class="flex gap-2 justify-end">
                     <button type="button" class="btn btn-ghost btn-sm"

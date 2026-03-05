@@ -6,11 +6,11 @@
     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
         Edicion completa del curso <strong>{{ course.title }}</strong>
     </p>
-    <a href="{% url 'courses:parametrizacion' %}" class="btn btn-ghost btn-sm">
+    <a href="{% url 'courses:course_admin_list' %}" class="btn btn-ghost btn-sm">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
-        Volver a Parametrizacion
+        Volver a Cursos
     </a>
 </div>
 {% endblock %}
@@ -151,11 +151,55 @@
                                     <span class="label-text">Imagen miniatura</span>
                                 </label>
                                 {{ form.thumbnail }}
+                                {% if course.thumbnail %}
+                                <div class="mt-2">
+                                    <img src="{{ course.thumbnail.url }}" alt="Miniatura actual" class="h-16 rounded-lg object-cover">
+                                </div>
+                                {% endif %}
                                 {% if form.thumbnail.errors %}
                                 <label class="label">
                                     <span class="label-text-alt text-error">{{ form.thumbnail.errors.0 }}</span>
                                 </label>
                                 {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="divider text-sm my-2">Presentacion Visual</div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Imagen de portada</span>
+                                </label>
+                                {{ form.banner_image }}
+                                {% if course.banner_image %}
+                                <div class="mt-2">
+                                    <img src="{{ course.banner_image.url }}" alt="Portada actual" class="h-24 w-full rounded-lg object-cover">
+                                </div>
+                                {% endif %}
+                                {% if form.banner_image.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.banner_image.errors.0 }}</span>
+                                </label>
+                                {% endif %}
+                                <label class="label">
+                                    <span class="label-text-alt">Imagen grande del encabezado del curso</span>
+                                </label>
+                            </div>
+
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Color del tema</span>
+                                </label>
+                                {{ form.theme_color }}
+                                {% if form.theme_color.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.theme_color.errors.0 }}</span>
+                                </label>
+                                {% endif %}
+                                <label class="label">
+                                    <span class="label-text-alt">Color de acentos del curso (encabezados, bordes, etc.)</span>
+                                </label>
                             </div>
                         </div>
                         <div class="alert alert-info mt-4">
@@ -196,7 +240,7 @@
                             </svg>
                             Guardar Cambios
                         </button>
-                        <a href="{% url 'courses:parametrizacion' %}" class="btn btn-ghost">
+                        <a href="{% url 'courses:course_admin_list' %}" class="btn btn-ghost">
                             Cancelar
                         </a>
                     </div>

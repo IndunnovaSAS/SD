@@ -167,6 +167,20 @@ class Course(models.Model):
         blank=True,
         null=True,
     )
+    banner_image = models.ImageField(
+        _("Imagen de portada"),
+        upload_to="courses/banners/",
+        blank=True,
+        null=True,
+        help_text=_("Imagen grande que se muestra en el encabezado del curso"),
+    )
+    theme_color = models.CharField(
+        _("Color del tema"),
+        max_length=7,
+        blank=True,
+        default="",
+        help_text=_("Color hexadecimal del tema del curso (ej: #3B82F6)"),
+    )
     status = models.CharField(
         _("Estado"),
         max_length=20,
@@ -258,6 +272,13 @@ class Module(models.Model):
     )
     title = models.CharField(_("Título"), max_length=200)
     description = models.TextField(_("Descripción"), blank=True)
+    cover_image = models.ImageField(
+        _("Imagen de portada"),
+        upload_to="courses/modules/",
+        blank=True,
+        null=True,
+        help_text=_("Imagen que se muestra al inicio del módulo"),
+    )
     order = models.PositiveIntegerField(_("Orden"), default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
