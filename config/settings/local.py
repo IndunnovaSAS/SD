@@ -6,6 +6,14 @@ from .base import *  # noqa: F403, F401
 
 DEBUG = True
 
+# Use SQLite for local development (no PostgreSQL needed)
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",  # noqa: F405
+    }
+}
+
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "35.184.159.138", "34.174.86.113", "*"]
 
 # Disable secure cookies in development
@@ -54,11 +62,14 @@ LOGGING["loggers"]["django.db.backends"] = {  # noqa: F405
 # Disable axes in development
 AXES_ENABLED = False
 
+# Remove CSP middleware in local dev (avoids django-csp version conflicts)
+MIDDLEWARE = [m for m in MIDDLEWARE if m != "csp.middleware.CSPMiddleware"]  # noqa: F405
+
 # Allow all CORS origins in development
 CORS_ALLOW_ALL_ORIGINS = True
 
-# TOTP 2FA: required for all users
-TOTP_2FA_REQUIRED = True
+# TOTP 2FA: disabled for local development
+TOTP_2FA_REQUIRED = False
 
 # SMS OTP: disabled (use TOTP instead - free, no Twilio needed)
 SMS_OTP_ENABLED = False

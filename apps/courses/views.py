@@ -651,7 +651,9 @@ def course_full_edit(request, course_id):
         messages.success(request, f"Curso '{course.title}' actualizado exitosamente.")
         return redirect("courses:parametrizacion")
 
-    context = {"form": form, "course": course}
+    # Include builder context for modules/lessons editing
+    builder_ctx = _get_builder_context(course)
+    context = {"form": form, "course": course, **builder_ctx}
     return render(request, "courses/course_full_edit.html", context)
 
 

@@ -83,6 +83,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "axes.middleware.AxesMiddleware",
+    "apps.core.middleware.SessionInactivityMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -196,6 +197,10 @@ SESSION_CACHE_ALIAS = "default"
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
+SESSION_SAVE_EVERY_REQUEST = True  # Refresh session on every request to prevent silent expiry
+
+# Inactivity timeout (seconds) — logout after 10 minutes of no activity
+SESSION_INACTIVITY_TIMEOUT = 10 * 60  # 10 minutes
 
 # CSRF configuration
 CSRF_COOKIE_SECURE = True
