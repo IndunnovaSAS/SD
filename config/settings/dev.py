@@ -35,9 +35,9 @@ MIDDLEWARE = [  # noqa: F405
     if m not in ("axes.middleware.AxesMiddleware", "csp.middleware.CSPMiddleware")
 ]
 
-# Auth backends without axes
+# Auth backends without axes (but keep document number login)
 AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",
+    "apps.accounts.backends.EmailOrDocumentBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 

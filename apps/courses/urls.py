@@ -28,6 +28,11 @@ urlpatterns = [
         name="lesson",
     ),
     path(
+        "<int:course_id>/lessons/<int:lesson_id>/file/",
+        views.lesson_content_file,
+        name="lesson_content_file",
+    ),
+    path(
         "<int:course_id>/lessons/<int:lesson_id>/progress/",
         views.update_progress,
         name="update_progress",

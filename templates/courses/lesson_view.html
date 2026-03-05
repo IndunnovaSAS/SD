@@ -138,10 +138,21 @@
                 {% elif lesson.lesson_type == 'pdf' %}
                 <div class="mb-6">
                     {% if lesson.content_file %}
-                    <iframe src="{{ lesson.content_file.url }}"
+                    <object data="{% url 'courses:lesson_content_file' course.id lesson.id %}"
+                            type="application/pdf"
                             class="w-full h-[600px] rounded-lg border dark:border-gray-700">
-                    </iframe>
-                    <a href="{{ lesson.content_file.url }}" download class="btn btn-ghost btn-sm mt-2">
+                        <div class="flex flex-col items-center justify-center h-full bg-base-200 rounded-lg p-8">
+                            <svg class="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                            <p class="text-gray-500 mb-4">Tu navegador no puede mostrar el PDF directamente.</p>
+                            <a href="{% url 'courses:lesson_content_file' course.id lesson.id %}"
+                               target="_blank" class="btn btn-primary btn-sm">
+                                Abrir PDF en nueva pestaña
+                            </a>
+                        </div>
+                    </object>
+                    <a href="{% url 'courses:lesson_content_file' course.id lesson.id %}" download class="btn btn-ghost btn-sm mt-2">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                         </svg>

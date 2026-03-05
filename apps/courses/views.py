@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import models
 from django.db.models import Count, Q
-from django.http import HttpResponse, JsonResponse
+from django.http import FileResponse, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
@@ -158,11 +158,25 @@ def enroll_course(request, course_id):
 @login_required
 def lesson_view(request, course_id, lesson_id):
     """View a lesson."""
+    from datetime import date
+
+    from dateutil.relativedelta import relativedelta
+
     course = get_object_or_404(Course, id=course_id)
     lesson = get_object_or_404(Lesson, id=lesson_id, module__course=course)
 
     # Get or create enrollment
     enrollment = get_object_or_404(Enrollment, user=request.user, course=course)
+
+    # Start the course timer on first lesson access
+    if not enrollment.started_at:
+        enrollment.started_at = timezone.now()
+        if enrollment.status == Enrollment.Status.ENROLLED:
+            enrollment.status = Enrollment.Status.IN_PROGRESS
+        # Calculate due_date based on course validity
+        if not enrollment.due_date and course.validity_months:
+            enrollment.due_date = date.today() + relativedelta(months=course.validity_months)
+        enrollment.save()
 
     # Check lesson accessibility (sequential locking)
     is_accessible, blocking_lesson = EnrollmentService.is_lesson_accessible(enrollment, lesson)
@@ -203,6 +217,22 @@ def lesson_view(request, course_id, lesson_id):
         "enrollment": enrollment,
     }
     return render(request, "courses/lesson_view.html", context)
+
+
+@login_required
+def lesson_content_file(request, course_id, lesson_id):
+    """Serve lesson content file with proper headers (for PDF viewing, etc.)."""
+    course = get_object_or_404(Course, id=course_id)
+    lesson = get_object_or_404(Lesson, id=lesson_id, module__course=course)
+    enrollment = get_object_or_404(Enrollment, user=request.user, course=course)
+
+    if not lesson.content_file:
+        return HttpResponse("Archivo no disponible", status=404)
+
+    response = FileResponse(lesson.content_file.open("rb"), content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="{lesson.content_file.name.split("/")[-1]}"'
+    response["X-Frame-Options"] = "SAMEORIGIN"
+    return response
 
 
 @login_required
@@ -304,8 +334,27 @@ def update_video_progress(request, course_id, lesson_id):
 @login_required
 def my_courses(request):
     """View user's enrolled courses."""
+    user = request.user
+
+    # Auto-enroll in profile courses that are missing
+    if user.job_profile:
+        existing_course_ids = set(
+            Enrollment.objects.filter(user=user).values_list("course_id", flat=True)
+        )
+        for course in Course.objects.filter(status=Course.Status.PUBLISHED):
+            if (
+                course.target_profiles
+                and user.job_profile in course.target_profiles
+                and course.id not in existing_course_ids
+            ):
+                Enrollment.objects.create(
+                    user=user,
+                    course=course,
+                    status=Enrollment.Status.ENROLLED,
+                )
+
     enrollments = (
-        Enrollment.objects.filter(user=request.user)
+        Enrollment.objects.filter(user=user)
         .select_related("course", "course__category")
         .order_by("-updated_at")
     )
