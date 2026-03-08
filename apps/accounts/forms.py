@@ -218,18 +218,10 @@ class UserCreateForm(forms.ModelForm):
         job_profile = cleaned_data.get("job_profile")
         email = cleaned_data.get("email")
 
-        # Perfiles que requieren email (profesionales y administradores)
-        profiles_requiring_email = [
-            User.JobProfile.JEFE_CUADRILLA,
-            User.JobProfile.INGENIERO_RESIDENTE,
-            User.JobProfile.COORDINADOR_HSEQ,
-            User.JobProfile.COORDINADOR_VISUALIZACION,
-            User.JobProfile.ADMINISTRADOR,
-        ]
-
-        if job_profile in profiles_requiring_email and not email:
+        # Solo administradores requieren email obligatoriamente
+        if job_profile == User.JobProfile.ADMINISTRADOR and not email:
             self.add_error(
-                "email", _("El correo electrónico es requerido para este perfil ocupacional.")
+                "email", _("El correo electrónico es requerido para administradores.")
             )
 
         return cleaned_data
@@ -311,18 +303,10 @@ class UserEditForm(forms.ModelForm):
         job_profile = cleaned_data.get("job_profile")
         email = cleaned_data.get("email")
 
-        # Perfiles que requieren email (profesionales y administradores)
-        profiles_requiring_email = [
-            User.JobProfile.JEFE_CUADRILLA,
-            User.JobProfile.INGENIERO_RESIDENTE,
-            User.JobProfile.COORDINADOR_HSEQ,
-            User.JobProfile.COORDINADOR_VISUALIZACION,
-            User.JobProfile.ADMINISTRADOR,
-        ]
-
-        if job_profile in profiles_requiring_email and not email:
+        # Solo administradores requieren email obligatoriamente
+        if job_profile == User.JobProfile.ADMINISTRADOR and not email:
             self.add_error(
-                "email", _("El correo electrónico es requerido para este perfil ocupacional.")
+                "email", _("El correo electrónico es requerido para administradores.")
             )
 
         return cleaned_data

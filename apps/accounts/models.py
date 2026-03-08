@@ -154,6 +154,9 @@ class User(AbstractUser):
         """Auto-assign is_staff=True for ADMINISTRADOR profile."""
         if self.job_profile == self.JobProfile.ADMINISTRADOR:
             self.is_staff = True
+        # Normalize empty email to None to avoid unique constraint violations
+        if not self.email:
+            self.email = None
         super().save(*args, **kwargs)
 
     def get_full_name(self):
