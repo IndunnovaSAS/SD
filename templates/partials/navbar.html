@@ -113,7 +113,7 @@
             <div class="dropdown dropdown-end">
                 <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar" aria-label="Abrir menu de usuario" aria-haspopup="true" aria-expanded="false">
                     <div class="w-10 rounded-full bg-primary-500 text-white flex items-center justify-center">
-                        <span class="text-sm font-medium" aria-hidden="true">{{ user.first_name.0|default:user.email.0|upper }}{{ user.last_name.0|default:"" }}</span>
+                        <span class="text-sm font-medium" aria-hidden="true">{{ user.first_name.0|default:"#"|upper }}{{ user.last_name.0|default:"" }}</span>
                     </div>
                 </div>
                 <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 dark:bg-gray-700" role="menu" aria-label="Menu de usuario">

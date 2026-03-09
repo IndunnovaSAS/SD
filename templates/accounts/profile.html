@@ -22,7 +22,7 @@
                             {% if user.photo %}
                             <img src="{{ user.photo.url }}" alt="{{ user.get_full_name }}">
                             {% else %}
-                            <span class="text-3xl">{{ user.first_name.0|default:user.email.0|upper }}</span>
+                            <span class="text-3xl">{{ user.first_name.0|default:"#"|upper }}</span>
                             {% endif %}
                         </div>
                     </div>
